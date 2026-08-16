@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * applyShareService.ts — Apply-with-VitalCV: Sign & Share event system
  *
@@ -6,22 +5,26 @@
  *   1. Validate organization_context (id, name, callback_url, purpose_of_use)
  *   2. Generate (or reuse) the clinician's apply bundle
  *   3. Persist a BundleShareEvent — structured log of who/what/where/when
- *   4. Dispatch webhook to organization (if registered in EmployerWebhookConfig)
- *   5. Email fallback if no webhook or webhook fails
- *   6. Return structured ShareResult
+ *   4. Dispatch a webhook ONLY to a server-verified, registered
+ *      EmployerWebhookConfig for the recipient org, through the SSRF egress
+ *      guard, signed with the per-org secret. The client-supplied
+ *      `callback_url` is never a dispatch target and no default signing
+ *      secret exists — a missing per-org secret fails closed (no dispatch).
+ *   5. Return structured ShareResult
  *
  * Revocation:
  *   revokeShare(shareId, clerkUserId) marks the share as revoked.
- *   The public bundle view should check BundleShareEvent.revokedAt.
+ *   The public bundle read (readPublicBundle) fails closed once any share of
+ *   the bundle is revoked, so the capability URL stops serving.
  */
 
-import { createHash, createHmac, randomUUID } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import prisma from '../../graphql/prisma_client';
-import { generateApplyBundle, type ApplyBundle } from './applyBundle';
+import { generateApplyBundle, getApplyBundle, type ApplyBundle } from './applyBundle';
 import { appendAuditEvent } from '../audit/auditLedger';
 import { buildEmployerReviewPayload, employerReviewPayloadToJson } from '../entity/employerReviewPayload';
 import { issueReadinessSnapshot } from './readinessSnapshotService';
-import { getNotificationProvider } from '../providers/notificationProvider';
+import { assertEgressAllowed, EgressBlockedError, type EgressResolver } from './egressGuard';
 import { log } from '../../obs/logger';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -73,8 +76,15 @@ export interface ShareListEntry {
 
 // ── Validation ────────────────────────────────────────────────────────────────
 
-const URL_RE = /^https?:\/\/.+/;
+// HTTPS only — the code once accepted http:// while its own error message said
+// https. A callback_url is validated here for API hygiene, but it is NEVER the
+// effective dispatch target (see dispatchToOrganization).
+const URL_RE = /^https:\/\/.+/;
 const NPI_RE = /^\d{10}$/;
+// EmployerWebhookConfig.employerId is a Postgres uuid column; a non-uuid
+// organization_id can never match a row, so we skip the query rather than let
+// Prisma throw on the cast.
+const ORG_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function validateOrganizationContext(ctx: unknown): OrganizationContext {
   if (!ctx || typeof ctx !== 'object') {
@@ -118,26 +128,74 @@ interface WebhookDispatchResult {
   deliveredAt: string | null;
 }
 
-async function dispatchToOrganization(
+/** Injectable seams so the dispatch path is testable without net/DNS. */
+export interface WebhookDispatchDeps {
+  fetchImpl?: typeof fetch;
+  resolver?: EgressResolver;
+}
+
+interface RegisteredWebhookTarget {
+  webhookUrl: string;
+  secret: string;
+}
+
+/**
+ * Resolve the server-verified webhook target for a recipient organization.
+ *
+ * Only a REGISTERED, active EmployerWebhookConfig with a configured per-org
+ * secret is a valid target. A missing config, an inactive one, or one without a
+ * secret returns null — the caller then fails closed rather than dispatching to
+ * a client-supplied URL or signing with a shared default.
+ *
+ * Note: the "safe" path was previously dead — it selected `signingSecret`/`active`,
+ * columns that do not exist (the model has `secret`/`isActive`), so the query
+ * always threw and was swallowed to null, and every dispatch silently fell back
+ * to the caller-supplied `callback_url` signed with a public default constant.
+ */
+export async function resolveRegisteredWebhookTarget(
+  organizationId: string,
+): Promise<RegisteredWebhookTarget | null> {
+  if (!ORG_UUID_RE.test(organizationId)) return null;
+  const config = await prisma.employerWebhookConfig
+    .findFirst({
+      where: { employerId: organizationId, isActive: true },
+      select: { webhookUrl: true, secret: true, isActive: true },
+    })
+    .catch(() => null);
+  if (!config || !config.isActive) return null;
+  if (!config.webhookUrl || !config.secret) return null; // fail closed: no per-org secret → no signed dispatch
+  return { webhookUrl: config.webhookUrl, secret: config.secret };
+}
+
+export async function dispatchToOrganization(
   organizationId: string,
   bundle: ApplyBundle,
   orgContext: OrganizationContext,
   shareId: string,
+  deps: WebhookDispatchDeps = {},
 ): Promise<WebhookDispatchResult> {
-  // 1. Check EmployerWebhookConfig (existing enterprise webhook table)
-  const config = await prisma.employerWebhookConfig.findUnique({
-    where: { employerId: organizationId },
-    select: { webhookUrl: true, signingSecret: true, active: true },
-  }).catch(() => null);
-
-  // 2. Fallback: check callback_url passed in context
-  const webhookUrl = (config?.active ? config.webhookUrl : null) ?? orgContext.callback_url ?? null;
-
-  if (!webhookUrl) {
+  // The caller-supplied callback_url is NEVER dispatched to. A consequential
+  // outbound webhook goes only to a server-verified, registered employer
+  // config, signed with that org's own secret.
+  const target = await resolveRegisteredWebhookTarget(organizationId);
+  if (!target) {
+    // No registered config / no per-org secret → do not dispatch, do not sign
+    // with a default. Fail closed; the share is still recorded (logged_only).
     return { delivered: false, webhookUrl: null, error: null, deliveredAt: null };
   }
 
-  const signingSecret = config?.signingSecret ?? process.env.APPLY_WEBHOOK_DEFAULT_SECRET ?? 'vcv-default-secret';
+  // Egress guard (defense in depth): even a registered URL must be a public
+  // https endpoint and must not resolve to a private/loopback/metadata address.
+  let allowed: { url: URL; addresses: string[] };
+  try {
+    allowed = await assertEgressAllowed(target.webhookUrl, { resolver: deps.resolver });
+  } catch (err) {
+    const reason = err instanceof EgressBlockedError ? err.reason : 'egress_blocked';
+    log('warn', 'apply_share_webhook_egress_blocked', { shareId, organizationId, reason });
+    return { delivered: false, webhookUrl: target.webhookUrl, error: `blocked_egress:${reason}`, deliveredAt: null };
+  }
+
+  const signingSecret = target.secret; // per-org, verified — never a default constant
 
   const payload = {
     schema: 'vitalcv.apply.share.v1',
@@ -167,8 +225,9 @@ async function dispatchToOrganization(
   const ts = Date.now();
   const sig = createHmac('sha256', signingSecret).update(`t=${ts}${body}`).digest('hex');
 
+  const fetchImpl = deps.fetchImpl ?? fetch;
   try {
-    const res = await fetch(webhookUrl, {
+    const res = await fetchImpl(allowed.url.toString(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -178,71 +237,39 @@ async function dispatchToOrganization(
         'User-Agent': 'VitalCV-ApplyWebhook/1.0',
       },
       body,
+      // Never follow a redirect to a new host — we validated the initial target only.
+      redirect: 'manual',
       signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
     });
+
+    // `redirect: 'manual'` surfaces a 3xx (or an opaqueredirect) rather than
+    // following it. Treat any redirect as a non-delivery.
+    if (res.type === 'opaqueredirect' || (res.status >= 300 && res.status < 400)) {
+      return {
+        delivered: false,
+        webhookUrl: target.webhookUrl,
+        error: `redirect_blocked:${res.status}`,
+        deliveredAt: null,
+      };
+    }
 
     if (!res.ok) {
       return {
         delivered: false,
-        webhookUrl,
+        webhookUrl: target.webhookUrl,
         error: `HTTP ${res.status} ${res.statusText}`,
         deliveredAt: null,
       };
     }
 
-    return { delivered: true, webhookUrl, error: null, deliveredAt: new Date().toISOString() };
+    return { delivered: true, webhookUrl: target.webhookUrl, error: null, deliveredAt: new Date().toISOString() };
   } catch (err) {
     return {
       delivered: false,
-      webhookUrl,
+      webhookUrl: target.webhookUrl,
       error: err instanceof Error ? err.message : String(err),
       deliveredAt: null,
     };
-  }
-}
-
-// ── Email fallback ────────────────────────────────────────────────────────────
-
-async function sendEmailFallback(
-  bundle: ApplyBundle,
-  orgContext: OrganizationContext,
-  shareId: string,
-): Promise<{ sent: boolean; to: string | null }> {
-  // Derive recipient email: callback_url domain contact, or configured fallback
-  const fallbackEmail = process.env.APPLY_EMAIL_FALLBACK_TO ?? null;
-  if (!fallbackEmail) {
-    log('info', 'apply_share_email_fallback_skipped', {
-      shareId,
-      reason: 'APPLY_EMAIL_FALLBACK_TO not configured',
-    });
-    return { sent: false, to: null };
-  }
-
-  const bundleUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://vitalcv.com'}/apply/${bundle.bundleId}`;
-  const subject = `[VitalCV] Credential bundle shared by ${bundle.clinicianName}`;
-  const body = [
-    `Organization: ${orgContext.name} (${orgContext.organization_id})`,
-    `Purpose of use: ${orgContext.purpose_of_use}`,
-    ``,
-    `${bundle.clinicianName} (NPI: ${bundle.npi}) has shared their verified credential bundle with your organization.`,
-    ``,
-    `Readiness: ${bundle.trustState.readiness_level} — ${bundle.trustState.readiness_status} (${bundle.trustState.readiness_score}/100)`,
-    `Credentials included: ${bundle.credentials.length}`,
-    ``,
-    `View bundle: ${bundleUrl}`,
-    `Expires: ${new Date(bundle.expiresAt).toUTCString()}`,
-    ``,
-    `Share ID: ${shareId}`,
-    `This bundle is cryptographically signed. Verify at /api/apply/verify.`,
-  ].join('\n');
-
-  try {
-    const provider = getNotificationProvider();
-    await provider.send(fallbackEmail, subject, body);
-    return { sent: true, to: fallbackEmail };
-  } catch (err) {
-    log('warn', 'apply_share_email_fallback_error', { shareId, error: String(err) });
-    return { sent: false, to: null };
   }
 }
 
@@ -286,11 +313,13 @@ export async function shareBundle(
     bundle.bundleId,   // share ID = bundle ID for now (1:1 at creation)
   );
 
-  // 3. Email fallback — send if webhook failed or was skipped
-  let emailResult = { sent: false, to: null as string | null };
-  if (!webhookResult.delivered) {
-    emailResult = await sendEmailFallback(bundle, orgContext, bundle.bundleId);
-  }
+  // 3. No email fallback. The previous fallback mailed a working, unauthenticated
+  //    bundle link to a single global APPLY_EMAIL_FALLBACK_TO mailbox — never the
+  //    organization the clinician actually chose — which leaks the bundle to a
+  //    party the clinician never selected. There is no server-verified per-org
+  //    contact to bind to, so we do not send anything and record the share as
+  //    logged_only. Re-introduce only against a verified per-recipient address.
+  const emailResult = { sent: false, to: null as string | null };
 
   // 4. Determine status
   let status: ShareResult['status'];
@@ -451,6 +480,47 @@ export async function listSharesForNpi(npi: string): Promise<ShareListEntry[]> {
     revokedAt: s.revokedAt?.toISOString() ?? null,
     bundleUrl: `${appUrl}/apply/${s.bundleId}`,
   }));
+}
+
+// ── Public bundle read (revocation-aware) ─────────────────────────────────────
+
+export type PublicBundleOutcome = 'ok' | 'not_found' | 'expired' | 'revoked';
+
+export interface PublicBundleReadResult {
+  outcome: PublicBundleOutcome;
+  bundle?: ApplyBundle;
+  expiresAt?: string;
+}
+
+/**
+ * Read a bundle for the anonymous capability-URL surface, failing closed once
+ * the share is revoked.
+ *
+ * The public `/apply/<bundleId>` page previously checked only `expiresAt`, so a
+ * revoked share kept serving the full bundle until its 24h TTL — the product
+ * told the clinician a capability was withdrawn while it still worked. Here any
+ * revoked share of the bundle closes the link (mirrors readinessSnapshotService).
+ *
+ * Fail-closed: the revocation lookup is deliberately NOT wrapped in a catch. A
+ * database error must not resolve to "serve the bundle" — it propagates and the
+ * route returns 5xx rather than disclosing a possibly-revoked bundle.
+ */
+export async function readPublicBundle(bundleId: string): Promise<PublicBundleReadResult> {
+  const bundle = await getApplyBundle(bundleId);
+  if (!bundle) return { outcome: 'not_found' };
+  if (new Date(bundle.expiresAt) < new Date()) {
+    return { outcome: 'expired', expiresAt: bundle.expiresAt };
+  }
+  // getApplyBundle has already validated bundleId as a uuid, so the uuid-column
+  // query below cannot throw on a cast.
+  const revoked = await prisma.bundleShareEvent.findFirst({
+    where: { bundleId, revokedAt: { not: null } },
+    select: { revokedAt: true },
+  });
+  if (revoked?.revokedAt) {
+    return { outcome: 'revoked' };
+  }
+  return { outcome: 'ok', bundle, expiresAt: bundle.expiresAt };
 }
 
 // ── Core: revoke a share ──────────────────────────────────────────────────────

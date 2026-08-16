@@ -107,7 +107,6 @@
     "src/services/billing/subscriptionService.ts",
     "src/services/copilot/__tests__/strategySupport.test.ts",
     "src/services/decision/capsuleEngine.ts",
-    "src/services/distribution/applyShareService.ts",
     "src/services/employers/employerService.ts",
     "src/services/entity/employerReviewActions.ts",
     "src/services/entity/employerReviewPayload.ts",
