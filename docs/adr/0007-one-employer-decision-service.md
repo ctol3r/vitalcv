@@ -98,7 +98,7 @@ consequence write — migrated to
 `services/activation/__tests__/applicationStartCommand.db.test.ts`, which
 proves it by failure injection against real PostgreSQL; the routing closure
 (every start route persists only through the command) is
-`routes/__tests__/startRoutesUseCanonicalCommand.test.ts`.
+`src/routes/__tests__/startRoutesUseCanonicalCommand.test.ts`.
 
 Deferred deliberately, not forgotten: #1384's `StartAttestation`
 application/organization/confirmedBy columns and unique index are a Prisma
@@ -114,7 +114,7 @@ Point 6's pending retirement is **executed**, under the founder's 2026-08-16
 registration are deleted: `POST /recognitions`, `GET
 /recognitions/:recognitionId`, `POST /acceptances`, `POST /starts`, `GET
 /status/:subject_id`, and `GET /trust-state` no longer exist, and
-`routes/__tests__/wedgeRoutesRemoved.test.ts` pins the 404s through the real
+`src/routes/__tests__/wedgeRoutesRemoved.test.ts` pins the 404s through the real
 app registration. The root `/trust-state/:clinician_id` alias in `app.ts`
 retired with it — it was a URL-rewriting shim whose only terminal handler was
 the wedge's `GET /trust-state`. The lane had zero live callers (verified in the
