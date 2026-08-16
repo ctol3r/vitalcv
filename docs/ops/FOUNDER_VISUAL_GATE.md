@@ -6,18 +6,38 @@
 
 This gate exists because VitalCV accumulated technically valid design work without a single owner for the final visual result. Green CI, design lint, accessibility checks, source-truth checks, and detailed implementation notes are necessary. They do **not** prove that a page is clear, memorable, attractive, or ready to represent the company.
 
-## 1. Temporary homepage change freeze
+## 1. Homepage direction discipline
 
-Until the homepage recovery program is explicitly released:
+### 1a. The 2026-08-15 homepage visual freeze (temporary)
 
-- Do not begin a second homepage composition.
-- Do not replace `HorizontalCareerFilm` with another autonomous redesign.
-- Do not add a new page-level scroll owner.
-- Do not create another eyebrow, action, evidence-card, timeline, navigation, or film primitive when an implementation with the same intent already exists.
-- Do not open a design-system-only PR for a public experience component unless it is mounted on a named route in the same PR or is tied to an approved implementation issue with a named consumer and deletion date.
-- Do not merge visual changes from multiple agent lanes into the same public surface without one named creative owner.
+The founder locked a homepage direction on 2026-08-15 — **Direction A**, constitution
+amendment E, bake-off record at `design-lab/homepage-2026-08-direction-a/DECISION.md` —
+after five homepage rewrites landed in one week (#1334, #1371, #1373, #1387 among them),
+none implementing a founder-chosen direction.
 
-Security, privacy, source-truth, accessibility, production-outage, and data-loss fixes may proceed. Such fixes must avoid unrelated visual recomposition.
+Until this freeze lifts:
+
+- **No homepage visual PR merges except the Direction A recomposition** implementing
+  amendment E, and PRs it explicitly sequences.
+- Copy, truth-contract, security, privacy, accessibility, production-outage, and
+  data-loss fixes may proceed. Such fixes must avoid unrelated visual recomposition.
+- The freeze **lifts** when all three exist, recorded here as a dated note:
+  1. `FOUNDER VISUAL DECISION: GO` on the shipped recomposition at its merge SHA;
+  2. the C3.1 five-second comprehension result filed in the evidence directory;
+  3. funnel baseline collection started (PostHog key live).
+
+### 1b. Standing rule (survives the freeze)
+
+**No new homepage visual direction without an explicit `FOUNDER VISUAL DECISION`.**
+A homepage composition, register, or era change may not begin from taste, a reference
+image, another lane's momentum, or "improving what's there." It begins from a founder
+verdict recorded in the constitution (an EC-22 amendment) — the same bar as every
+locked EC-20 row. Recomposition *within* the locked direction follows §2–§9 as usual.
+
+The pre-UX-V1 freeze text that stood here (HorizontalCareerFilm era) is superseded;
+its durable rules live on: no new page-level scroll owner without founder direction,
+no duplicate-intent primitives (§7), no design-system-only public components without
+a mounted consumer, and one named creative owner per surface (§2).
 
 ## 2. One creative owner per public surface
 
@@ -41,6 +61,12 @@ Multiple agents may implement or review the work. They do not share creative own
 ## 3. Required visual evidence
 
 A public-facing visual PR may not be marked ready for review without all applicable evidence below.
+
+### Law reference
+
+- A **Design Handoff References** section in the PR body naming the EC clauses and
+  EC-20/D/E rows the change implements (constitution preamble rule). A public visual
+  PR that cannot name its rows is a new direction, and §1b applies.
 
 ### Static evidence
 
