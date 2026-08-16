@@ -97,6 +97,43 @@ const SPECIALTY_FIELD = 'clinical specialty';
  * and the age qualifier is part of the statement. Specialty filtering is a
  * substring match, so a clinician searching "family medicine" still reaches it.
  */
+/**
+ * The employer's own statement of which licence holds the role, mapped to the
+ * API's profession vocabulary.
+ *
+ * Measured across the roster on 2026-08-16: 134 jobs state `NP or PA`, 119
+ * state `MD or DO`, 2 state `RN`, and 19 state BOTH `MD or DO` and `NP or PA`.
+ *
+ * Those 19 are why this returns null on a multi-valued statement rather than
+ * taking the first entry. `profession` is one value; a role open to either a
+ * physician or an advanced-practice clinician is not truthfully either one,
+ * and filing it under one would drop it out of the other's filter. Null sends
+ * it to the title classifier, which claims nothing the employer did not.
+ */
+export function extractStatedProfession(job: GreenhouseJob): string | null {
+  for (const field of job.metadata ?? []) {
+    if ((field.name ?? '').trim().toLowerCase() !== 'clinician type') continue;
+
+    const raw = field.value;
+    const values = (Array.isArray(raw) ? raw : [raw])
+      .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+      .filter((entry) => entry.length > 0);
+
+    // Nothing stated, or more than one licence — neither is a single profession.
+    if (values.length !== 1) return null;
+
+    const stated = values[0]?.toLowerCase() ?? '';
+    if (stated === 'md or do') return 'physician';
+    if (stated === 'np or pa') return 'advanced_practice';
+    if (stated === 'rn') return 'nursing';
+
+    // A value the employer added that we have not mapped. Silence beats a guess.
+    return null;
+  }
+
+  return null;
+}
+
 export function extractStatedSpecialty(job: GreenhouseJob): string | null {
   for (const field of job.metadata ?? []) {
     if (field?.name?.trim().toLowerCase() !== SPECIALTY_FIELD) continue;
@@ -187,6 +224,7 @@ export function normalizeBoardJobs(jobs: GreenhouseJob[], board: string): FeedLi
       // FeedListing) — a wrong specialty puts a role in front of the wrong
       // clinician, and a title is not a statement of specialty.
       specialty: extractStatedSpecialty(job),
+      profession: extractStatedProfession(job),
       // The public boards endpoint carries no structured compensation: probed
       // across the whole roster on 2026-08-16, zero of 777 jobs returned
       // `pay_input_ranges`, and no metadata field held a figure. A number

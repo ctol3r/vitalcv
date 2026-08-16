@@ -45,6 +45,13 @@ export interface FeedListing {
    * a wrong specialty puts a role in front of the wrong clinician.
    */
   specialty: string | null;
+  /**
+   * The profession the employer stated, already mapped to the API's vocabulary.
+   * Null when the feed said nothing OR named more than one — a single-valued
+   * facet cannot represent "open to either", and picking one of the two would
+   * hide the role from half the clinicians eligible for it.
+   */
+  profession: string | null;
   /** Structured pay, only when the feed publishes real numbers. */
   payMin: number | null;
   payMax: number | null;

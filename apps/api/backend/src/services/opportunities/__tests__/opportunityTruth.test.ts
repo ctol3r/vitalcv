@@ -309,3 +309,33 @@ describe('structured opportunity columns are authoritative', () => {
     expect(truth.employerType).toBe('staffing agency');
   });
 });
+
+describe('stated profession overrides the title classifier', () => {
+  const truthFor = (statedProfession: string | null) => buildOpportunityTruth({
+    opportunity: {
+      ...makeOpportunityRecord(),
+      title: 'Family Medicine Physician',
+      statedProfession,
+    },
+    now: new Date('2026-03-20T00:00:00.000Z'),
+  });
+
+  it('publishes the employer statement, not the title guess', () => {
+    // The title says physician; the employer said advanced practice. The
+    // employer is the source, so the title must not win.
+    expect(truthFor('advanced_practice').profession).toBe('advanced_practice');
+  });
+
+  it('falls back to the title when the employer stated nothing', () => {
+    expect(truthFor(null).profession).toBe('physician');
+  });
+
+  it('ignores a stored value outside the known set', () => {
+    // An unrecognised column value must not reach the API as a profession.
+    expect(truthFor('chiropractor').profession).toBe('physician');
+  });
+
+  it('ignores a stored not_stated, which is a classifier output not a statement', () => {
+    expect(truthFor('not_stated').profession).toBe('physician');
+  });
+});
