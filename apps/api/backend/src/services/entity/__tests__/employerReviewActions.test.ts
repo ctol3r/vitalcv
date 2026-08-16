@@ -1,6 +1,9 @@
 jest.mock('../../../graphql/prisma_client', () => ({
   __esModule: true,
   default: {
+    user: {
+      findUnique: jest.fn(),
+    },
     vcvOrganizationContext: {
       findUnique: jest.fn(),
     },
@@ -41,9 +44,13 @@ import {
   loadEmployerAcceptanceHistory,
   loadEmployerReviewStatus,
   recordEmployerReviewAcceptance,
+  resolveReviewerAcceptanceIdentity,
 } from '../employerReviewActions';
 
 const prismaMock = prisma as unknown as {
+  user: {
+    findUnique: jest.Mock;
+  };
   vcvOrganizationContext: {
     findUnique: jest.Mock;
   };
@@ -68,6 +75,9 @@ const prismaMock = prisma as unknown as {
 
 describe('employerReviewActions service', () => {
   beforeEach(() => {
+    prismaMock.user.findUnique.mockReset();
+    // Default: reviewer with no organization binding (legacy semantics).
+    prismaMock.user.findUnique.mockResolvedValue(null);
     prismaMock.vcvOrganizationContext.findUnique.mockReset();
     prismaMock.vcvOrgContextSubject.findUnique.mockReset();
     prismaMock.bundleShareEvent.findFirst.mockReset();
@@ -196,6 +206,76 @@ describe('employerReviewActions service', () => {
         }),
       }),
     );
+  });
+
+  it('writes employerId as the reviewer ORGANIZATION id and acceptedBy as the Clerk user id when bound (ADR 0007)', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ organizationId: 'org-uuid-1' });
+
+    await recordEmployerReviewAcceptance({
+      entityId: 'entity-1',
+      employerId: 'employer-1',
+      clinicianNpi: '1234567890',
+      organizationContextId: 'ctx-1',
+    });
+
+    expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+      where: { clerkUserId: 'employer-1' },
+      select: { organizationId: true },
+    });
+    expect(prismaMock.employerAcceptance.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          // The row is keyed by the ORGANIZATION, matching door A's readers.
+          employerId: 'org-uuid-1',
+          // The acting human moves to acceptedBy.
+          acceptedBy: 'employer-1',
+          metadata: expect.objectContaining({
+            acceptedByClerkUserId: 'employer-1',
+            employerIdSemantics: 'organization',
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('preserves clerk-id employerId for an org-less reviewer and marks the row legacy_clerk_user', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ organizationId: null });
+
+    await recordEmployerReviewAcceptance({
+      entityId: 'entity-1',
+      employerId: 'employer-1',
+      clinicianNpi: '1234567890',
+      organizationContextId: 'ctx-1',
+    });
+
+    expect(prismaMock.employerAcceptance.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          employerId: 'employer-1',
+          acceptedBy: 'employer-1',
+          metadata: expect.objectContaining({
+            acceptedByClerkUserId: 'employer-1',
+            employerIdSemantics: 'legacy_clerk_user',
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('resolveReviewerAcceptanceIdentity returns both lookup ids for an org-bound reviewer and one for the rest', async () => {
+    prismaMock.user.findUnique.mockResolvedValueOnce({ organizationId: 'org-uuid-1' });
+    await expect(resolveReviewerAcceptanceIdentity('employer-1')).resolves.toEqual({
+      clerkUserId: 'employer-1',
+      organizationId: 'org-uuid-1',
+      acceptanceEmployerIds: ['org-uuid-1', 'employer-1'],
+    });
+
+    prismaMock.user.findUnique.mockResolvedValueOnce(null);
+    await expect(resolveReviewerAcceptanceIdentity('employer-2')).resolves.toEqual({
+      clerkUserId: 'employer-2',
+      organizationId: null,
+      acceptanceEmployerIds: ['employer-2'],
+    });
   });
 
   it('links the acceptance to the sealed packet when applicationId + packetHash are supplied (ACT-1.2)', async () => {

@@ -45,6 +45,8 @@ export interface ApplicationPacketReadResponse {
   submittedPacket: {
     packetVersion: number;
     packetHash: string;
+    /** Opportunity.updatedAt frozen inside the seal; null only for legacy packet versions. */
+    opportunityVersion: string | null;
     clinicianNpi: string;
     // Invalid packets fail closed before a response is constructed.
     integrity: 'valid' | 'invalid';
@@ -168,7 +170,7 @@ type ApplicationForPacketRead = {
   opportunity: { organizationId: string };
 };
 
-type StoredApplicationPacket = {
+export type StoredApplicationPacket = {
   applicationId: string;
   packetVersion: number;
   clerkUserId: string;
@@ -307,7 +309,7 @@ function unexplainedSectionIdsOf(packet: SealedApplicationPacket): string[] {
     .sort();
 }
 
-function reconstructSealedPacket(row: StoredApplicationPacket): SealedApplicationPacket {
+export function reconstructSealedPacket(row: StoredApplicationPacket): SealedApplicationPacket {
   const content: ApplicationPacketContent = {
     applicationId: row.applicationId,
     packetVersion: row.packetVersion,
@@ -526,6 +528,7 @@ export async function readApplicationPacket(
     submittedPacket: {
       packetVersion: packet.packetVersion,
       packetHash: packet.packetHash,
+      opportunityVersion: packet.opportunityVersion ?? null,
       clinicianNpi: packet.clinicianNpi,
       integrity: 'valid',
       purpose: packet.purpose,

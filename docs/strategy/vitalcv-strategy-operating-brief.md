@@ -3,7 +3,7 @@ title: "VitalCV Strategy Operating Brief"
 status: "Canonical"
 owner: "Chris Toler"
 date: "2026-08-04"
-amended: "2026-08-08"
+amended: "2026-08-15"
 source: "VitalCV Category Strategy"
 ---
 
@@ -16,6 +16,18 @@ source: "VitalCV Category Strategy"
 > longer the homepage H1. Only the *Homepage message* section below changed —
 > the category, core loop, north-star metric, vocabulary, and business model are
 > untouched. Rationale is recorded in that section.
+
+> **Amendment — 2026-08-15 (founder vocabulary rulings, Wave C1).** The Wave-1078
+> H1 was displaced in production by the Titan cutover (#1373), whose hero is
+> **"One career record. More ways forward."** The 2026-08-15 rulings retire
+> **"Provider Career Evidence Network"** as public category language and replace
+> the **"Start my CV Wallet"** acquisition CTA with **"Build my free profile"**
+> — CV Wallet survives only as a secondary product noun, never required to
+> understand or enter the product. The clinician promise line returns to the
+> homepage as the hero **eyebrow**, in the customer-vocabulary form **"Your
+> VitalCV profile. Ready for every move."** Again only the *Homepage message*
+> section changed — category, core loop, north-star metric, and business model
+> are untouched.
 
 ## Category
 
@@ -41,33 +53,38 @@ Supporting promise:
 
 These are the **promise** — what the product is for, and the language to use when
 explaining VitalCV in a sentence. They are not required to be the homepage H1.
+Since 2026-08-15 the promise leads the homepage as the hero **eyebrow**, in the
+customer-vocabulary form **"Your VitalCV profile. Ready for every move."**
 
 ## Homepage message
 
 ### Hero
 
-*Amended 2026-08-08. Live since UX-V1 (#1190).*
+*Amended 2026-08-15. Lineage: Wave-1078 H1 "Enter your NPI. VitalCV does the
+rest." (UX-V1, #1190) → Titan H1 "One career record. More ways forward." (live
+since #1373) → 2026-08-15 rulings retiring the "Provider Career Evidence
+Network" eyebrow and the "Start my CV Wallet" CTA.*
 
-# Enter your NPI. VitalCV does the rest.
+Your VitalCV profile. Ready for every move.
 
-We find what we can, show you exactly what remains, and handle the administrative work that can safely be handled.
+# One career record. More ways forward.
 
-**Start with your NPI**
+Start with your NPI. VitalCV assembles what sources can support, shows what
+still needs you, and helps you find roles where that record can move with you.
+
+**Build my free profile**
 
 Free for clinicians · Your NPI is a public identifier — entering it starts nothing you don't approve
 
-**Why this hero and not the promise line.** The promise names the *asset* (a
-reusable profile); this hero names the *wedge* (the one action a cold clinician
-can take in five seconds with nothing to hand). A hero has to earn the first
-interaction, and the asset only becomes legible after the NPI resolves — which
-is the product's first proof of work and the moment the homepage is built
-around. The promise then does its job everywhere the reader already has context:
-the profile surfaces, jobs, apply, employer pages, and every explanation of what
-VitalCV is.
+**Why this composition.** The H1 names the *asset* (one reusable career record);
+the eyebrow carries the *promise* in customer vocabulary; and the NPI entry with
+its CTA remains the *wedge* — the one action a cold clinician can take in five
+seconds with nothing to hand. "Enter your NPI. VitalCV does the rest." is no
+longer the H1 but remains EC-1's product idea, the frame every surface serves.
 
 **This is a hero decision, not a category change.** The reusable profile is still
 the product and the north-star metric is unchanged. If the hero stops converting,
-the promise line is the first alternative to test — it is not retired.
+the Wave-1078 wedge H1 is the first alternative to test — it is not retired.
 
 ### Four steps
 

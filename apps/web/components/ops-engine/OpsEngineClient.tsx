@@ -725,16 +725,21 @@ async function fetchLiveSnapshot(): Promise<OpsSnapshot | null> {
 }
 
 // Real write-action → backend (via the authed proxy), then re-hydrate.
-async function runLiveAction(record: any, action: 'accept' | 'request_info' | 'reject', reviewNote?: string, requests?: any[]) {
+// 'accept' is not offered here: acceptance is a packet-bound decision owned by
+// the employer decision surface. A failed action must never look successful.
+async function runLiveAction(record: any, action: 'request_info' | 'reject', reviewNote?: string, requests?: any[]) {
+  let failure: string | null = null;
   try {
-    await fetch('/api/ops-engine/action', {
+    const res = await fetch('/api/ops-engine/action', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ applicationId: record.sourceRef || record.id, action, reviewNote, requests }),
     });
+    if (!res.ok) failure = `Action failed (${res.status}). Nothing was recorded.`;
   } catch {
-    /* surfaced via lack of refresh */
+    failure = 'Action failed to reach the server. Nothing was recorded.';
   }
+  if (failure) window.alert(failure);
   const snap = await fetchLiveSnapshot();
   if (snap) refreshLive(snap);
 }
@@ -1170,8 +1175,7 @@ function RecordDrawer() {
           <div>
             <div className="mono text-[9.5px] uppercase tracking-[0.14em] text-slate-500 mb-2">Actions — each writes an event</div>
             {LIVE ? (
-              <div className="grid grid-cols-3 gap-2">
-                <Button size="sm" variant="primary" iconLeft={<Icon.CheckCircle size={14} />} onClick={() => runLiveAction(p, 'accept')} disabled={p.isActive}>Accept</Button>
+              <div className="grid grid-cols-2 gap-2">
                 <Button size="sm" variant="dark" iconLeft={<Icon.Mail size={14} />} onClick={() => { const note = window.prompt('What document or information is needed from the applicant?'); if (note && note.trim()) runLiveAction(p, 'request_info', note.trim(), [{ field: 'documentation', message: note.trim() }]); }}>Request info</Button>
                 <Button size="sm" variant="danger" iconLeft={<Icon.X size={14} />} onClick={() => { if (window.confirm(`Reject ${p.name}? This writes a real decision.`)) runLiveAction(p, 'reject'); }} disabled={p.flagged}>{p.flagged ? 'Rejected' : 'Reject'}</Button>
               </div>

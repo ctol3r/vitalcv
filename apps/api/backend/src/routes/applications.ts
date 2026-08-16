@@ -35,7 +35,7 @@ import {
   readApplicationPacket,
   readApplicationEvidenceView,
 } from '../services/opportunities/applicationPacketReadService';
-import { getClinicianApplicationActivation } from '../services/activation/clinicianActivationService';
+import { readHireToStartCase } from '../services/opportunities/hireToStartReadService';
 import { HttpError } from '../utils/httpError';
 import { requireOrgRole, VERIFIER_MUTATION_ROLES } from '../middleware/orgRoleGuard';
 import type { VerifiedAuth } from '../middleware/verifiedIdentity';
@@ -107,7 +107,10 @@ export function registerApplicationRoutes(app: Express): void {
   app.get(
     '/api/clinician/applications',
     asyncHandler(async (req, res) => {
-      const clerkUserId = requireClerkUserId(req);
+      // Verified identity: this is a self-scoped read exempted from the tenant
+      // turnstile, so the raw header alone must never select whose
+      // applications are returned.
+      const clerkUserId = requireVerifiedClerkUserId(req);
       const applications = await listClinicianApplications(clerkUserId);
       res.json(applications);
     }),
@@ -117,7 +120,9 @@ export function registerApplicationRoutes(app: Express): void {
   app.delete(
     '/api/applications/:appId/withdraw',
     asyncHandler(async (req, res) => {
-      const clerkUserId = requireClerkUserId(req);
+      // Verified identity: exempted from the tenant turnstile; a forged
+      // header must not be able to withdraw an application.
+      const clerkUserId = requireVerifiedClerkUserId(req);
       const appId = requireUuidParam(req.params.appId, 'Application');
       const updated = await withdrawApplication(appId, clerkUserId);
       res.json(updated);
@@ -147,21 +152,22 @@ export function registerApplicationRoutes(app: Express): void {
     }),
   );
 
-  /* ── Clinician: own activation "path to start" (ACT-7.1 read) ── */
+  /* ── Authorized joined hire-to-start case ── */
   app.get(
-    '/api/applications/:appId/activation',
+    '/api/applications/:applicationId/hire-to-start',
     asyncHandler(async (req, res) => {
-      // Same verified-identity boundary as the packet read: a forgeable
-      // x-clerk-user-id header is never sufficient for a per-application
-      // personal read. Ownership authorizes (never org); a non-owned or
-      // unknown id returns a uniform 404 (getClinicianApplicationActivation),
-      // so this endpoint cannot enumerate other clinicians' applications.
+      res.setHeader('Cache-Control', 'private, no-store');
       const clerkUserId = requireVerifiedClerkUserId(req);
-      const appId = requireUuidParam(req.params.appId, 'Application');
-      const view = await getClinicianApplicationActivation(appId, clerkUserId);
+      const applicationId = parseApplicationPacketApplicationId(req.params.applicationId);
+      const view = await readHireToStartCase({ applicationId, clerkUserId });
       res.json(view);
     }),
   );
+
+  // The ACT-7.1 clinician activation read (GET /api/applications/:appId/
+  // activation) was DELETED here: the authorized joined hire-to-start case
+  // above superseded it, nothing on the web called it (before-greps in the
+  // deleting PR), and it never left the tenant-guard turnstile.
 
   /* ── Verifier: list all org applications ── */
   app.get(
@@ -199,9 +205,23 @@ export function registerApplicationRoutes(app: Express): void {
     '/api/applications/:appId/review',
     requireOrgRole(VERIFIER_MUTATION_ROLES),
     asyncHandler(async (req, res) => {
-      const clerkUserId = requireClerkUserId(req);
+      const clerkUserId = requireVerifiedClerkUserId(req);
       const applicationId = requireUuidParam(req.params.appId, 'Application');
-      const { status, reviewNote } = req.body as { status?: string; reviewNote?: string };
+      const {
+        status,
+        reviewNote,
+        packetVersion,
+        packetHash,
+        intendedStartDate,
+        urgency,
+      } = req.body as {
+        status?: string;
+        reviewNote?: string;
+        packetVersion?: number;
+        packetHash?: string;
+        intendedStartDate?: string | null;
+        urgency?: string | null;
+      };
 
       if (!status || !['REVIEWED', 'ACCEPTED', 'DECLINED'].includes(status)) {
         throw new HttpError(400, 'status must be REVIEWED, ACCEPTED, or DECLINED.');
@@ -217,6 +237,10 @@ export function registerApplicationRoutes(app: Express): void {
         applicationId,
         reviewerClerkUserId: clerkUserId,
         reviewNote,
+        packetVersion,
+        packetHash,
+        intendedStartDate,
+        urgency,
       });
 
       // Compatibility response: the legacy route still returns its original
@@ -242,16 +266,24 @@ export function registerApplicationRoutes(app: Express): void {
     '/api/applications/:appId/workflow-action',
     requireOrgRole(VERIFIER_MUTATION_ROLES),
     asyncHandler(async (req, res) => {
-      const clerkUserId = requireClerkUserId(req);
+      const clerkUserId = requireVerifiedClerkUserId(req);
       const appId = requireUuidParam(req.params.appId, 'Application');
       const {
         action,
         requests,
         reviewNote,
+        packetVersion,
+        packetHash,
+        intendedStartDate,
+        urgency,
       } = req.body as {
         action?: string;
         requests?: Array<{ field?: string; message?: string }>;
         reviewNote?: string;
+        packetVersion?: number;
+        packetHash?: string;
+        intendedStartDate?: string | null;
+        urgency?: string | null;
       };
 
       if (!action || !['accept', 'request_info', 'reject'].includes(action)) {
@@ -267,6 +299,10 @@ export function registerApplicationRoutes(app: Express): void {
           message: request.message ?? '',
         })),
         reviewNote,
+        packetVersion,
+        packetHash,
+        intendedStartDate,
+        urgency,
       });
 
       res.json(result);

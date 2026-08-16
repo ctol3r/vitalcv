@@ -3,7 +3,7 @@ import { DEMO_ENTITY_ID } from '@/lib/demo/demo-passport';
 
 export const metadata = {
   title: 'Live Demo',
-  description: 'Explore the VitalCV Provider Career Evidence Network with a source-backed sample clinician — ecosystem, recruiter review, career intelligence, and proof packet.',
+  description: 'Explore VitalCV with a source-backed sample clinician — ecosystem, recruiter review, career intelligence, and proof packet.',
   /**
    * W0.4: demo surfaces are not indexable.
    *
@@ -54,7 +54,7 @@ export default function DemoPage() {
         </section>
 
         <p className="mt-10 text-xs text-muted-foreground">
-          Sample data is clearly demo data. The Provider Career Evidence Network is source-backed; acceptance is verifier-policy dependent.
+          Sample data is clearly demo data. Your VitalCV profile is source-backed; acceptance is verifier-policy dependent.
         </p>
       </div>
     </main>

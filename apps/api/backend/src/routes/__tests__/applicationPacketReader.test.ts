@@ -22,11 +22,15 @@ jest.mock('../../services/opportunities/applicationPacketReadService', () => ({
   readApplicationPacket: jest.fn(),
   readApplicationEvidenceView: jest.fn(),
 }));
+jest.mock('../../services/opportunities/hireToStartReadService', () => ({
+  readHireToStartCase: jest.fn(),
+}));
 
 import {
   readApplicationPacket,
   readApplicationEvidenceView,
 } from '../../services/opportunities/applicationPacketReadService';
+import { readHireToStartCase } from '../../services/opportunities/hireToStartReadService';
 import { HttpError } from '../../utils/httpError';
 import type { VerifiedAuth } from '../../middleware/verifiedIdentity';
 import { registerApplicationRoutes } from '../applications';
@@ -34,6 +38,7 @@ import { registerApplicationRoutes } from '../applications';
 const APPLICATION_ID = 'a1111111-1111-4111-8111-111111111111';
 const readSubmittedPacketMock = readApplicationPacket as jest.MockedFunction<typeof readApplicationPacket>;
 const readPacketMock = readApplicationEvidenceView as jest.MockedFunction<typeof readApplicationEvidenceView>;
+const readHireToStartCaseMock = readHireToStartCase as jest.MockedFunction<typeof readHireToStartCase>;
 
 function responseFixture() {
   return {
@@ -44,6 +49,7 @@ function responseFixture() {
     submittedPacket: {
       packetVersion: 2,
       packetHash: 'a'.repeat(64),
+      opportunityVersion: '2026-07-16T12:00:00.000Z',
       clinicianNpi: '1558302470',
       integrity: 'valid' as const,
       purpose: 'Apply with VitalCV',
@@ -95,6 +101,8 @@ beforeEach(() => {
   readSubmittedPacketMock.mockResolvedValue(responseFixture());
   readPacketMock.mockReset();
   readPacketMock.mockResolvedValue(responseFixture());
+  readHireToStartCaseMock.mockReset();
+  readHireToStartCaseMock.mockResolvedValue({ currentStage: 'application_submitted' } as never);
 });
 
 describe('GET /api/applications/:applicationId/packet', () => {
@@ -180,5 +188,29 @@ describe('GET /api/applications/:applicationId/packet', () => {
     });
     expect(JSON.stringify(integrity.body)).not.toContain('packetHash');
     expect(JSON.stringify(denied.body)).not.toContain('organization');
+  });
+});
+
+describe('GET /api/applications/:applicationId/hire-to-start', () => {
+  it('requires verified identity and ignores a spoofed identity header', async () => {
+    await request(buildApp())
+      .get(`/api/applications/${APPLICATION_ID}/hire-to-start`)
+      .set('x-clerk-user-id', 'forged-clinician')
+      .expect(401);
+    expect(readHireToStartCaseMock).not.toHaveBeenCalled();
+  });
+
+  it('returns the authorized private joined case with no shared caching', async () => {
+    const response = await request(buildApp('clinician-owner'))
+      .get(`/api/applications/${APPLICATION_ID}/hire-to-start`)
+      .set('x-clerk-user-id', 'forged-clinician')
+      .expect(200);
+
+    expect(readHireToStartCaseMock).toHaveBeenCalledWith({
+      applicationId: APPLICATION_ID,
+      clerkUserId: 'clinician-owner',
+    });
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    expect(response.body).toEqual({ currentStage: 'application_submitted' });
   });
 });

@@ -119,6 +119,26 @@ async function getOrgProfileIdForUser(clerkUserId: string): Promise<string | nul
 
 /* ── Org setup ───────────────────────────────────────────────── */
 
+/**
+ * Employer role ignition — may this org grant also grant `UserRole.VERIFIER`?
+ *
+ * Self-serve employers never received the VERIFIER role: role inference
+ * (routes/role.ts + roleInferenceService) reads only NpiOwnership — the
+ * clinician claim table — and this service set `User.organizationId` without
+ * ever touching `user.role`. The web middleware bounces non-VERIFIERs off
+ * /employer/*, so a legitimately granted self-serve employer was locked out
+ * of the surface their grant exists to open.
+ *
+ * Upgrade ONLY from the default (`CLINICIAN`) or an unset role. Never
+ * downgrade `ADMIN`, `ISSUER`, or any other elevated role — an admin who
+ * registers an org must stay an admin. PENDING_REVIEW never reaches the
+ * call sites: both live strictly on granted paths (after the authority gate
+ * throws on refusal, or behind an already-granted active membership).
+ */
+function shouldGrantEmployerRole(currentRole: string | null | undefined): boolean {
+  return !currentRole || currentRole === 'CLINICIAN';
+}
+
 export async function upsertOrgProfile(
   clerkUserId: string,
   input: {
@@ -226,9 +246,16 @@ export async function upsertOrgProfile(
     // applications as before. The target is read from their OWN active
     // membership, so this can only ever bind a user to an organization they are
     // already a member of — never move them into someone else's.
+    //
+    // Role ignition mirrors the granted path below: a granted org exists (an
+    // active membership proves it), so a user whose role was never set past
+    // the CLINICIAN default picks up VERIFIER here on re-run.
     await prisma.user.update({
       where: { id: user.id },
-      data: { organizationId: membershipOrgProfile.organizationId },
+      data: {
+        organizationId: membershipOrgProfile.organizationId,
+        ...(shouldGrantEmployerRole(user.role) ? { role: 'VERIFIER' } : {}),
+      },
     });
 
     return { organizationId: membershipOrgProfile.organizationId };
@@ -365,7 +392,14 @@ export async function upsertOrgProfile(
     }),
     prisma.user.update({
       where: { id: user.id },
-      data: { organizationId: org.id },
+      data: {
+        organizationId: org.id,
+        // Role ignition: the employer role is granted IN the audited
+        // org-grant transaction, gated on the domain-verified authority
+        // decision above — never on PENDING_REVIEW (that path threw), and
+        // never as a downgrade (see shouldGrantEmployerRole).
+        ...(shouldGrantEmployerRole(user.role) ? { role: 'VERIFIER' } : {}),
+      },
     }),
   ]);
 

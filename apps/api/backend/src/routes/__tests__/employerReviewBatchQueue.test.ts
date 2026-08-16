@@ -97,8 +97,19 @@ const buildPassportMock = buildPassport as jest.Mock;
 const getCachedTrustStateMock = getCachedTrustState as jest.Mock;
 const getOrgProfileMock = getOrgProfile as jest.Mock;
 
+/** Verified-identity stand-in — see employerActions.test.ts / activation.test.ts. */
 function buildApp() {
   const app = express();
+  app.use((req, _res, next) => {
+    const verified = req.headers['x-test-verified-user'];
+    if (typeof verified === 'string' && verified.length > 0) {
+      (req as unknown as { verifiedAuth: unknown }).verifiedAuth = {
+        outcome: 'verified_match',
+        verifiedUserId: verified,
+      };
+    }
+    next();
+  });
   app.use(express.json());
   registerEmployerActionRoutes(app);
   app.use((err: { status?: number; message?: string }, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -154,13 +165,13 @@ describe('POST /api/employer-review/batch', () => {
 
     const badAction = await request(app)
       .post('/api/employer-review/batch')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({ action: 'approve-all', entityIds: [ENTITY_A] });
     expect(badAction.status).toBe(400);
 
     const oversized = await request(app)
       .post('/api/employer-review/batch')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({
         action: 'accept',
         entityIds: Array.from({ length: 26 }, (_, i) => `${i}0000000-0000-4000-8000-000000000000`),
@@ -185,7 +196,7 @@ describe('POST /api/employer-review/batch', () => {
 
     const response = await request(buildApp())
       .post('/api/employer-review/batch')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({ action: 'accept', entityIds: [ENTITY_A, ENTITY_B], notes: 'pilot cohort triage' });
 
     expect(response.status).toBe(200);
@@ -219,7 +230,7 @@ describe('POST /api/employer-review/batch', () => {
 
     const response = await request(buildApp())
       .post('/api/employer-review/batch')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({ action: 'accept', entityIds: [ENTITY_A, ENTITY_B] });
 
     expect(response.status).toBe(200);
@@ -238,7 +249,7 @@ describe('POST /api/employer-review/batch', () => {
   it('writes one refresh audit per candidate and never consults the passport gate', async () => {
     const response = await request(buildApp())
       .post('/api/employer-review/batch')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({
         action: 'request-refresh',
         entityIds: [ENTITY_A, ENTITY_B],
@@ -261,7 +272,7 @@ describe('POST /api/employer-review/batch', () => {
 
     const response = await request(buildApp())
       .post('/api/employer-review/batch')
-      .set('x-clerk-user-id', 'employer-1')
+      .set('x-test-verified-user', 'employer-1')
       .send({
         action: 'accept',
         entityIds: [ENTITY_B, ENTITY_B, '99999999-9999-4999-8999-999999999999', 'not-a-uuid'],
@@ -294,7 +305,7 @@ describe('GET /api/employer-review/queue', () => {
     getOrgProfileMock.mockResolvedValue(null);
     const response = await request(buildApp())
       .get('/api/employer-review/queue')
-      .set('x-clerk-user-id', 'employer-1');
+      .set('x-test-verified-user', 'employer-1');
     expect(response.status).toBe(403);
     expect(prismaMock.bundleShareEvent.findMany).not.toHaveBeenCalled();
   });
@@ -347,7 +358,7 @@ describe('GET /api/employer-review/queue', () => {
 
     const response = await request(buildApp())
       .get('/api/employer-review/queue')
-      .set('x-clerk-user-id', 'employer-1');
+      .set('x-test-verified-user', 'employer-1');
 
     expect(response.status).toBe(200);
     expect(response.body.scope).toEqual({

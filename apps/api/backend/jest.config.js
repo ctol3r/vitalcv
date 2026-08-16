@@ -36,6 +36,11 @@ module.exports = {
     '__tests__/passportEntity\\.pdf\\.test\\.ts$',           // PDF route mocks not invoked + fail-closed 404 shape drifted — verify contract change
   ],
   setupFiles: ['./jest.setup.ts'],
+  // Disconnects every PrismaClient a suite constructed once the suite ends.
+  // Without it, connections accumulate across the single sequential worker
+  // until Postgres's max_connections budget is gone, and whichever db suite
+  // the timing cache sorted to the tail fails with "too many clients already".
+  setupFilesAfterEnv: ['./jest.setupAfterEnv.ts'],
   transformIgnorePatterns: [
     '<rootDir>/.*node_modules/(?!.*jose)',
   ],

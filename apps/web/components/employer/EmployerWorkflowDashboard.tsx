@@ -208,9 +208,9 @@ export function EmployerWorkflowDashboard() {
                 icon={AlertTriangle}
               />
               <MetricCard
-                title="Approved to credentialing"
-                value={String(payload.bottlenecks.approvedForCredentialingCount)}
-                detail="Applications already cleared into the credentialing queue."
+                title="Accepted as a head start"
+                value={String(payload.bottlenecks.acceptedHeadStartCount)}
+                detail="Cases moving through remaining hire-to-start requirements. Institution review remains."
                 icon={CheckCircle2}
               />
             </section>
@@ -294,9 +294,9 @@ export function EmployerWorkflowDashboard() {
                     </p>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                    <p className="text-sm font-semibold text-white">Credentialing ready</p>
+                    <p className="text-sm font-semibold text-white">Hire-to-start underway</p>
                     <p className="mt-2 text-sm text-white/65">
-                      {payload.bottlenecks.approvedForCredentialingCount} application{payload.bottlenecks.approvedForCredentialingCount === 1 ? '' : 's'} are already approved and ready for downstream credentialing.
+                      {payload.bottlenecks.acceptedHeadStartCount} application{payload.bottlenecks.acceptedHeadStartCount === 1 ? '' : 's'} {payload.bottlenecks.acceptedHeadStartCount === 1 ? 'has' : 'have'} an accepted head start and still require institution-owned work before a confirmed first day.
                     </p>
                   </div>
                 </CardContent>

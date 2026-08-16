@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import ClinicianApplicationDetailSurface from '@/components/mobile/ClinicianApplicationDetailSurface';
-import { ClinicianStartPathPanel } from '@/components/activation/ClinicianStartPathPanel';
+import { HireToStartCasePanel } from '@/components/applications/HireToStartCasePanel';
 import { loadApplicationEvidenceView } from '@/lib/server/applicationEvidence';
-import { loadApplicationActivationView } from '@/lib/server/applicationActivation';
+import { loadHireToStartCase } from '@/lib/server/hireToStartCase';
 
 export const metadata: Metadata = {
   title: 'Application',
@@ -19,15 +19,15 @@ export default async function HolderApplicationDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [evidenceResult, activationResult] = await Promise.all([
+  const [evidenceResult, hireToStartResult] = await Promise.all([
     loadApplicationEvidenceView(id),
-    loadApplicationActivationView(id),
+    loadHireToStartCase(id),
   ]);
   return (
     <>
       <ClinicianApplicationDetailSurface applicationId={id} evidenceResult={evidenceResult} />
       <div className="mx-auto w-full max-w-[680px] px-4 pb-8">
-        <ClinicianStartPathPanel result={activationResult} />
+        <HireToStartCasePanel result={hireToStartResult} />
       </div>
     </>
   );

@@ -43,9 +43,17 @@ const CLINICIAN = `route-clinician-${suffix}`;
 let applicationId: string;
 let organizationId: string;
 
-function buildApp() {
+function buildApp(verifiedUserId?: string) {
   const app = express();
   app.use(express.json());
+  if (verifiedUserId) {
+    app.use((req, _res, next) => {
+      (req as express.Request & { verifiedAuth?: { verifiedUserId: string } }).verifiedAuth = {
+        verifiedUserId,
+      };
+      next();
+    });
+  }
   registerApplicationRoutes(app);
   // Minimal error translator: the real app maps HttpError to its status.
   app.use((err: { status?: number; message?: string }, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -134,7 +142,7 @@ describe('POST /api/applications/:appId/workflow-action — self-serve employer'
   });
 
   it('lets the employer act on their own application', async () => {
-    const res = await request(buildApp())
+    const res = await request(buildApp(EMPLOYER))
       .post(`/api/applications/${applicationId}/workflow-action`)
       .set('x-clerk-user-id', EMPLOYER)
       .send({ action: 'request_info', requests: [{ field: 'dea', message: 'Please add your DEA.' }] });
@@ -144,12 +152,21 @@ describe('POST /api/applications/:appId/workflow-action — self-serve employer'
   });
 
   it('still 404s an employer from a different organization', async () => {
-    const res = await request(buildApp())
+    const res = await request(buildApp(OUTSIDER))
       .post(`/api/applications/${applicationId}/workflow-action`)
       .set('x-clerk-user-id', OUTSIDER)
       .send({ action: 'reject', reviewNote: 'Not a fit.' });
 
     expect(res.status).toBe(404);
+  });
+
+  it('rejects a spoofed identity header without a verified session', async () => {
+    const res = await request(buildApp())
+      .post(`/api/applications/${applicationId}/workflow-action`)
+      .set('x-clerk-user-id', EMPLOYER)
+      .send({ action: 'request_info', requests: [{ field: 'dea', message: 'Please add your DEA.' }] });
+
+    expect(res.status).toBe(401);
   });
 
   it('still 401s a caller with no identity header', async () => {

@@ -96,6 +96,8 @@ The system talks about: **VitalCV · your profile · jobs · applying · next ac
 
 Never customer-facing: packets · artifacts · lanes · evidence networks · provenance · holder · readiness score · passport · wallet · graph · trust tier · dossier · credential object · recognition (as a UI noun) · any technical credential construct.
 
+**"CV Wallet", resolved (founder ruling, 2026-08-15):** "CV Wallet" is permitted as a secondary product noun on interior locked surfaces (the existing `/pilot` and `/onboarding` EC-20 rows), never in acquisition-critical copy (homepage hero, primary CTAs, onboarding headings) and never required to understand or enter the product.
+
 **Receipt, resolved:** `receipt` is an internal and audit concept. It remains lawful on audit and trust-center surfaces. Customer-facing surfaces say **"Activity"** or **"Completed work."** The same noun is never simultaneously banned and mandated.
 
 The machine-checkable subset is planned as `scripts/copy-rules.json` (UX-16) — **it does not exist yet**; today's enforcement is `scripts/check-public-claims.ts`, which already covers every EC-3 banned string (verified W1080, 2026-08-08; its matcher normalizes hyphens and case, so "zero-knowledge proof" and "zero knowledge proof" both fail). Until UX-16 lands, cite the script, not the JSON. Voice: calm, declarative; facts with lineage, never enthusiasm; errors never apologize twice, never "oops."
@@ -248,10 +250,10 @@ reuse. This is an extension of Direction D, not a new homepage era.
 
 | Decision | Value | Status |
 |---|---|---|
-| Public promise | **The Provider Career Evidence Network.** | LOCKED for `/` |
+| Public promise | **Amended 2026-08-15 (C1), superseding "The Provider Career Evidence Network."** — **Your VitalCV profile. Ready for every move.** | LOCKED for `/` (amended C1) |
 | Hero headline | **One career record. More ways forward.** | LOCKED for `/` |
 | Hero lede | **Start with your NPI. VitalCV assembles what sources can support, shows what still needs you, and helps you find roles where that record can move with you.** | LOCKED for `/` |
-| Primary / secondary action | **Start my CV Wallet.** / **Explore clinician opportunities.** | LOCKED for `/` |
+| Primary / secondary action | **Amended 2026-08-15 (C1), primary superseding "Start my CV Wallet."** — **Build my free profile.** / **Explore clinician opportunities.** (secondary unchanged) | LOCKED for `/` (amended C1) |
 | Human media | Original commissioned, licensed, or generated documentary clinical imagery with recorded provenance; no patient, PHI, badge detail, employer mark, invented clinician identity, or implied outcome | LOCKED for `/` |
 | Product media | Tactile folio and paper-object compositions built from the real record vocabulary: named source states, an explicit consent gate, exact packet, employer review, Recognition boundary, and fresh-consent reuse | LOCKED for `/` |
 | Opportunity horizon | Current public listings may render without sign-up only with source label, original source URL where supplied, observation time, availability language, and the correct application boundary | LOCKED for `/` |
@@ -295,6 +297,21 @@ stateful surface: their facts come from the current API and remain complete
 without the image. A route variant may select its own provenance-bound poster,
 but it may not change the scene kind, invent state, exceed EC-29 budgets, or
 move evidence facts into pixels.
+
+#### Explore media pause amendment D.8 (2026-08-14)
+
+The founder directed the current `/explore` composition to remove its documentary
+frame for now. This amendment supersedes D.2's **mounted** human-media placement;
+the parked manifest variant is not customer-facing authority to restore it. The
+opportunity field, filters, source facts, and application boundaries remain
+unchanged and now carry the page without an atmospheric raster.
+
+Any future `/explore` image must be a dynamic close-up with human-centered,
+optimistic energy: bright, vibrant, active, and visually immediate. Distant,
+shadowed corridor views and isolated figures moving away from the viewer are not
+authorized. A replacement still requires recorded provenance, no patient or PHI,
+no readable badge or employer mark, and no implied identity, match, hire, or
+outcome.
 
 #### Opportunity detail and MATCHA continuity amendment D.3 (2026-08-14)
 
@@ -445,6 +462,24 @@ when it names **the wave that owns it** and **the constraint it decides within**
 all three now do, and each records what was measured rather than a value nobody
 has chosen. No row in this table is an open question, and no wave may fill a
 DEFERRED row by inventing a value — EC-22 applies unchanged.
+
+#### Acquisition-vocabulary amendment C1 (2026-08-15)
+
+Per the founder vocabulary rulings of 2026-08-15 (Wave C1): **"Provider Career
+Evidence Network" is retired as public category language**, and **"your VitalCV
+profile" is the primary clinician-facing object**. Two D.1 rows change and no
+others: the public promise becomes the clinician promise line, **Your VitalCV
+profile. Ready for every move.**, and the primary action becomes **Build my
+free profile.** The H1, lede, and secondary action are untouched, as is every
+media, motion, and material row.
+
+**CV Wallet** remains lawful as a **secondary product noun** — the D.6 `/pilot`
+and `/onboarding` rows and the D.7 work-surface register stand — but it is
+never required to understand or enter the product, and it no longer appears in
+acquisition-critical copy (see the EC-9 resolution of the same date). PTC stays
+technical/R&D language and gains no customer-facing standing from this
+amendment. This is a copy amendment: no visual recomposition, no layout,
+motion, or CSS change rides it.
 
 ---
 

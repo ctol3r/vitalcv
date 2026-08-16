@@ -3,6 +3,7 @@ import { EmployerApplicationReview } from '@/components/employer/EmployerApplica
 import { loadApplicationEvidenceView } from '@/lib/server/applicationEvidence';
 import { loadEmployerWorkflowApplication } from '@/lib/server/employerWorkflow';
 import { loadEmployerHandoff } from '@/lib/server/handoffReceipt';
+import { loadHireToStartCase } from '@/lib/server/hireToStartCase';
 
 export const metadata: Metadata = {
   title: 'Employer application review',
@@ -17,10 +18,11 @@ export default async function EmployerApplicationPage({
   params: Promise<{ applicationId: string }>;
 }) {
   const { applicationId } = await params;
-  const [workflowResult, evidenceResult, handoffResult] = await Promise.all([
+  const [workflowResult, evidenceResult, handoffResult, hireToStartResult] = await Promise.all([
     loadEmployerWorkflowApplication(applicationId),
     loadApplicationEvidenceView(applicationId),
     loadEmployerHandoff(applicationId),
+    loadHireToStartCase(applicationId),
   ]);
 
   return (
@@ -28,6 +30,7 @@ export default async function EmployerApplicationPage({
       workflowResult={workflowResult}
       evidenceResult={evidenceResult}
       handoffResult={handoffResult}
+      hireToStartResult={hireToStartResult}
     />
   );
 }

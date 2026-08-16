@@ -40,15 +40,31 @@ describe('tenantGuard', () => {
     expect(shouldSkipTenantContext('/api/clinician/activate')).toBe(false);
   });
 
-  it('allows only the authorized packet read without tenant context', () => {
+  it('allows only the service-authorized application reads without tenant context', () => {
     expect(shouldSkipTenantContext(
       '/api/applications/a1111111-1111-4111-8111-111111111111/packet',
+    )).toBe(true);
+    expect(shouldSkipTenantContext(
+      '/api/applications/a1111111-1111-4111-8111-111111111111/hire-to-start',
     )).toBe(true);
     expect(shouldSkipTenantContext(
       '/api/applications/a1111111-1111-4111-8111-111111111111/packet/extra',
     )).toBe(false);
     expect(shouldSkipTenantContext(
+      '/api/applications/a1111111-1111-4111-8111-111111111111/hire-to-start/extra',
+    )).toBe(false);
+    // The decision family (review/workflow/workflow-action) and the
+    // clinician's own withdraw joined the service-authorized exemption —
+    // their in-route auth (verified identity + org-role + server-derived org
+    // scope) is stronger than the turnstile, and the marketplace proxies
+    // never send an org header. Pinned in detail by
+    // routes/__tests__/decisionRouteReachability.test.ts.
+    expect(shouldSkipTenantContext(
       '/api/applications/a1111111-1111-4111-8111-111111111111/withdraw',
+    )).toBe(true);
+    // The orphaned activation route stays guarded until deleted.
+    expect(shouldSkipTenantContext(
+      '/api/applications/a1111111-1111-4111-8111-111111111111/activation',
     )).toBe(false);
   });
 

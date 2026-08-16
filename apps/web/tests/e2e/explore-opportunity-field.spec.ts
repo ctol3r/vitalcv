@@ -105,7 +105,8 @@ test.describe('WO-13 public opportunity field', () => {
       level: 1,
       name: 'Find clinical work with the source in view.',
     })).toBeVisible();
-    await expect(page.locator('[data-scene-variant="explore_documentary"]')).toBeVisible();
+    await expect(page.locator('.opf-hero-media')).toHaveCount(0);
+    await expect(page.locator('.opf-hero img')).toHaveCount(0);
 
     const facetLabels = page.locator('.opf-filter-grid .opf-filter-label');
     await expect(facetLabels).toHaveText([
@@ -225,7 +226,8 @@ test.describe('WO-13 public opportunity field', () => {
     ]) {
       await page.setViewportSize(viewport);
       await page.goto('/explore', { waitUntil: 'domcontentloaded' });
-      await expect(page.locator('.opf-hero-media img')).toBeVisible();
+      await expect(page.locator('.opf-hero-media')).toHaveCount(0);
+      await expect(page.locator('.opf-hero img')).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
     }
 
