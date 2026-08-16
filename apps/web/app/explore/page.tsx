@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { BoardClient } from '@/components/explore/board/BoardClient';
 import { PageFrame } from '@/components/layout/PageFrame';
-import { VisualScene } from '@/components/visual-scene/VisualScene';
 import { parseBoardFilters, toApiQuery } from '@/lib/explore/board-filters';
 import { fetchPublicOpportunityField } from '@/lib/launch/marketplace';
 import '@/styles/opportunity-field.css';
@@ -62,20 +61,6 @@ export default async function ExplorePage({
                 <span aria-hidden="true">03</span>
                 External roles return to the source
               </p>
-            </div>
-          </div>
-
-          <div className="opf-hero-media">
-            <VisualScene
-              scene="journey_film"
-              kind="process"
-              routeVariant="explore_documentary"
-              priority="hero"
-              mode="static"
-            />
-            <div className="opf-media-caption" aria-hidden="true">
-              <span>Human context</span>
-              <span>Real source records below</span>
             </div>
           </div>
         </header>

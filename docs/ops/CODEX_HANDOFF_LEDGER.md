@@ -3,6 +3,46 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## WO-18 · Explore documentary media pause — OPEN
+
+- **Date:** 2026-08-14
+- **Claim-check and creative ownership:** Open and recently merged pull requests
+  plus remote branch names were checked before implementation. PRs #1374 and
+  #1379 established prior Opportunity Field work; no current open pull request
+  duplicates this media-removal intent. Codex is the creative owner implementing
+  the founder-directed correction inside the existing register. Shared public
+  chrome is unchanged.
+- **Change:** Removes the rejected `journey_film` scene from the rendered
+  `/explore` hero and lets the existing text composition use the vacated space.
+  This wave adds no replacement imagery. The experience constitution now records
+  the founder boundary that any future media must be dynamic, close,
+  human-centered, optimistic, bright, and vibrant while remaining privacy- and
+  truth-safe.
+- **Truth and authority boundary:** Real source-labelled opportunities,
+  availability, application modes, and current product behavior are preserved.
+  No API, schema, migration, authorization, packet, decision, Recognition, or
+  durable-state behavior changes. Browser evidence demonstrates composition,
+  not authenticated data or production capability.
+- **Evidence:**
+  `docs/design/evidence/wo13c-explore-media-pause-2026-08-14/` contains production
+  before and optimized-build after frames for desktop and mobile, plus tablet,
+  wide desktop, reduced-motion, no-JavaScript, and 200% zoom evidence. No motion
+  recording is required because the change removes a static image and introduces
+  no motion behavior.
+- **Verification:** Optimized-build Chromium passes **6/6** focused tests. The
+  hero contains neither `.opf-hero-media` nor an image; measured document width
+  equals viewport width; inspected console warnings and errors are zero. Full
+  repository typecheck, lint, and build pass. Claims, copy, design, design-doc,
+  route, and workflow-contract checks pass. The configured non-backend Turbo
+  sweep passes **468 files / 4,532 tests**; its 45 environment-gated skips are
+  the existing repository baseline, not new or required coverage hidden by this
+  change. The configured real-PostgreSQL backend sweep passes **343 suites /
+  2,761 tests**.
+- **Next gate:** Publish the focused pull request, require refreshed-head CI and
+  review-environment evidence, then merge only if every required gate is green.
+  Verify the exact Railway `/api/version` SHA and live absence of `journey_film`
+  before marking WO-18 landed.
+
 ## WO-17 · Homepage warm-glass motion synthesis — OPEN
 
 - **Date:** 2026-08-14
