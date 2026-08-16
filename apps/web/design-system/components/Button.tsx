@@ -15,7 +15,8 @@ const buttonVariants = cva(
     'px-[var(--vt-space-16)] py-[var(--vt-space-8)]',
     'text-[length:var(--vt-type-body-size)] leading-[var(--vt-line-normal)]',
     'font-[var(--vt-font-weight-medium)]',
-    'transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--vt-motion-normal)] ease-[var(--vt-ease-standard)]',
+    // EC-29 band 1: hover/press/focus on a control is control feedback, 80–150ms.
+    'transition-[background-color,border-color,color,box-shadow,transform] duration-[var(--vt-motion-control)] ease-[var(--vt-ease-standard)]',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vt-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--vt-bg)]',
     'disabled:pointer-events-none disabled:opacity-50',
   ].join(' '),

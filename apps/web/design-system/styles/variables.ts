@@ -126,17 +126,18 @@ const graphCssVariables = {
 } as const satisfies Record<`--${string}`, string>;
 
 export const motionCssVariables = {
+  '--vt-motion-control': motionTokens.duration.control,
   '--vt-motion-fast': motionTokens.duration.fast,
   '--vt-motion-normal': motionTokens.duration.normal,
   '--vt-motion-slow': motionTokens.duration.slow,
   '--vt-ease-standard': motionTokens.easing.standard,
   '--vt-ease-out': motionTokens.easing.out,
   '--vt-ease-spring': motionTokens.easing.spring,
-  '--ui-motion-duration-fast': '280ms',
-  '--ui-motion-duration-highlight': '280ms',
-  '--ui-motion-duration-panel': '320ms',
+  '--ui-motion-duration-fast': motionTokens.duration.fast,
+  '--ui-motion-duration-highlight': motionTokens.duration.fast,
+  '--ui-motion-duration-panel': motionTokens.duration.normal,
   '--ui-motion-duration-drawer': '360ms',
-  '--ui-motion-duration-instant': '280ms',
+  '--ui-motion-duration-instant': motionTokens.duration.control,
   '--ui-motion-duration-tooltip': '180ms',
   '--ui-motion-ease-out': motionTokens.easing.out,
   '--ui-motion-ease-swift-out': motionTokens.easing.spring,

@@ -244,7 +244,6 @@
 :root {
   /* ── Canonical system easing ─────────────────────────── */
   --vt-ease-system:    cubic-bezier(0.2, 0.8, 0.2, 1);
-  --vt-duration-interact: 320ms;
 
   /* Easing curves (all resolve to system curve) */
   --ease-standard:   var(--vt-ease-system);
@@ -253,13 +252,16 @@
   --ease-spring:     var(--vt-ease-system);
   --ease-bounce:     var(--vt-ease-system);
 
-  /* Durations — each value sits inside an EC-29 band (see header) */
+  /* Durations — one value per EC-29 band (UX-02).
+   * The TS mirror (design-system/tokens/motion.ts) must agree with these —
+   * enforced by __tests__/motion-token-sync.test.ts. */
   --duration-instant:  120ms;   /* control feedback — R-e */
-  --duration-fast:     280ms;
-  --duration-normal:   320ms;
-  --duration-slow:     380ms;
-  --duration-xslow:    420ms;
-  --duration-stagger:  50ms;
+  --duration-fast:     200ms;   /* state transition (150–250ms) */
+  --duration-normal:   320ms;   /* product transformation */
+  --duration-slow:     380ms;   /* product transformation */
+  --duration-xslow:    420ms;   /* product transformation */
+  --duration-narrative: 600ms;  /* rare narrative (450–800ms) — needs an EC-29 narrative justification */
+  --duration-stagger:  50ms;    /* stagger offset between siblings — not a duration, band-exempt */
 
   /* Control-feel durations — EC-29 control-feedback band (80–150ms), R-e.
    * Call sites already request this: utilities.css and ActionBar.tsx both

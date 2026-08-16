@@ -11,7 +11,7 @@ export function Card({ className, interactive = false, ...props }: CardProps) {
       className={cn(
         'rounded-[var(--vt-radius-lg)] border border-[var(--vt-border)] bg-[var(--vt-surface)] text-[var(--vt-text-primary)] shadow-[var(--vt-shadow-card)]',
         'p-[var(--vt-space-24)]',
-        interactive ? 'transition-all duration-[var(--vt-motion-normal)] ease-[var(--vt-ease-spring)] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[var(--vt-border)]/20' : '',
+        interactive ? 'transition-all duration-[var(--vt-motion-control)] ease-[var(--vt-ease-spring)] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[var(--vt-border)]/20' : '',
         className,
       )}
       {...props}
