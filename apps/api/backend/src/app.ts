@@ -7,14 +7,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import swaggerUi from 'swagger-ui-express';
 import { registerIngestRoutes } from '../../routes/ingest';
-import { registerWedgeRoutes } from '../routes/wedge';
 import { env, getProductionEnvCheck } from './config/env';
 import { isAutomatedTestRuntime } from './config/runtimeMode';
 import { validateEnv } from './config/envValidation'; // Wave 196
 import prisma, { Prisma, PrismaClient } from './graphql/prisma_client';
 import { errorHandler } from './middleware/errorHandler';
 import { getRequestOrganizationId } from './middleware/organizationContext';
-import { apiKeyAuth, publicApiRateLimit, trustStateRateLimit } from './middleware/publicSafety';
+import { apiKeyAuth, publicApiRateLimit } from './middleware/publicSafety';
 import { credentialStatusRateLimit, proofRateLimit, walletRateLimit } from './middleware/rateLimitFactory';
 import { requestObservability } from './middleware/requestObservability';
 import { verifiedIdentityMiddleware } from './middleware/verifiedIdentity';
@@ -3004,27 +3003,10 @@ function registerPilotRoutes(app: Express): void {
   });
 }
 
-function registerTrustStateRoutes(app: Express): void {
-  // Trust-state is read-only and rate-limited (no API key required)
-  app.get('/trust-state/:clinician_id', trustStateRateLimit, (req: Request, res: Response, next) => {
-    const clinician_id =
-      typeof req.params.clinician_id === 'string' ? req.params.clinician_id.trim() : '';
-    if (!clinician_id) {
-      return res.status(400).json({ error: 'clinician_id is required' });
-    }
-
-    const queryIndex = req.url.indexOf('?');
-    const rawQuery = queryIndex >= 0 ? req.url.slice(queryIndex + 1) : '';
-    const params = new URLSearchParams(rawQuery);
-    params.set('clinician_id', clinician_id);
-    (req as Request & { query: Record<string, unknown> }).query = {
-      ...(req.query as Record<string, unknown>),
-      clinician_id,
-    };
-    req.url = `/trust-state?${params.toString()}`;
-    return next();
-  });
-}
+// The root `/trust-state/:clinician_id` alias was retired with the wedge lane
+// (ADR 0007): it was a URL-rewriting shim whose only terminal handler was the
+// wedge's `GET /trust-state`, deleted under the same retirement. The live
+// trust-state surface is `/api/trust-state/:npi` (registerTrustStateEngineRoutes).
 
 // ─── Wave 14: Continuous Monitoring Engine ───────────────────
 
@@ -3594,7 +3576,6 @@ app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 registerComplianceRoutes(app);
 registerOperationsRoutes(app);
 registerPilotRoutes(app);
-registerTrustStateRoutes(app);
 registerCredentialStatusRoutes(app);
 registerMonitoringRoutes(app);
 registerEnterpriseReadinessRoutes(app);
@@ -3605,7 +3586,6 @@ registerObservabilityRoutes(app);
 registerIntegrationHealthRoutes(app);
 registerExpirationForecastRoutes(app);
 registerVerifierDashboardRoutes(app);
-registerWedgeRoutes(app);
 registerIdentityRoutes(app);
 registerDemoRoutes(app);
 registerPsvVerifyRoutes(app);

@@ -40,6 +40,15 @@ jest.mock('../../services/seal/sealEventCapture', () => ({
   captureStartOutcome: jest.fn().mockResolvedValue(undefined),
 }));
 
+// The canonical application-bound start command (ADR 0007 succession). Door B
+// adapts onto it; these route tests assert the adapter contract (auth chain,
+// acceptance selection, legacy response mapping) while the command's own
+// atomicity is proven against real PostgreSQL in
+// services/activation/__tests__/applicationStartCommand.db.test.ts.
+jest.mock('../../services/activation/applicationStartCommandService', () => ({
+  confirmStartByAcceptance: jest.fn(),
+}));
+
 jest.mock('../../services/feedback/prismaEventStore', () => ({
   emitLearningEvent: jest.fn(),
 }));
@@ -81,7 +90,9 @@ import { buildEmployerEvidencePacket } from '../../services/entity/employerPacke
 import { createEmployerEvidencePacketZipStream } from '../../services/entity/employerPacketExport';
 import { issueTrustContainerManifestEntry } from '../../services/trust/container/trustContainerIssuance';
 import { registerEmployerActionRoutes } from '../employerActions';
+import { confirmStartByAcceptance } from '../../services/activation/applicationStartCommandService';
 import { sha256ForPayload } from '../../utils/deterministic';
+import { HttpError } from '../../utils/httpError';
 
 const prismaMock = prisma as unknown as {
   vcvEntity: {
@@ -112,6 +123,8 @@ const prismaMock = prisma as unknown as {
   $transaction: jest.Mock;
 };
 
+const confirmStartByAcceptanceMock =
+  confirmStartByAcceptance as jest.MockedFunction<typeof confirmStartByAcceptance>;
 const captureAdvisoryEventMock =
   captureAdvisoryEvent as jest.MockedFunction<typeof captureAdvisoryEvent>;
 const captureEmployerDecisionMock =
@@ -417,6 +430,22 @@ describe('employer action routes', () => {
     prismaMock.auditEvent.findMany.mockReset();
     prismaMock.outboxEvent.upsert.mockReset();
     prismaMock.$transaction.mockReset();
+    confirmStartByAcceptanceMock.mockReset();
+    confirmStartByAcceptanceMock.mockResolvedValue({
+      state: 'started',
+      duplicate: false,
+      applicationId: 'app-1',
+      organizationId: 'org-1',
+      attestation: {
+        id: 'attestation-1',
+        acceptanceId: 'accept-1',
+        role: 'RN',
+        facility: 'Providence',
+        startedAt: new Date('2026-03-25T18:00:00.000Z'),
+      },
+      lifecycleAuditEventId: 'audit-start-recorded-1',
+      attestationAuditEventId: 'audit-start-attested-1',
+    } as never);
     captureAdvisoryEventMock.mockReset();
     captureEmployerDecisionMock.mockReset();
     buildPassportMock.mockReset();
@@ -1247,6 +1276,7 @@ describe('employer action routes', () => {
     expect(response.body).toEqual({
       error: 'No active acceptance found for this employer/clinician pair. Accept first before recording a start.',
     });
+    expect(confirmStartByAcceptanceMock).not.toHaveBeenCalled();
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
@@ -1274,6 +1304,7 @@ describe('employer action routes', () => {
       },
       select: { id: true, clinicianNpi: true },
     });
+    expect(confirmStartByAcceptanceMock).not.toHaveBeenCalled();
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
@@ -1766,6 +1797,7 @@ describe('employer action routes', () => {
       })
       .expect(409);
 
+    expect(confirmStartByAcceptanceMock).not.toHaveBeenCalled();
     expect(prismaMock.startAttestation.create).not.toHaveBeenCalled();
     expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
@@ -1784,7 +1816,7 @@ describe('employer action routes', () => {
     }));
   });
 
-  it('scopes explicit confirm-start acceptance IDs to the reviewed clinician NPI', async () => {
+  it('adapts confirm-start onto the canonical start command and keeps the legacy response contract', async () => {
     prismaMock.employerAcceptance.findFirst.mockResolvedValueOnce({
       id: 'accept-1',
       clinicianNpi: '1234567890',
@@ -1810,31 +1842,98 @@ describe('employer action routes', () => {
         status: 'ACCEPTED',
       },
     }));
-    expect(prismaMock.startAttestation.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({
-        acceptanceId: 'accept-1',
-        role: 'RN',
-        facility: 'Providence',
-      }),
-    }));
+    // All persistence — attestation, both audits, outbox — happens inside the
+    // command, atomically. The route never touches startAttestation itself
+    // (pinned by startRoutesUseCanonicalCommand.test.ts and the ADR 0007
+    // writer inventory); its job is the adapter call and the response mapping.
+    expect(confirmStartByAcceptanceMock).toHaveBeenCalledTimes(1);
+    expect(confirmStartByAcceptanceMock).toHaveBeenCalledWith({
+      acceptanceId: 'accept-1',
+      actorId: 'employer-1',
+      startedAt: new Date('2026-03-25T18:00:00.000Z'),
+      role: 'RN',
+      facility: 'Providence',
+      expectedClinicianNpi: '1234567890',
+      // No expectedOrganizationId: this reviewer has no organization binding.
+    });
+    expect(prismaMock.startAttestation.create).not.toHaveBeenCalled();
+    // Legacy response contract, unchanged — the web proxy requires exactly
+    // { ok, attestationId, auditEventId, startedAt } on a 2xx, and
+    // auditEventId names the START_ATTESTED non-repudiation event.
     expect(response.body).toEqual({
       ok: true,
       attestationId: 'attestation-1',
-      auditEventId: expect.any(String),
+      auditEventId: 'audit-start-attested-1',
       startedAt: '2026-03-25T18:00:00.000Z',
     });
-    expect(prismaMock.auditEvent.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({
-        type: 'START_ATTESTED',
-        metadata: expect.objectContaining({
-          correlationId: expect.any(String),
-          mutationFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
-          mutationClassification: 'TRUST_START_ATTESTATION',
-          replayCategory: 'R-CAT-4',
-          payloadHash: expect.stringMatching(/^[a-f0-9]{64}$/),
-        }),
-      }),
-    }));
+  });
+
+  it('answers an identical repeat confirm-start 200 without a second attestation', async () => {
+    prismaMock.employerAcceptance.findFirst.mockResolvedValueOnce({
+      id: 'accept-1',
+      clinicianNpi: '1234567890',
+    });
+    confirmStartByAcceptanceMock.mockResolvedValueOnce({
+      state: 'started',
+      duplicate: true,
+      applicationId: 'app-1',
+      organizationId: 'org-1',
+      attestation: {
+        id: 'attestation-1',
+        acceptanceId: 'accept-1',
+        role: 'RN',
+        facility: 'Providence',
+        startedAt: new Date('2026-03-25T18:00:00.000Z'),
+      },
+      lifecycleAuditEventId: 'audit-start-recorded-1',
+      attestationAuditEventId: 'audit-start-attested-1',
+    } as never);
+
+    const response = await request(buildApp())
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/confirm-start')
+      .set('x-test-verified-user', 'employer-1')
+      .send({
+        startedAt: '2026-03-25T18:00:00.000Z',
+        role: 'RN',
+        facility: 'Providence',
+        acceptanceId: 'accept-1',
+      })
+      .expect(200);
+
+    expect(response.body).toEqual({
+      ok: true,
+      attestationId: 'attestation-1',
+      auditEventId: 'audit-start-attested-1',
+      startedAt: '2026-03-25T18:00:00.000Z',
+    });
+    expect(prismaMock.startAttestation.create).not.toHaveBeenCalled();
+  });
+
+  it('propagates the command\'s fail-closed 409 for an unbound legacy acceptance, writing nothing', async () => {
+    prismaMock.employerAcceptance.findFirst.mockResolvedValueOnce({
+      id: 'accept-legacy-unbound',
+      clinicianNpi: '1234567890',
+    });
+    confirmStartByAcceptanceMock.mockRejectedValueOnce(
+      new HttpError(409, 'A packet-bound application acceptance is required.', 'START_ACCEPTANCE_REQUIRED'),
+    );
+
+    const response = await request(buildApp())
+      .post('/api/employer-review/11111111-1111-4111-8111-111111111111/confirm-start')
+      .set('x-test-verified-user', 'employer-1')
+      .send({
+        startedAt: '2026-03-25T18:00:00.000Z',
+        role: 'RN',
+        facility: 'Providence',
+        acceptanceId: 'accept-legacy-unbound',
+      })
+      .expect(409);
+
+    expect(response.body.error).toBe('A packet-bound application acceptance is required.');
+    // Fail closed: the command rejected before persisting anything, and the
+    // route added no write of its own — never a silent attest.
+    expect(prismaMock.startAttestation.create).not.toHaveBeenCalled();
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
   // ── Door B verified-identity closure ────────────────────────────────────

@@ -234,9 +234,6 @@ export function shouldSkipTenantContext(path: string): boolean {
     || normalized.startsWith('/api/.well-known')
     || normalized.startsWith('/api-docs')
     || normalized === '/openapi.json'
-    || normalized.startsWith('/recognitions')
-    || normalized.startsWith('/acceptances')
-    || normalized.startsWith('/starts')
     || normalized.startsWith('/status')
     || normalized.startsWith('/trust-state')
     || normalized.startsWith('/ingest')

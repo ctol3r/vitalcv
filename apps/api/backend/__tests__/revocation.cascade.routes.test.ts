@@ -13,7 +13,8 @@
  *   - Return 200 (healthy/degraded) or 503 (critical — DB unavailable)
  *   - Response shape is always validated regardless of status
  *
- * Uses supertest against the full app (same pattern as canonical_wedge.test.ts).
+ * Uses supertest against the full app (same pattern as
+ * src/routes/__tests__/wedgeRoutesRemoved.test.ts).
  */
 
 import request from 'supertest';

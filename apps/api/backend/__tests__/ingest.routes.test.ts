@@ -1,7 +1,11 @@
 import request from 'supertest';
 import app from '../src/app';
 import prisma from '../src/graphql/prisma_client';
-import { resetIntakeStore } from '../../ingest';
+import {
+  hasUnresolvedIntakeConflicts,
+  intakeSummaryForTrustState,
+  resetIntakeStore,
+} from '../../ingest';
 
 const CLINICIAN_ID = 'clinician:intake:001';
 const VALID_NPI = '1234567893';
@@ -196,15 +200,17 @@ suite('ingest routes', () => {
     expect(replay.body.total_candidate_credentials).toBe(1);
   });
 
-  it('keeps CRS/start readiness unchanged after ingestion while adding trust-state intake reflection', async () => {
+  // Ingestion is intake only, never a trust mutation. These two cases used to
+  // observe that through the wedge lane's GET /trust-state read (retired with
+  // routes/wedge.ts under ADR 0007); the invariant outlives the surface, so
+  // they now observe the intake reflection directly and assert that no trust
+  // or decision record of any kind is written by ingest.
+  it('adds intake reflection after ingestion without writing any trust or decision record', async () => {
     (globalThis.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => nppesResponse(),
     });
-
-    const before = await request(app).get(`/trust-state/${CLINICIAN_ID}`);
-    expect(before.status).toBe(200);
 
     await request(app).post('/ingest/npi').send({
       clinician_id: CLINICIAN_ID,
@@ -222,33 +228,31 @@ suite('ingest routes', () => {
       ],
     });
 
-    const after = await request(app).get(`/trust-state/${CLINICIAN_ID}`);
-    expect(after.status).toBe(200);
-    expect(after.body.crs.score).toBe(before.body.crs.score);
-    expect(after.body.crs.band).toBe(before.body.crs.band);
-    expect(after.body.start_ready).toBe(before.body.start_ready);
-    expect(after.body.blocking_reasons).toContain('CRS_BELOW_THRESHOLD');
-    expect(after.body.blocking_reasons).toContain('IDENTITY_CONFLICT');
-    expect(after.body.blocking_reason_messages).toEqual(
-      expect.arrayContaining([
-        'Pending verification',
-        'Missing required PSV',
-        'Identity conflict detected',
-      ]),
-    );
-    expect(after.body.intake_summary).toEqual(
+    // Intake reflection recorded the ingest…
+    expect(intakeSummaryForTrustState(CLINICIAN_ID)).toEqual(
       expect.objectContaining({
         clinician_id: CLINICIAN_ID,
         identities_count: 1,
         candidate_credentials_count: 1,
       }),
     );
+    // …including the name mismatch between NPPES and the resume, which must
+    // surface as an unresolved conflict, never be silently reconciled.
+    expect(hasUnresolvedIntakeConflicts(CLINICIAN_ID)).toBe(true);
+
+    // …and nothing was written to any trust or decision record: neither the
+    // parallel wedge models nor the canonical decision rows.
+    expect(await prisma.recognition.count({ where: { subjectId: CLINICIAN_ID } })).toBe(0);
+    expect(await prisma.acceptance.count({ where: { subjectId: CLINICIAN_ID } })).toBe(0);
+    expect(await prisma.start.count({ where: { subjectId: CLINICIAN_ID } })).toBe(0);
+    expect(await prisma.employerAcceptance.count({ where: { clinicianNpi: VALID_NPI } })).toBe(0);
+    expect(await prisma.startActivation.count({ where: { clinicianNpi: VALID_NPI } })).toBe(0);
+    expect(await prisma.auditEvent.count({
+      where: { type: { in: ['START_ATTESTED', 'START_RECORDED', 'EMPLOYER_REVIEW_ACCEPTED'] } },
+    })).toBe(0);
   });
 
-  it('ingest errors do not mutate trust-state and return correct error codes', async () => {
-    const before = await request(app).get(`/trust-state/${CLINICIAN_ID}`);
-    expect(before.status).toBe(200);
-
+  it('ingest errors write no trust or decision record and return correct error codes', async () => {
     const unsupported = await request(app).post('/ingest/files').send({
       clinician_id: CLINICIAN_ID,
       files: [
@@ -261,17 +265,20 @@ suite('ingest routes', () => {
     });
     expect(unsupported.status).toBe(415);
 
-    const after = await request(app).get(`/trust-state/${CLINICIAN_ID}`);
-    expect(after.status).toBe(200);
-    expect(after.body.crs.score).toBe(before.body.crs.score);
-    expect(after.body.crs.band).toBe(before.body.crs.band);
-    expect(after.body.start_ready).toBe(before.body.start_ready);
-    expect(after.body.intake_summary).toEqual(
+    // The failed ingest left no intake reflection…
+    expect(intakeSummaryForTrustState(CLINICIAN_ID)).toEqual(
       expect.objectContaining({
         identities_count: 0,
         candidate_credentials_count: 0,
       }),
     );
+    // …and no trust or decision record of any kind.
+    expect(await prisma.recognition.count({ where: { subjectId: CLINICIAN_ID } })).toBe(0);
+    expect(await prisma.acceptance.count({ where: { subjectId: CLINICIAN_ID } })).toBe(0);
+    expect(await prisma.start.count({ where: { subjectId: CLINICIAN_ID } })).toBe(0);
+    expect(await prisma.auditEvent.count({
+      where: { type: { in: ['START_ATTESTED', 'START_RECORDED', 'EMPLOYER_REVIEW_ACCEPTED'] } },
+    })).toBe(0);
 
     const errorEvents = await prisma.auditEvent.findMany({
       where: { type: 'INGEST_ERROR' },

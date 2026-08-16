@@ -71,12 +71,34 @@ runs it directly; the machine lane (`POST /api/hiring/start`) adapts onto it via
 `confirmStartByAcceptance` and fails closed for acceptances with no application
 binding, no clinician NPI, or no employer organization.
 
-`services/hiring/startWriter.ts` **remains allowlisted for exactly one caller**:
-the entity-scoped `POST /api/employer-review/:entityId/confirm-start` path in
-`routes/employerActions.ts`, which was out of scope for this succession.
-Migrating confirm-start onto `confirmStartByAcceptance` (as PR #1384 drafted) is
-the recorded follow-up that removes `startWriter.ts` from the allowlist; until
-then no new caller may use it.
+~~`services/hiring/startWriter.ts` remains allowlisted for exactly one caller~~
+**Succession COMPLETE (2026-08-15).** The entity-scoped
+`POST /api/employer-review/:entityId/confirm-start` path in
+`routes/employerActions.ts` now adapts onto `confirmStartByAcceptance`: door B
+keeps subject resolution, verified-identity + RBAC, acceptance selection
+(both employer-id semantics), and the legacy response mapping
+(`{ ok, attestationId, auditEventId, startedAt }`; 201 first confirmation, 200
+identical idempotent replay); the command owns the whole consequence set
+atomically. `services/hiring/startWriter.ts` is **deleted**, and the
+StartAttestation allowlist in `acceptanceWriterInventory.test.ts` names exactly
+`services/activation/applicationStartCommandService.ts`. An acceptance without
+an application binding fails closed inside the command
+(409 `START_ACCEPTANCE_REQUIRED`) on every lane, door B included — a legacy row
+never silently attests.
+
+Two contract changes this succession makes, deliberately: (1) new confirm-start
+rows commit under the command's hash scheme
+(`vitalcv.application-confirmed-start.v1`, self-identifying via its `schema`
+field) rather than door B's legacy inline payload — old rows are
+distinguishable by that field's absence; (2) door B's runtime-trust audit
+metadata on the allowed path is replaced by the command's canonical payload
+(the denied path keeps `EMPLOYER_REVIEW_MUTATION_DENIED` with runtime-trust
+metadata). The startWriter suite's invariant — no start survives a failed
+consequence write — migrated to
+`services/activation/__tests__/applicationStartCommand.db.test.ts`, which
+proves it by failure injection against real PostgreSQL; the routing closure
+(every start route persists only through the command) is
+`src/routes/__tests__/startRoutesUseCanonicalCommand.test.ts`.
 
 Deferred deliberately, not forgotten: #1384's `StartAttestation`
 application/organization/confirmedBy columns and unique index are a Prisma
@@ -84,3 +106,51 @@ schema change (founder-approval tier). The exactly-once guarantee is carried by
 the command's conditional `StartActivation` state advance inside the
 transaction; the binding is durable in the attestation metadata and both audit
 rows.
+
+## Amendment — wedge lane retired (2026-08-15, founder-confirmed)
+
+Point 6's pending retirement is **executed**, under the founder's 2026-08-16
+"proceed with recommendations" confirmation. `routes/wedge.ts` and its
+registration are deleted: `POST /recognitions`, `GET
+/recognitions/:recognitionId`, `POST /acceptances`, `POST /starts`, `GET
+/status/:subject_id`, and `GET /trust-state` no longer exist, and
+`src/routes/__tests__/wedgeRoutesRemoved.test.ts` pins the 404s through the real
+app registration. The root `/trust-state/:clinician_id` alias in `app.ts`
+retired with it — it was a URL-rewriting shim whose only terminal handler was
+the wedge's `GET /trust-state`. The lane had zero live callers (verified in the
+C0 takeover and re-verified at retirement: only `apps/web/app/_archive/*`
+pages, which Next excludes from routing, plus the lane's own tests). The
+wedge's tenant-guard skip entries (`/recognitions`, `/acceptances`, `/starts`)
+and its OpenAPI/route-inventory entries are removed with the routes — a skip
+for a dead path is the re-wiring hazard class.
+
+**What stays:** the parallel `Recognition`/`Acceptance`/`Start` Prisma models
+and their repositories — removing them is a founder-approval-tier schema
+migration, deferred. No new caller may write them.
+
+**Invariants preserved from the retired wedge tests, for the record.** The
+wedge suites (`canonical_wedge.test.ts`, `acceptanceStartGuards.test.ts`)
+enforced lane-local forms of rules the canonical lane already carries:
+no acceptance without a prior verification record, no start without an active
+acceptance, revoked/expired verification blocks progression, and rejections are
+audited. The canonical equivalents live in the employer-workflow acceptance
+gates (packet-bound acceptance, ADR 0007 points 1–3) and the start command's
+`START_ACCEPTANCE_REQUIRED` / `START_NOT_READY` gates with audited denials.
+One wedge-only behaviour retires with the lane rather than migrating: the
+"canonical event replay" reconstruction of acceptances from `AuditEvent` rows,
+which let an audit row stand in for a durable record — the canonical lane
+deliberately refuses that (a record that is missing its paired rows fails
+closed as incomplete).
+
+## Follow-ups
+
+- `POST /api/applications/:appId/start-state`, `/start/cancel`, and
+  `/activation/instantiate` remain **guarded-until-proxied** behind the tenant
+  turnstile: nothing proxies them from the web tier, so they are deliberately
+  NOT exempted, and exempting them without a proxy and an in-route authz
+  contract would widen the surface for no caller.
+- The tenant-guard skip prefixes `/status` and `/trust-state` now match no
+  registered route (both served only the retired wedge lane); removing them was
+  outside this retirement's authorized guard touch and is left for a follow-up.
+- `repositories/{recognitions,acceptances,starts}.repo.ts` are now orphaned
+  (wedge.ts was their only importer); they go when the parallel models go.
