@@ -189,7 +189,7 @@ const honestRoutes = (presentNpi: string, absentNpi: string) => ({
 });
 
 describe('npi-smoke: the fabrication guards actually fire', () => {
-  const PRESENT = '1407202518';
+  const PRESENT = '1558395518';
   const ABSENT = '1999999992';
 
   it('passes against an honest response set', async () => {

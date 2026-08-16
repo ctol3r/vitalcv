@@ -18,12 +18,16 @@ const BASE = process.env.BASE_URL || 'http://localhost:4890';
 const OUT = join(here, 'evidence');
 mkdirSync(OUT, { recursive: true });
 
-// 1407202518 is the designated safe test NPI (synthetic, does not name a real person).
+// 1999999992 passes the CMS check digit but is assigned to nobody — NPPES
+// result_count 0, verified 2026-08-16 (npi-smoke's canonical ABSENT NPI).
+// The committed metrics.json was captured 2026-08-07 with 1407202518, which
+// later turned out to be a real registrant's NPI; a rerun must never fetch or
+// render a real person's record. In this hermetic env the route 404s either way.
 const ROUTES = [
   { slug: 'home', path: '/' },
   { slug: 'employers', path: '/employers' },
   { slug: 'pricing', path: '/pricing' },
-  { slug: 'profile-test-npi', path: '/profile/1407202518' },
+  { slug: 'profile-test-npi', path: '/profile/1999999992' },
   { slug: 'matcha', path: '/matcha' },
 ];
 const WIDTHS = [390, 768, 1280, 1728];

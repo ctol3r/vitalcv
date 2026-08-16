@@ -3,13 +3,19 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const BASE = 'https://www.vitalcv.com';
-const SAFE_NPI = '1407202518';
+// Checksum-valid but assigned to nobody — NPPES result_count 0, verified
+// 2026-08-16 (npi-smoke's canonical ABSENT NPI). The committed probe-main.json
+// was captured 2026-08-09 with 1407202518, which later turned out to be a real
+// registrant's NPI; this is a reachability probe, and "no such record" is
+// already recorded separately from "no such route", so a rerun must never pull
+// a real person's record from production.
+const PROBE_NPI = '1999999992';
 
 // Substitutions for dynamic segments. A 404 here may mean "no such record",
 // not "no such route" — recorded separately so the two are never conflated.
 const SUB = {
-  '[npi]': SAFE_NPI,
-  '[entityId]': SAFE_NPI,
+  '[npi]': PROBE_NPI,
+  '[entityId]': PROBE_NPI,
   '[caseId]': 'probe-nonexistent',
   '[bundleId]': 'probe-nonexistent',
   '[requestId]': 'probe-nonexistent',

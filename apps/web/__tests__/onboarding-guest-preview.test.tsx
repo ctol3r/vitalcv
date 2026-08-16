@@ -17,9 +17,12 @@
  *   5. The homepage resolved-state CTA routes to /onboarding — never to the
  *      /holder layout redirect that produced the wall.
  *
- * Fixture NPI 1407202518 is the repo's canonical checksum-valid test NPI
- * (vital-foundation.test.tsx); every network call is mocked — nothing here
- * reaches a real registry, and the fixture person is synthetic.
+ * The fixture NPI is DERIVED at runtime (npiWithCheckDigit below): it must
+ * pass the checkNpi entry gate, but only checksum-valid numbers can name real
+ * people, so no checksum-valid constant is persisted for a later copy-paste —
+ * and the 0-prefixed base sits outside the NPPES enumerator's assignable
+ * space (real NPIs begin with 1 or 2). Every network call is mocked — nothing
+ * here reaches a real registry, and the fixture person is synthetic.
  */
 
 import * as React from 'react';
@@ -32,7 +35,27 @@ import GetReadySurface from '@/app/get-ready/GetReadySurface';
 import { CareerLoopHome } from '@/components/home/career-loop/CareerLoopHome';
 import { ONBOARDING_NPI_KEY } from '@/lib/onboarding/npiHandoff';
 
-const VALID_NPI = '1407202518';
+/** NPI check digit: Luhn over '80840' + the 9-digit base (see lib/vital/npi). */
+function npiWithCheckDigit(base9: string): string {
+  const s = `80840${base9}`;
+  let sum = 0;
+  let double = true;
+  for (let i = s.length - 1; i >= 0; i -= 1) {
+    let d = s.charCodeAt(i) - 48;
+    if (double) {
+      d *= 2;
+      if (d > 9) d -= 9;
+    }
+    sum += d;
+    double = !double;
+  }
+  return `${base9}${(10 - (sum % 10)) % 10}`;
+}
+
+// Checksum-valid, never a registrant (0-prefix — see the header note). Distinct
+// from 1234567893, the CMS worked example, which one test below uses as a
+// second checksum-valid value.
+const VALID_NPI = npiWithCheckDigit('099999999');
 
 const BOOTSTRAP_FIXTURE = {
   npi: VALID_NPI,

@@ -61,13 +61,24 @@ const TIER_1_EXPLICIT = [
  *
  * Globbed, not enumerated, so a NEW spec cannot slip in unlisted — which is
  * exactly how the last one survived.
+ *
+ * Proven again on 2026-08-16: `tests/e2e-authed` was outside this glob, and
+ * `clinician-profile-editing.spec.ts` bound 1407202518 — a real, active
+ * registrant — to the e2e clinician's PersonProfile in every environment the
+ * authed suite ran against. The authed directory drives real HTTP through a
+ * real backend by definition, so ALL of its .ts files are swept (the setup
+ * project and helpers execute exactly like the specs do).
  */
 function e2eSpecs(): string[] {
-  const dir = 'apps/web/tests/e2e';
-  return readdirSync(join(REPO, dir))
+  const specDir = 'apps/web/tests/e2e';
+  const specs = readdirSync(join(REPO, specDir))
     .filter((f) => f.endsWith('.spec.ts') || f.endsWith('.spec.tsx'))
-    .map((f) => `${dir}/${f}`)
-    .sort();
+    .map((f) => `${specDir}/${f}`);
+  const authedDir = 'apps/web/tests/e2e-authed';
+  const authed = readdirSync(join(REPO, authedDir))
+    .filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'))
+    .map((f) => `${authedDir}/${f}`);
+  return [...specs, ...authed].sort();
 }
 
 const TIER_1 = [...TIER_1_EXPLICIT, ...e2eSpecs()];
@@ -90,6 +101,11 @@ const VERIFIED_UNASSIGNED: Record<string, string> = {
   // test number, used across ~11 specs on purpose. Verified 2026-08-10:
   // result_count 0. Also the NPI behind the /verify not-found truth contract.
   '1234567893': 'NPPES result_count 0, verified 2026-08-10',
+  // npi-smoke's ABSENT default — the repo's canonical checksum-valid NPI that
+  // the registry does not assign — and, since 2026-08-16, the NPI the authed
+  // e2e suite binds to the test clinician (so no environment squats a real
+  // registrant's number). Verified 2026-08-16: result_count 0.
+  '1999999992': 'NPPES result_count 0, verified 2026-08-16',
 };
 
 /** The official NPI check digit: Luhn over the number prefixed with 80840. */

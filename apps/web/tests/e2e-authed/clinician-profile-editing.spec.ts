@@ -22,8 +22,18 @@ import { E2E_CLINICIAN_EMAIL } from './testClinician'
 
 const CLERK_API = 'https://api.clerk.com/v1'
 
-/** The NPI the surface binds to. Valid check digit; NPPES-resolvable. */
-const TEST_NPI = '1407202518'
+/**
+ * The NPI the surface binds to. 1999999992 is the repo's canonical
+ * checksum-valid-but-unassigned NPI (npi-smoke's ABSENT default): it passes
+ * the CMS check digit and NPPES returns result_count 0 (verified 2026-08-16).
+ * Nothing this spec asserts needs an NPPES-assigned NPI — the bind is
+ * self-asserted (bootstrapNpiIntake upserts whether or not the registry
+ * resolves) and the registry panel renders its heading in every state — and
+ * binding an unassigned number means no environment this suite touches ever
+ * squats a real registrant's NPI. Valid-format numbers can be assigned later:
+ * re-verify against NPPES before reusing this value elsewhere.
+ */
+const TEST_NPI = '1999999992'
 
 function backendBase(): string {
   return process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://127.0.0.1:4000'
