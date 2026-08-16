@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-import MatchExplanationFigure from '@/components/home/easy/figures/MatchExplanationFigure';
 import { Button } from '@/components/ui/button';
 import type { OpportunitySummary } from '@/lib/launch/marketplace';
 
@@ -90,8 +89,11 @@ export default function OpportunityHorizon() {
         <div className="ezh-opportunity-head">
           <div>
             <span className="ezh-k">Roles</span>
+            {/* Founder UX audit, 2026-08-16: VitalCV is not a job board, and
+                this heading may not hand the category away by using the noun.
+                The differentiator stays — roles are read against the record. */}
             <h2 id="ezh-opportunities-heading">
-              A job board that reads your credentials, not your keywords.
+              Roles, read against your record &mdash; not your keywords.
             </h2>
             {/* Amendment E.2: one sentence. */}
             <p className="ezh-sec-sub">
@@ -103,8 +105,6 @@ export default function OpportunityHorizon() {
             Explore all opportunities <span aria-hidden="true">↗</span>
           </Link>
         </div>
-
-        <MatchExplanationFigure />
 
         {state.phase === 'loading' ? (
           <div className="ezh-opportunity-state" role="status">

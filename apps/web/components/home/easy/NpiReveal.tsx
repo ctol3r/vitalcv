@@ -47,6 +47,7 @@ import {
   CHECK_SEQUENCE,
   useSourceCheckSequence,
 } from '@/components/readiness/sourceCheckNarration';
+import { STATE_GLYPH, type HomeState } from '@/components/home/easy/stateVocabulary';
 import type { ClinicianCareerProfile } from '@/lib/career-loop/profile';
 
 /* ── the resolving narration ─────────────────────────────────────────────── */
@@ -106,14 +107,40 @@ const STATE_WORD: Record<string, string> = {
   accessRequired: 'Access required',
 };
 
+/**
+ * The v4 ledger glyph for a row (amendment F). The WORD stays the capsule's
+ * own state word — the glyph adds the five-state geometry without changing a
+ * claim. One derivation is deliberately in the WEAKER direction: a `checked`
+ * row whose lane cadence is a dated file renders the half-glyph (snapshot),
+ * never the full one, so the drawing cannot outrank the monthly/quarterly
+ * qualifier the row already carries.
+ */
+function glyphStateOf(row: EvidenceRow): HomeState {
+  switch (row.state) {
+    case 'checked':
+      return row.cadence && /snapshot/i.test(row.cadence) ? 'snapshot' : 'confirmed';
+    case 'reviewRequired':
+    case 'notFound':
+      return 'attention';
+    case 'accessRequired':
+      return 'access';
+    default:
+      return 'unchecked';
+  }
+}
+
 function RevealRow({ row }: { row: EvidenceRow }) {
   const parts = provenanceParts(row);
+  const glyphState = glyphStateOf(row);
   return (
     <li className={`ezh-rv-row is-${row.kind}`} data-reveal-row={row.state}>
       <div className="ezh-rv-row-main">
         <span className="ezh-rv-claim">{row.claim}</span>
         <span className="ezh-rv-returned">{row.returned}</span>
-        <span className={`ezh-rv-state s-${row.state}`}>{STATE_WORD[row.state] ?? row.state}</span>
+        <span className={`ezh-rv-state s-${row.state} ezh-stamp is-${glyphState}`}>
+          <i className="ezh-stamp-g" aria-hidden="true">{STATE_GLYPH[glyphState]}</i>
+          {STATE_WORD[row.state] ?? row.state}
+        </span>
       </div>
       {parts.length > 0 ? (
         <details className="ezh-rv-more">

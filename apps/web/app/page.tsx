@@ -12,7 +12,9 @@ import '@/styles/home.css';
 import '@/styles/career-loop-home.css';
 import '@/styles/easy-home.css';
 
-const TAGLINE = 'VitalCV — One career record. More ways forward.';
+// Amendment F (2026-08-16): the founder's v4 title, with its "wallet" noun
+// corrected to "record" per the strategy contract and the C1 ruling (EC-9).
+const TAGLINE = 'VitalCV — One record, every job after it.';
 const DESCRIPTION =
   'Start with your NPI. VitalCV assembles a source-attributed clinician profile, helps you explore roles, and lets you apply with the exact record you choose.';
 
@@ -55,9 +57,9 @@ const STRUCTURED_DATA = {
 };
 
 /**
- * `/` — the UX-V1 production experience: Enter your NPI. VitalCV does the
- * rest. The Easy Button hero, the real NPI entry, and the illustrated work
- * surface (see components/home/easy/).
+ * `/` — the production experience: the founder's Homepage v4 (amendment F).
+ * The real NPI entry beside the hero folio, the interactive resolution
+ * scene, and the ruled-document composition (see components/home/easy/).
  *
  * `career-loop` (the previous homepage) and `film` (the one before it) are
  * kept as env-switchable rollbacks rather than deleted: set

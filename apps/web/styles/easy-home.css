@@ -1,1623 +1,1602 @@
-/**
- * easy-home.css — the `/` production experience (Direction A, amendment E).
+/* easy-home.css — the `/` island (`.ezh`), Homepage v4 · amendment F (2026-08-16).
  *
- * Warm paper, ink, one hot action colour, Geist display type, and six drawn
- * self-labelling figures. The island's --ezh-* names survive from the earlier
- * eras so call sites stay stable, but every value now resolves through the
- * `--vt-home-e-*` register in styles/themes/index.css. The Direction D
- * cascade block and the D.7 frosted material are deleted, not overridden:
- * this file carries ONE register.
+ * The founder's v4 register: warm paper #EDEAE3 with raised/inset paper
+ * surfaces, hairline-ruled document composition, indigo signal, Fraunces
+ * display, Geist text, Geist Mono for machine facts (the mono law returns to
+ * `/` — if it is mono, a source returned it). Every colour resolves through
+ * `--vt-home-f-*` in styles/themes/index.css; this file declares no literal
+ * colour (scene-token-contract pins that, and LINT-01 counts it).
  *
- * Island discipline, unchanged: `.ezh` scopes everything; every colour routes
- * through a custom property declared on the island root — zero literals in
- * this file. Keyframe DEFINITIONS live in styles/motion.css (LINT-03's one
- * permitted home); this file only consumes them, and every consumer sits
- * behind the `[data-ezh-motion]` arming attribute that hydration sets only
- * outside prefers-reduced-motion (amendment E.2). No z-index: stacking
- * follows DOM order. No scroll interception. No backdrop-filter — amendment
- * E's Material row retires frost from this route; this file left the frost
- * allowlist with the recomposition.
+ * No frost anywhere on this route (amendment E's material row, reaffirmed by
+ * F). No @keyframes here — the F animations live in styles/motion.css
+ * (LINT-03) and are single-shot only: the founder file's ambient loops are
+ * superseded by EC-29's no-loop rule, recorded in amendment F.
  *
- * Server markup renders the COMPLETED story frame. Script arms and plays the
- * one-shot enhancements; without script, and under prefers-reduced-motion,
- * the full meaning is simply present. The one lawful loop is the live feed's
- * "Listed as open" status pulse (EC-29's system-status exception).
- *
- * Amendment E resolves the radius seam: page actions take
- * `--vt-shape-action-page` (8px); chrome instruments stay radius 0 (A-3).
- * Indigo carries focus on this route (`--vt-focus-ring-scene-paper`),
- * restoring A-1 and superseding Direction D's green focus.
+ * Radii: page actions take --vt-shape-action-page (8px, amendment E seam —
+ * the e2e contract pins it); document panels and tiles stay near-sharp (3px,
+ * A-1 evidence-surface limit). State hues appear ONLY on glyphs and left
+ * rules; the word is always ink (EC-4).
  */
 
+/* ── ground ──────────────────────────────────────────────────────────────── */
+
 .ezh {
-  /* The Direction A register. Names kept, values re-pointed: the island's
-     call sites read --ezh-*; amendment E owns what those resolve to. */
-  --ezh-ground: var(--vt-home-e-ground);
-  --ezh-panel: var(--vt-home-e-panel);
-  --ezh-panel2: var(--vt-home-e-ground);
-  --ezh-line: var(--vt-home-e-rule);
-  --ezh-line2: var(--vt-home-e-rule);
-  --ezh-text: var(--vt-home-e-ink);
-  --ezh-text2: var(--vt-home-e-dim);
-  --ezh-text3: var(--vt-home-e-dim);
-  --ezh-work: var(--vt-home-e-source);
-  --ezh-work-deep: var(--vt-home-e-source);
-  --ezh-hold: var(--vt-home-e-ink);
-  --ezh-wait: var(--vt-home-e-dim);
-  /* The primary page action: the hot accent with its measured white-label
-     ladder (4.94:1 rest · 5.83:1 hover · 6.78:1 press). An action
-     instrument, never a state. */
-  --ezh-cta-bg: var(--vt-home-e-action);
-  --ezh-cta-text: var(--vt-home-e-action-label);
-  --ezh-cta-bg-hover: var(--vt-home-e-action-hover);
-  --ezh-cta-bg-press: var(--vt-home-e-action-press);
-  --ezh-cta-text-press: var(--vt-home-e-action-label);
-  --ezh-focus: var(--vt-focus-ring-scene-paper);
-  --ezh-light: var(--vt-home-e-ground);
-  --ezh-light-line: var(--vt-home-e-rule);
-  --ezh-light-text: var(--vt-home-e-ink);
-  --ezh-light-text2: var(--vt-home-e-dim);
-  /* The ink card (the NPI entry) and the dark band share these. */
-  --ezh-card: var(--vt-home-e-ink);
-  --ezh-card-text: var(--vt-home-e-band-text);
-  --ezh-card-dim: color-mix(in srgb, var(--vt-home-e-band-text) 72%, var(--vt-home-e-ink));
-  --ezh-card-line: color-mix(in srgb, var(--vt-home-e-band-text) 22%, var(--vt-home-e-ink));
-  /* Drawn-figure inks (amendment E, Illustration row). The accent swaps to
-    */
-  --ezh-fig-line: var(--vt-home-e-figure-line);
-  --ezh-fig-dim: var(--vt-home-e-figure-dim);
-  --ezh-fig-bar: var(--vt-home-e-figure-bar);
-  --ezh-fig-accent: var(--vt-home-e-figure-accent);
-  --ezh-maxw: 1400px;
-  --ezh-gutter: 32px;
-
-  background: var(--ezh-ground);
-  color: var(--ezh-text);
+  --ezh-max: 1240px;
+  background: var(--vt-home-f-ground);
+  color: var(--vt-home-f-ink);
   font-family: var(--font-geist);
-  font-size: 16px;
-  line-height: 1.55;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* The register is sans-first with no uppercase microcopy — amendment E
-   reaffirms Direction D's no-monospace row for this surface. The serif
-   editorial aside is the one deliberate exception, re-declared below at
-   higher specificity. */
-.ezh *,
-.ezh input,
-.ezh button {
-  font-family: var(--font-geist);
-  text-transform: none;
-}
-
-.ezh a {
-  color: inherit;
-  text-decoration: none;
-}
-
-/* Indigo owns focus (A-1, restored on this route by amendment E). */
-.ezh :focus-visible {
-  outline: 2px solid var(--ezh-focus);
-  outline-offset: 2px;
+  line-height: 1.6;
 }
 
 .ezh-wrap {
-  max-width: var(--ezh-maxw);
+  max-width: var(--ezh-max);
   margin: 0 auto;
-  padding-left: var(--ezh-gutter);
-  padding-right: var(--ezh-gutter);
+  padding-left: 24px;
+  padding-right: 24px;
 }
 
-/* Visually hidden, still read: figure transcripts and the payoff's full
-   sentence for assistive tech. */
+@media (min-width: 768px) {
+  .ezh-wrap {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}
+
 .ezh-sr {
   position: absolute;
   width: 1px;
   height: 1px;
-  margin: -1px;
   padding: 0;
+  margin: -1px;
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
 }
 
-/* micro-label */
-.ezh-k {
+/* ── type roles ──────────────────────────────────────────────────────────── */
+
+/* The mono micro-label: machine register, uppercase, tracked. */
+.ezh .ezh-k {
   display: block;
-  font-size: 13px;
+  font-family: var(--font-geist-mono);
+  font-size: 0.6875rem;
   font-weight: 500;
-  line-height: 1.35;
-  letter-spacing: 0;
-  color: var(--ezh-text2);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--vt-home-f-ink-subtle);
+  font-variant-numeric: tabular-nums;
 }
 
-.ezh section {
-  border-top: 1px solid var(--ezh-line);
+/* Machine facts: mono, tabular. If it is mono, a source returned it. */
+.ezh .ezh-data {
+  font-family: var(--font-geist-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+  font-size: 0.8125rem;
+  color: var(--vt-home-f-ink-muted);
 }
 
-/* anchors land below the floating chrome */
-.ezh [id] {
-  scroll-margin-top: 80px;
-}
-
-.ezh-sec-head {
-  padding-top: 26px;
-  margin-bottom: 14px;
-}
-
-/* The section display register (Direction A): Geist at display weight. */
+.ezh h1,
 .ezh h2 {
-  font-family: var(--font-geist);
-  font-size: clamp(26px, 3vw, 40px);
-  font-weight: 500;
+  font-family: var(--font-serif);
+  font-weight: 540;
+  letter-spacing: -0.015em;
+  color: var(--vt-home-f-ink-strong);
   line-height: 1.08;
-  letter-spacing: -0.032em;
-  max-width: 24ch;
-  text-wrap: balance;
+  margin: 0;
 }
 
-.ezh-sec-head h2 {
-  margin-top: 10px;
-}
-
-.ezh-sec-sub {
-  max-width: 58ch;
-  color: var(--ezh-text2);
-  font-size: 15.5px;
-  line-height: 1.6;
-  margin-top: 14px;
-  margin-bottom: 34px;
-}
-
-/* ── hero ──────────────────────────────────────────────────────────────── */
-
-.ezh-hero {
-  border-top: 0;
-}
-
-.ezh-hero .ezh-wrap {
-  display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-  gap: clamp(32px, 4.5vw, 72px);
-  align-items: start;
-  /* The chrome is a zero-height floating group with instruments in the top
-     70px — the hero owns its clearance rather than sitting under a bar. */
-  padding-top: 124px;
-  padding-bottom: 76px;
-}
-
-.ezh-hero-copy {
-  container-type: inline-size;
-}
-
-.ezh-hero-eyebrow {
-  display: block;
-  margin: 0 0 18px;
-  color: var(--ezh-text2);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  line-height: 1.35;
-}
-
-/* Amendment E, Display row: Geist, clamp(38px, 6.2cqw, 66px), 500,
-   -0.042em, 0.96 — the locked hero register. */
 .ezh h1 {
-  font-family: var(--font-geist);
-  font-size: clamp(38px, 6.2cqw, 66px);
-  font-weight: 500;
-  line-height: 0.96;
-  letter-spacing: -0.042em;
-  color: var(--ezh-text);
-  max-width: 16ch;
-  margin-bottom: 18px;
-  text-wrap: balance;
+  font-size: clamp(2.375rem, 5.4vw, 3.875rem);
+  max-width: 19ch;
 }
 
-.ezh-payoff {
-  font-size: clamp(21px, 2.5cqw, 30px);
-  font-weight: 500;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
-  margin-bottom: 16px;
+.ezh h2 {
+  font-size: clamp(1.75rem, 3.2vw, 2.5rem);
 }
 
-/* The single-pass cycling word (amendment E, Motion row). The accent here is
-   the payoff of the action moment, not a state. */
-.ezh-cycle {
-  color: var(--ezh-cta-bg);
-}
-
-.ezh-hero-sub {
-  color: var(--ezh-text2);
-  font-size: clamp(16px, 1.25vw, 18px);
-  line-height: 1.58;
-  max-width: 47ch;
-  margin-bottom: 28px;
-}
-
-/* ── real NPI entry — the one dark object on the paper page ────────────── */
-
-.ezh-npi-form {
-  max-width: 470px;
-}
-
-.ezh-npi-card {
-  background: var(--ezh-card);
-  color: var(--ezh-card-text);
-  border-radius: 18px;
-  padding: clamp(20px, 2.2vw, 28px);
-}
-
-.ezh-npi-card .ezh-npi-k {
-  color: var(--ezh-card-dim);
-  margin-bottom: 12px;
-}
-
-.ezh-npi-row {
-  display: flex;
-  gap: 10px;
-}
-
-/* A-3 — `flex: 1` is `flex-basis: 0%` on the MAIN axis. At <=480px the row
-   below turns into a column and only min-height keeps the primary control a
-   real target in both orientations. */
-.ezh-npi-input {
-  flex: 1 1 auto;
-  min-width: 0;
-  height: 52px;
-  min-height: 52px;
-  padding: 0 16px;
-  background: var(--ezh-card);
-  border: 1px solid var(--ezh-card-line);
-  border-radius: var(--vt-shape-action-page);
-  color: var(--ezh-card-text);
-  font-size: 17px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-}
-
-.ezh-npi-input::placeholder {
-  color: var(--ezh-card-dim);
-  letter-spacing: 0.04em;
-}
-
-.ezh-npi-input:focus {
-  outline: 2px solid var(--ezh-cta-bg);
-  outline-offset: 1px;
-  border-color: transparent;
-}
-
-.ezh-npi-submit {
-  height: 52px;
-  min-height: 52px;
-  padding: 0 24px;
-  background: var(--ezh-cta-bg);
-  color: var(--ezh-cta-text);
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 1.3;
-  border: 0;
-  border-radius: var(--vt-shape-action-page);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-/* The measured accent ladder: hover 5.83:1, press 6.78:1 — the label never
-   changes, so a keyboard user meets the same white-on-accent pair in every
-   state. */
-.ezh-npi-submit:hover,
-.ezh-npi-submit:focus-visible {
-  background: var(--ezh-cta-bg-hover);
-  color: var(--ezh-cta-text);
-}
-
-.ezh-npi-submit:active {
-  background: var(--ezh-cta-bg-press);
-  color: var(--ezh-cta-text-press);
-}
-
-.ezh-npi-submit:focus-visible {
-  outline: 2px solid var(--ezh-card-text);
-  outline-offset: 2px;
-}
-
-.ezh-npi-submit[disabled] {
-  background: var(--ezh-card-line);
-  color: var(--ezh-card-text);
-  cursor: default;
-}
-
-.ezh-npi-count {
-  margin-top: 12px;
-  font-size: 12.5px;
-  color: var(--ezh-card-dim);
-}
-
-/* The digit counter's per-digit pop (amendment E.2): control feedback for a
-   real typed count, 100ms, armed-only. React re-keys the span per digit, so
-   the animation runs once per real change and never on load. */
-.ezh-npi-count-num {
-  display: inline-block;
-}
-
-.ezh[data-ezh-motion] .ezh-npi-count-num.is-pop {
-  animation: ezh-count-pop 0.1s ease;
-}
-
-.ezh-npi-note {
-  margin-top: 10px;
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--ezh-card-text);
-}
-
-.ezh-npi-fine {
-  margin-top: 10px;
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--ezh-card-dim);
-}
-
-.ezh-hero-opportunity {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  gap: 9px;
-  margin-top: 18px;
-  border-bottom: 1px solid var(--ezh-line);
-  color: var(--ezh-text);
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: border-color 0.12s ease;
-}
-
-.ezh-hero-opportunity:hover,
-.ezh-hero-opportunity:focus-visible {
-  border-color: var(--ezh-text);
-}
-
-/* Arrow-glyph nudge on the two doorway links (E.2 micro-interactions, 80–150ms
-   feedback band). `translate` needs a box, so the glyph spans are blocks. */
-.ezh-hero-opportunity span,
-.ezh-opportunity-all span,
-.ezh-emp-cta span {
-  display: inline-block;
-  transition: translate 0.12s ease;
-}
-
-.ezh-hero-opportunity:hover span,
-.ezh-hero-opportunity:focus-visible span,
-.ezh-opportunity-all:hover span,
-.ezh-opportunity-all:focus-visible span {
-  translate: 2px -2px;
-}
-
-.ezh .ezh-emp-cta:hover span,
-.ezh .ezh-emp-cta:focus-visible span {
-  translate: 2px 2px;
-}
-
-/* ── resolved result panel (the real thing, not the illustration) ──────── */
-
-.ezh-result {
-  margin-top: 26px;
-  border: 1px solid var(--ezh-line);
-  border-radius: var(--vt-shape-action-page);
-  background: var(--ezh-panel);
-  padding: 16px;
-}
-
-.ezh-result-name {
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.ezh-result-meta {
-  font-size: 12.5px;
-  color: var(--ezh-text2);
-  margin-top: 2px;
-}
-
-.ezh-result-matches {
-  list-style: none;
-  margin: 12px 0 0;
-  padding: 0;
-  border-top: 1px solid var(--ezh-line);
-}
-
-.ezh-result-match {
-  padding: 10px 0;
-  border-bottom: 1px solid var(--ezh-line);
-}
-
-.ezh-result-match-title {
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--ezh-text);
-}
-
-.ezh-result-match-meta {
-  font-size: 12px;
-  color: var(--ezh-text2);
-  margin-top: 2px;
-}
-
-.ezh-result-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.ezh .ezh-result-keep {
-  display: inline-flex;
-  align-items: center;
-  height: 44px;
-  padding: 0 18px;
-  background: var(--ezh-cta-bg);
-  color: var(--ezh-cta-text);
-  font-size: 13px;
-  font-weight: 600;
-  border-radius: var(--vt-shape-action-page);
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.ezh .ezh-result-keep:hover,
-.ezh .ezh-result-keep:focus-visible {
-  background: var(--ezh-cta-bg-hover);
-  color: var(--ezh-cta-text);
-}
-
-.ezh .ezh-result-keep:active {
-  background: var(--ezh-cta-bg-press);
-  color: var(--ezh-cta-text-press);
-}
-
-.ezh-result-again {
-  display: inline-flex;
-  align-items: center;
-  height: 44px;
-  padding: 0 16px;
-  border: 1px solid var(--ezh-line2);
-  color: var(--ezh-text2);
-  font-size: 13px;
-  font-weight: 500;
-  border-radius: var(--vt-shape-action-page);
-  background: none;
-  cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease;
-}
-
-.ezh-result-again:hover,
-.ezh-result-again:focus-visible {
-  color: var(--ezh-text);
-  border-color: var(--ezh-text2);
-}
-
-.ezh-result-note {
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: var(--ezh-text2);
-  margin-top: 10px;
-}
-
-/* ── drawn figures (amendment E, Illustration row) ─────────────────────────
- *
- * Six figures, one grammar: aria-hidden art, adjacent selectable caption,
- * hidden transcript, blank value bars, self-labelling. Wide + narrow viewBox
- * pairs swap by viewport so a phone never renders 8px labels — the effective
- * text floor (font-size × rendered-width ÷ viewBox-width ≥ 11px) is what the
- * switch points below protect. Arrowheads reference the hoisted markers in
- * figures/FigureMarkers.tsx.
- */
-
-.ezh-fig {
-  margin: 0;
-}
-
-.ezh-fig-art svg {
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  height: auto;
-}
-
-/* `.ezh .ezh-fig-narrow` (0,2,0), not `.ezh-fig-narrow` (0,1,0): the generic
-   `.ezh-fig-art svg { display: block }` above is (0,1,1) and would outrank a
-   bare class — which rendered BOTH variants of every figure at desktop. The
-   artifact hit the same equal-specificity trap twice; scope wins here. */
-.ezh .ezh-fig-narrow {
-  display: none;
-}
-
-.ezh-fig-cap {
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--ezh-text2);
-  margin-top: 12px;
-  max-width: 72ch;
-}
-
-/* Figure inks. Attribute-level currentColor resolves against the figure's
-   context colour; the accent and bar classes route through the island's
-   figure tokens so the band can swap them wholesale. */
-.ezh .ezh-fh {
-  fill: var(--ezh-fig-accent);
-}
-
-.ezh .ezh-sh {
-  stroke: var(--ezh-fig-accent);
-}
-
-.ezh .ezh-fb {
-  fill: var(--ezh-fig-bar);
-}
-
-.ezh .ezh-mk-ink {
-  fill: var(--ezh-fig-line);
-  fill-opacity: 0.45;
-}
-
-.ezh .ezh-mk-hot {
-  fill: var(--vt-home-e-figure-accent);
-}
-
-.ezh .ezh-mk-band {
-  fill: var(--vt-home-e-figure-accent-band);
-}
-
-/* The hero figure sits in a drawn frame so it reads as an image, not a
-   table. This is the flat-paper replacement for the D.7 frosted folio. */
-.ezh-fig-hero {
-  border: 1px solid var(--ezh-line);
-  border-radius: 16px;
-  padding: clamp(16px, 1.8vw, 24px);
-  background: var(--ezh-panel);
-  max-width: 720px;
-}
-
-.ezh-surface {
-  min-width: 0;
-}
-
-/* The one-shot row reveal is an ENHANCEMENT: rows are visible unless
-   hydration explicitly arms the animation, and the component's safety
-   timeout strips the machinery whatever the transitions did. E.2 (Option 1
-   "Chart & Badge"): the chart rows slide/fade in sequence. */
-.ezh-surface[data-motion='armed'] .ezh-rowfx {
-  opacity: 0;
-  transform: translateY(6px);
-}
-
-.ezh-surface[data-motion='run'] .ezh-rowfx {
-  opacity: 1;
-  transform: none;
-  transition: opacity 0.4s ease, transform 0.4s ease;
-}
-
-/* The badge object itself (E.2, Option 1): it clips on with a small swing
-   about the lanyard slot and settles once. Resting state carries no
-   transform; reduced motion and no-JS never see the animation. */
-.ezh .ezh-badge {
-  transform-box: fill-box;
-  transform-origin: 50% 0;
-}
-
-.ezh-surface[data-motion='run'] .ezh-badge {
-  animation: ezh-badge-swing 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-/* The lanyard slot punches through the badge's accent band, so it strokes in
-   panel paper, not ink. */
-.ezh .ezh-slot {
-  stroke: var(--ezh-panel);
-}
-
-.ezh-surface[data-motion='run'] .ezh-rowfx[data-r='2'] { transition-delay: 0.23s; }
-.ezh-surface[data-motion='run'] .ezh-rowfx[data-r='3'] { transition-delay: 0.46s; }
-.ezh-surface[data-motion='run'] .ezh-rowfx[data-r='4'] { transition-delay: 0.69s; }
-.ezh-surface[data-motion='run'] .ezh-rowfx[data-r='5'] { transition-delay: 0.92s; }
-
-/* ── amendment E.2: one-shot section entrances ──────────────────────────────
- *
- * SSR-complete enhancement, same grammar as the figure reveal above: the
- * server frame is finished; hydration (outside reduced motion) sets
- * `data-ezh-motion="armed"` on the island root, the IntersectionObserver adds
- * `.is-in` once per section, and a safety timer flips the root to "done" so a
- * reveal that never fires can strand nothing. No-JS and reduced motion never
- * arm, so the hidden state below is unreachable for them.
- */
-.ezh[data-ezh-motion='armed'] [data-ezh-reveal]:not(.is-in) > .ezh-wrap {
-  opacity: 0;
-  transform: translateY(14px);
-}
-
-.ezh[data-ezh-motion] [data-ezh-reveal] > .ezh-wrap {
-  transition:
-    opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* ── amendment E.2: figure line-draws (one shot, on entry) ──────────────────
- *
- * `.ezh-draw` elements set --ezh-draw-len (≥ their real path length) inline;
- * the resting dasharray below is one dash that covers the whole path, so the
- * stroke is visually solid with or without the animation — SSR, no-JS, and
- * reduced motion all see the finished drawing. The keyframes in motion.css
- * animate only the offset from that same var. The hero figure draws on its
- * existing arming machinery; every other figure draws when its section
- * reveals.
- */
-.ezh .ezh-draw {
-  stroke-dasharray: var(--ezh-draw-len, 600);
-}
-
-.ezh-surface[data-motion='run'] .ezh-draw,
-.ezh[data-ezh-motion] [data-ezh-reveal].is-in .ezh-draw {
-  animation: ezh-fig-draw 0.42s ease both;
-}
-
-.ezh-surface[data-motion='run'] .ezh-draw.ezh-draw-d2,
-.ezh[data-ezh-motion] [data-ezh-reveal].is-in .ezh-draw.ezh-draw-d2 {
-  animation-delay: 0.12s;
-}
-
-.ezh-surface[data-motion='run'] .ezh-draw.ezh-draw-d3,
-.ezh[data-ezh-motion] [data-ezh-reveal].is-in .ezh-draw.ezh-draw-d3 {
-  animation-delay: 0.24s;
-}
-
-/* Wide/narrow switch points, chosen from each pair's viewBox so effective
-   text never lands under the floor. */
-@media (max-width: 719px) {
-  .ezh .ezh-fig-hero .ezh-fig-wide,
-  .ezh .ezh-fig-w620 .ezh-fig-wide {
-    display: none;
-  }
-
-  .ezh .ezh-fig-hero .ezh-fig-narrow,
-  .ezh .ezh-fig-w620 .ezh-fig-narrow {
-    display: block;
-  }
-}
-
-/* The narrow drawings are authored against a 330 viewBox, so their effective
-   text size is `font-size × rendered-width ÷ 330`. The hero's frame charges
-   2 × (padding + border) against that rendered width, and below ~390px the
-   clamp's 16px floor is enough to push the smallest labels under the 11px
-   figure floor — measured 10.49px at 375. The frame gives the width back on
-   the narrowest phones; the drawing is unchanged. */
-@media (max-width: 389px) {
-  .ezh .ezh-fig-hero {
-    padding: 4px;
-  }
-}
-
-@media (max-width: 999px) {
-  .ezh .ezh-fig-w1000 .ezh-fig-wide {
-    display: none;
-  }
-
-  .ezh .ezh-fig-w1000 .ezh-fig-narrow {
-    display: block;
-    max-width: 560px;
-  }
-}
-
-.ezh-hero-stagecol {
-  min-width: 0;
-}
-
-/* ── Roles — the live feed framed by the match figure ──────────────────── */
-
-.ezh-opportunities .ezh-wrap {
-  padding-top: 26px;
-  padding-bottom: 54px;
-}
-
-.ezh-opportunity-head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 32px;
-  align-items: start;
-  margin-bottom: 8px;
-}
-
-.ezh-opportunity-head .ezh-sec-sub {
-  margin-bottom: 0;
-}
-
-.ezh-opportunity-head h2 {
-  margin: 8px 0 0;
-}
-
-.ezh-opportunity-all {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  gap: 8px;
-  border-bottom: 1px solid var(--ezh-text);
-  color: var(--ezh-text);
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  margin-top: 26px;
-}
-
-.ezh-opportunities .ezh-fig {
-  margin: 22px 0 30px;
-}
-
-.ezh-opportunity-state {
-  min-height: 92px;
-  padding: 28px 0;
-  border-top: 1px solid var(--ezh-line);
-  border-bottom: 1px solid var(--ezh-line);
-  color: var(--ezh-text2);
-  font-size: 14px;
-}
-
-.ezh-opportunity-state a {
-  color: var(--ezh-text);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.ezh-opportunity-list {
-  margin: 0;
-  padding: 0;
-  border-top: 1px solid var(--ezh-line);
-  list-style: none;
-}
-
-.ezh-opportunity-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 28px;
-  align-items: center;
-  padding: 23px 0 23px 12px;
-  margin-left: -12px;
-  border-bottom: 1px solid var(--ezh-line);
-  transition: background-color 0.12s ease, border-color 0.12s ease;
-}
-
-/* E.2 micro-interaction: a row under the cursor lifts to panel white and
-   sharpens its rule — border/ink only, no shadow, no movement. */
-.ezh-opportunity-row:hover {
-  background: var(--ezh-panel);
-  border-bottom-color: var(--ezh-text2);
-}
-
-/* Late-mounted rows arrive one-shot (armed only): the real fetch answers
-   after hydration, so the section transition cannot carry them. */
-.ezh[data-ezh-motion='armed'] .ezh-opportunity-row {
-  animation: ezh-row-in 0.3s ease both;
-}
-
-.ezh[data-ezh-motion='armed'] .ezh-opportunity-row:nth-child(2) { animation-delay: 0.08s; }
-.ezh[data-ezh-motion='armed'] .ezh-opportunity-row:nth-child(3) { animation-delay: 0.16s; }
-
-.ezh-opportunity-titleline {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  align-items: baseline;
-}
-
-.ezh-opportunity-titleline h3 {
-  margin: 0;
-  font-size: clamp(19px, 1.8vw, 25px);
-  font-weight: 500;
-  line-height: 1.12;
-  letter-spacing: -0.025em;
-}
-
-.ezh-opportunity-org,
-.ezh-opportunity-meta {
-  color: var(--ezh-text2);
-  font-size: 13px;
-}
-
-.ezh-opportunity-meta {
-  margin: 7px 0 0;
-  text-transform: capitalize;
-}
-
-.ezh-opportunity-source {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  margin: 10px 0 0;
-  color: var(--ezh-text2);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.ezh-opportunity-source i {
-  color: var(--ezh-text);
+.ezh .ezh-accent-word {
   font-style: normal;
+  color: var(--vt-home-f-signal);
 }
 
-/* The "Listed as open" availability dot — the route's ONE lawful loop
-   (EC-29 system-status pulse; amendment E.2 Loops row). Slow, opacity-only,
-   armed-only; the words beside it carry the meaning (EC-4). */
-.ezh[data-ezh-motion] .ezh-opportunity-source i.is-open {
-  animation: ezh-status-pulse 2.6s ease-in-out infinite;
+.ezh .ezh-lede,
+.ezh .ezh-sec-lede {
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--vt-home-f-ink-muted);
+  max-width: 56ch;
+  margin: 0;
 }
 
-.ezh-opportunity-action {
-  min-height: 44px;
-  border: 1px solid var(--ezh-text);
-  border-radius: var(--vt-shape-action-page);
-  background: var(--ezh-panel);
-  color: var(--ezh-text);
-  box-shadow: none;
-  transform: none;
-  white-space: normal;
+/* ── the state stamp: glyph + word, hue on the glyph only (EC-4) ────────── */
+
+.ezh .ezh-stamp {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  font-family: var(--font-geist-mono);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--vt-home-f-ink);
+  border-left: 2px solid var(--vt-home-f-rule);
+  padding-left: 9px;
 }
 
-.ezh-opportunity-action:hover,
-.ezh-opportunity-action:active,
-.ezh-opportunity-action:focus-visible {
-  border-color: var(--ezh-text);
-  background: var(--ezh-text);
-  color: var(--ezh-panel);
-  box-shadow: none;
-  transform: none;
+.ezh .ezh-stamp-g {
+  font-style: normal;
+  font-size: 0.8125rem;
+  line-height: 1;
 }
 
-/* ── the truth boundary, in its own words ──────────────────────────────── */
+.ezh .ezh-stamp.is-confirmed { border-left-color: var(--vt-home-f-confirmed); }
+.ezh .ezh-stamp.is-confirmed .ezh-stamp-g { color: var(--vt-home-f-confirmed); }
+.ezh .ezh-stamp.is-snapshot { border-left-color: var(--vt-home-f-snapshot); }
+.ezh .ezh-stamp.is-snapshot .ezh-stamp-g { color: var(--vt-home-f-snapshot); }
+.ezh .ezh-stamp.is-attention { border-left-color: var(--vt-home-f-attention); }
+.ezh .ezh-stamp.is-attention .ezh-stamp-g { color: var(--vt-home-f-attention); }
+.ezh .ezh-stamp.is-access { border-left-color: var(--vt-home-f-access); }
+.ezh .ezh-stamp.is-access .ezh-stamp-g { color: var(--vt-home-f-access); }
+.ezh .ezh-stamp.is-unchecked { border-left-color: var(--vt-home-f-rule-strong); }
+.ezh .ezh-stamp.is-unchecked .ezh-stamp-g { color: var(--vt-home-f-unchecked); }
 
-.ezh-truthline .ezh-wrap {
-  padding-top: 18px;
-  padding-bottom: 18px;
-}
+/* ── actions: the paper-inverse instrument (A-1), 8px page radius (E) ────── */
 
-.ezh-truth {
-  max-width: 78ch;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--ezh-text2);
-}
-
-/* ── recognition moment (UX-05): narration, then the reveal ─────────────── */
-
-.ezh-rv-narration {
-  margin-top: 26px;
-  border: 1px solid var(--ezh-line);
-  border-radius: var(--vt-shape-card);
-  background: var(--ezh-panel);
-  padding: 16px;
-}
-
-.ezh-rv-steps {
-  list-style: none;
-  margin: 12px 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-
-.ezh-rv-step {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 12.5px;
-  letter-spacing: 0.01em;
-  color: var(--ezh-text3);
-  transition: color 0.25s ease;
-}
-
-.ezh-rv-step.is-read { color: var(--ezh-text2); }
-.ezh-rv-step.is-running { color: var(--ezh-text); }
-
-.ezh-rv-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  border: 1px solid var(--ezh-line2);
-  background: transparent;
-  flex-shrink: 0;
-  transition: background-color 0.25s ease, border-color 0.25s ease;
-}
-
-.ezh-rv-step.is-read .ezh-rv-dot {
-  background: var(--ezh-text3);
-  border-color: var(--ezh-text3);
-}
-
-.ezh-rv-step.is-running .ezh-rv-dot {
-  background: var(--ezh-hold);
-  border-color: var(--ezh-hold);
-}
-
-.ezh-rv-now {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--ezh-hold);
-}
-
-.ezh-rv-narr-note {
-  margin: 12px 0 0;
-  font-size: 12px;
-  color: var(--ezh-text3);
-}
-
-/* ── the reveal ────────────────────────────────────────────────────────── */
-
-.ezh-rv {
-  margin-top: 26px;
-  border: 1px solid var(--ezh-line);
-  border-radius: var(--vt-shape-card);
-  background: var(--ezh-panel);
-  padding: 16px;
-}
-
-/* Single-shot entrance stagger. Base = hidden; `.is-in` lands everything.
-   `.is-instant` (reduced motion) removes the transitions entirely. */
-.ezh-rv .ezh-rv-id,
-.ezh-rv .ezh-rv-src,
-.ezh-rv .ezh-rv-group,
-.ezh-rv .ezh-rv-next,
-.ezh-rv .ezh-rv-actions,
-.ezh-rv .ezh-rv-note {
-  opacity: 0;
-  transform: translateY(10px);
-  transition:
-    opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.ezh-rv.is-in .ezh-rv-id,
-.ezh-rv.is-in .ezh-rv-src,
-.ezh-rv.is-in .ezh-rv-group,
-.ezh-rv.is-in .ezh-rv-next,
-.ezh-rv.is-in .ezh-rv-actions,
-.ezh-rv.is-in .ezh-rv-note {
-  opacity: 1;
-  transform: none;
-}
-
-.ezh-rv.is-in .ezh-rv-id { transition-delay: 0.05s; }
-.ezh-rv.is-in .ezh-rv-src { transition-delay: 0.22s; }
-.ezh-rv.is-in .ezh-rv-group.g-returned { transition-delay: 0.42s; }
-.ezh-rv.is-in .ezh-rv-group.g-attention { transition-delay: 0.62s; }
-.ezh-rv.is-in .ezh-rv-group.g-unavailable { transition-delay: 0.82s; }
-.ezh-rv.is-in .ezh-rv-next { transition-delay: 1.0s; }
-.ezh-rv.is-in .ezh-rv-actions { transition-delay: 1.12s; }
-.ezh-rv.is-in .ezh-rv-note { transition-delay: 1.2s; }
-
-.ezh-rv.is-instant *,
-.ezh-rv.is-instant {
-  transition: none !important;
-}
-
-.ezh-rv-id {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.ezh-rv-mono {
+.ezh .ezh-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--ezh-line2);
-  border-radius: 50%;
-  font-size: 15px;
+  min-height: 48px;
+  padding: 12px 22px;
+  background: var(--vt-home-f-action);
+  color: var(--vt-home-f-action-label);
+  border: 0;
+  border-radius: var(--vt-shape-action-page);
+  font-family: var(--font-geist);
+  font-size: 0.9375rem;
   font-weight: 500;
-  color: var(--ezh-text);
-  flex-shrink: 0;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 120ms ease-out;
 }
 
-.ezh-rv-name {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--ezh-text);
+.ezh .ezh-action:hover { background: var(--vt-home-f-ink); }
+.ezh .ezh-action:active { background: var(--vt-home-f-action-press); }
+.ezh .ezh-action:disabled { opacity: 0.6; cursor: default; }
+
+.ezh a { color: var(--vt-home-f-signal); }
+
+.ezh :focus-visible {
+  outline: 2px solid var(--vt-focus-ring-scene-paper);
+  outline-offset: 3px;
 }
 
-.ezh-rv-meta {
-  margin: 2px 0 0;
-  font-size: 13px;
-  color: var(--ezh-text2);
+.ezh .ezh-quiet-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--vt-home-f-signal);
+  text-decoration: none;
 }
 
-.ezh-rv-src {
-  margin: 10px 0 0;
-  font-size: 11.5px;
-  letter-spacing: 0.01em;
-  color: var(--ezh-text3);
+.ezh .ezh-quiet-link:hover { text-decoration: underline; }
+
+/* ── section chrome: hairline-ruled document bands ───────────────────────── */
+
+.ezh section {
+  border-top: 1px solid var(--vt-home-f-rule);
+  padding: 84px 0;
 }
 
-/* ── evidence rows: one ramp, full opacity, state in words ─────────────── */
-
-.ezh-rv-rows {
-  margin-top: 14px;
-  border-top: 1px solid var(--ezh-line);
+.ezh section.ezh-hero {
+  border-top: 0;
+  /* Clearance for the shared floating chrome (A-3): the frosted rectangle
+     paints 16px from the top and 70px tall, so content may not start above
+     ~86px — measured 2026-08-16 when the hero eyebrow rendered UNDER the
+     frost as grey slabs. Mobile's band is 65px tall and full-bleed. */
+  padding: 150px 0 56px;
 }
 
-.ezh-rv-group {
-  padding-top: 12px;
+@media (max-width: 700px) {
+  .ezh section.ezh-hero {
+    padding: 112px 0 48px;
+  }
 }
 
-.ezh-rv-group-h {
-  margin: 0 0 6px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--ezh-text2);
+.ezh .ezh-sec-head {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  align-items: end;
+  margin-bottom: 44px;
 }
 
-.ezh-rv-group ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+@media (min-width: 1000px) {
+  .ezh .ezh-sec-head {
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+  }
 }
 
-/* EQUAL CONFIDENCE, structurally: every row — returned, attention,
-   unavailable — shares this one presentation. No kind-conditional opacity,
-   size, or weight exists below; only the state word's hue varies. */
-.ezh-rv-row {
-  opacity: 1;
-  padding: 7px 0;
+.ezh .ezh-sec-head .ezh-k {
+  margin-bottom: 16px;
 }
 
-.ezh-rv-row + .ezh-rv-row {
-  border-top: 1px solid color-mix(in oklab, var(--ezh-line) 55%, transparent);
+/* ── hero ────────────────────────────────────────────────────────────────── */
+
+.ezh-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 48px;
+  align-items: start;
 }
 
-.ezh-rv-row-main {
+@media (min-width: 1000px) {
+  .ezh-hero-grid {
+    grid-template-columns: 1.02fr 0.98fr;
+    gap: 56px;
+  }
+}
+
+.ezh .ezh-hero-eyebrow {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
+  margin-bottom: 24px;
+}
+
+.ezh .ezh-hero-eyebrow i {
+  width: 26px;
+  height: 1px;
+  background: var(--vt-home-f-rule-strong);
+  display: block;
+}
+
+.ezh .ezh-lede {
+  margin-top: 24px;
+}
+
+/* The NPI field: where the whole visual budget goes. */
+.ezh .ezh-claim {
+  margin-top: 36px;
+  max-width: 560px;
+}
+
+.ezh .ezh-field {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
-.ezh-rv-claim {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ezh-text);
-  flex-shrink: 0;
+.ezh .ezh-npi-k {
+  margin-bottom: 10px;
 }
 
-.ezh-rv-returned {
-  font-size: 13px;
-  color: var(--ezh-text2);
-  flex: 1 1 220px;
+.ezh .ezh-npi-in {
+  flex: 1;
+  min-width: 240px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1.5px solid var(--vt-home-f-ink);
+  border-radius: 0;
+  padding: 6px 2px 10px;
+  font-family: var(--font-geist-mono);
+  font-size: 1.625rem;
+  font-weight: 500;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums slashed-zero;
+  letter-spacing: 0.14em;
+  color: var(--vt-home-f-ink-strong);
+}
+
+.ezh .ezh-npi-in:focus-visible {
+  outline: 2px solid var(--vt-focus-ring-scene-paper);
+  outline-offset: 3px;
+}
+
+.ezh .ezh-npi-in::placeholder {
+  color: var(--vt-home-f-rule-strong);
+  letter-spacing: 0.14em;
+}
+
+.ezh .ezh-npi-in:focus {
+  border-bottom-color: var(--vt-home-f-signal);
+}
+
+.ezh .ezh-npi-count {
+  margin: 14px 0 0;
+}
+
+.ezh .ezh-npi-note {
+  margin: 10px 0 0;
+  font-size: 0.875rem;
+  color: var(--vt-home-f-attention);
+}
+
+.ezh .ezh-npi-fine {
+  margin: 14px 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--vt-home-f-ink-subtle);
+  max-width: 46ch;
+}
+
+.ezh .ezh-hero-opportunity {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 26px;
+  min-height: 44px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--vt-home-f-signal);
+  text-decoration: none;
+}
+
+.ezh .ezh-hero-opportunity:hover { text-decoration: underline; }
+
+/* Number-outcome results (organization / unavailable) under the form. */
+.ezh .ezh-result {
+  margin-top: 22px;
+  border: 1px solid var(--vt-home-f-rule);
+  border-radius: 3px;
+  background: var(--vt-home-f-raised);
+  padding: 16px 18px;
+}
+
+.ezh .ezh-result-name {
+  margin: 0;
+  font-weight: 600;
+  color: var(--vt-home-f-ink-strong);
+}
+
+.ezh .ezh-result-note {
+  margin: 8px 0 0;
+  font-size: 0.875rem;
+  color: var(--vt-home-f-ink-muted);
+}
+
+.ezh .ezh-result-actions { margin-top: 12px; }
+
+.ezh .ezh-result-again {
+  min-height: 44px;
+  padding: 10px 0;
+  background: transparent;
+  border: 0;
+  font-family: var(--font-geist);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--vt-home-f-signal);
+  cursor: pointer;
+}
+
+/* ── drawn figures (evidence geometry) ───────────────────────────────────── */
+
+.ezh .ezh-fig {
+  margin: 0;
+  border: 1px solid var(--vt-home-f-rule);
+  border-radius: 3px;
+  background: var(--vt-home-f-raised);
+  padding: 22px 22px 14px;
+}
+
+.ezh .ezh-fig-art svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.ezh .ezh-fig-cap {
+  margin: 12px 0 0;
+  font-family: var(--font-geist-mono);
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  color: var(--vt-home-f-ink-subtle);
+  text-align: center;
+}
+
+/* wide / narrow pair: both server-rendered, CSS shows exactly one.
+   Selector shape matters: `.ezh .ezh-fig-art svg` above is (0,2,1), so the
+   variant rules ride `.ezh-fig-art` too — (0,3,0) — or the generic svg rule
+   silently wins and BOTH halves of every pair paint (the equal-specificity
+   slip the E-era spec documented; re-measured into this file 2026-08-16). */
+.ezh .ezh-fig-art .ezh-fig-narrow { display: none; margin-left: auto; margin-right: auto; max-width: 520px; }
+
+@media (max-width: 700px) {
+  .ezh .ezh-fig-art .ezh-fig-wide { display: none; }
+  .ezh .ezh-fig-art .ezh-fig-narrow { display: block; }
+  .ezh .ezh-fig { padding: 16px 14px 12px; }
+}
+
+/* The trust-flow drawing is 960 viewBox units wide, so its text leaves the
+   11px floor below ~1080px rendered; it switches to the narrow stack earlier
+   than the other figures (measured, not assumed). */
+@media (max-width: 1120px) {
+  .ezh .ezh-fig-flow .ezh-fig-art .ezh-fig-wide { display: none; }
+  .ezh .ezh-fig-flow .ezh-fig-art .ezh-fig-narrow { display: block; }
+}
+
+/* figure primitives, in the register inks */
+.ezh .ezh-f-paper { fill: var(--vt-home-f-raised); stroke: var(--vt-home-f-rule-strong); stroke-width: 1; }
+.ezh .ezh-f-field { fill: var(--vt-home-f-inset); stroke: var(--vt-home-f-rule); stroke-width: 1; }
+.ezh .ezh-f-tile { fill: var(--vt-home-f-raised); stroke: var(--vt-home-f-rule); stroke-width: 1; }
+.ezh .ezh-f-tile.is-open { fill: transparent; stroke-dasharray: 4 3; }
+.ezh .ezh-f-tile.is-wash { fill: var(--vt-home-f-signal-wash); stroke: var(--vt-home-f-signal); }
+.ezh .ezh-f-hair { fill: none; stroke: var(--vt-home-f-rule); stroke-width: 1; }
+.ezh .ezh-f-bar { fill: var(--vt-home-f-inset); stroke: var(--vt-home-f-rule); stroke-width: 0.5; }
+.ezh .ezh-f-bar.is-acc { fill: var(--vt-home-f-signal-wash); stroke: var(--vt-home-f-signal); }
+.ezh .ezh-f-link { fill: none; stroke: var(--vt-home-f-rule-strong); stroke-width: 1; stroke-dasharray: 5 5; }
+.ezh .ezh-f-link.is-acc { stroke: var(--vt-home-f-signal); }
+.ezh .ezh-f-gate { fill: none; stroke: var(--vt-home-f-ink); stroke-width: 2; }
+.ezh .ezh-f-pktdot { fill: var(--vt-home-f-signal); }
+.ezh .ezh-f-ecg {
+  fill: none;
+  stroke: var(--vt-home-f-signal);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ezh .ezh-f-lbl {
+  font-family: var(--font-geist-mono);
+  /* Floor math (measured 2026-08-16): the worst rendered/viewBox scale on
+     the route is ~0.86 (the 2-col hero folio at 1001px; the narrow variants
+     at 360px). 13.5 × 0.86 = 11.6px — clears the 11px artifact floor. */
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  fill: var(--vt-home-f-ink-subtle);
+}
+
+.ezh .ezh-f-val { font-family: var(--font-geist); font-size: 15px; fill: var(--vt-home-f-ink); }
+.ezh .ezh-f-mut { font-family: var(--font-geist-mono); font-size: 13.5px; fill: var(--vt-home-f-ink-subtle); }
+.ezh .ezh-f-data { font-family: var(--font-geist-mono); font-size: 15.5px; font-weight: 500; fill: var(--vt-home-f-ink-strong); }
+.ezh .ezh-f-g { font-family: var(--font-geist-mono); font-size: 14.5px; }
+.ezh .ezh-f-g.is-confirmed { fill: var(--vt-home-f-confirmed); }
+.ezh .ezh-f-g.is-snapshot { fill: var(--vt-home-f-snapshot); }
+.ezh .ezh-f-g.is-attention { fill: var(--vt-home-f-attention); }
+.ezh .ezh-f-g.is-access { fill: var(--vt-home-f-access); }
+.ezh .ezh-f-g.is-unchecked { fill: var(--vt-home-f-unchecked); }
+
+/* beat mini-figures share the primitives at their own scale */
+.ezh .ezh-beat-fig { margin: 0 0 16px; }
+.ezh .ezh-beat-fig svg { display: block; width: 100%; max-width: 240px; height: auto; overflow: visible; }
+.ezh .ezh-beat-fig .ezh-f-lbl { font-size: 10px; }
+.ezh .ezh-beat-fig .ezh-f-g { font-size: 12px; }
+
+/* figure legend (trust flow) */
+.ezh .ezh-fig-legend {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.ezh .ezh-fig-legend span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-geist-mono);
+  font-size: 0.6875rem;
+  color: var(--vt-home-f-ink-subtle);
+}
+
+.ezh .ezh-fig-legend i {
+  width: 16px;
+  height: 0;
+  border-top: 1px dashed var(--vt-home-f-rule-strong);
+  display: block;
+}
+
+.ezh .ezh-fig-legend i.is-acc { border-top-color: var(--vt-home-f-signal); }
+.ezh .ezh-fig-legend i.is-solid { border-top-style: solid; border-top-color: var(--vt-home-f-ink); }
+
+/* ── hero folio motion: single-shot, armed only by hydration ─────────────── */
+
+/* Server frame and `static`/`done`: everything complete and visible. */
+.ezh .ezh-fig-hero .ezh-f-arr { opacity: 1; }
+
+.ezh .ezh-fig-hero[data-motion='armed'] .ezh-f-arr,
+.ezh .ezh-fig-hero[data-motion='run'] .ezh-f-arr { opacity: 0; }
+
+.ezh .ezh-fig-hero[data-motion='armed'] .ezh-f-ecg,
+.ezh .ezh-fig-hero[data-motion='run'] .ezh-f-ecg {
+  stroke-dasharray: var(--ezh-len, 600);
+  stroke-dashoffset: var(--ezh-len, 600);
+}
+
+.ezh .ezh-fig-hero[data-motion='run'] .ezh-f-ecg {
+  /* 760ms: the rare-narrative band (450–800ms, EC-29). Keyframes live in
+     styles/motion.css (LINT-03). */
+  animation: ezh-f-draw 760ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.ezh .ezh-fig-hero[data-motion='run'] .ezh-f-arr {
+  /* 220ms per tile: the state-transition band. --ezh-d staggers the four. */
+  animation: ezh-f-arrive 220ms cubic-bezier(0.22, 1, 0.36, 1) var(--ezh-d, 0s) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ezh *, .ezh *::before, .ezh *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .ezh .ezh-fig-hero .ezh-f-arr { opacity: 1 !important; }
+  .ezh .ezh-fig-hero .ezh-f-ecg { stroke-dasharray: none !important; stroke-dashoffset: 0 !important; }
+}
+
+/* ── the resolution scene ────────────────────────────────────────────────── */
+
+.ezh .ezh-res { padding-top: 0; border-top: 0; }
+
+.ezh .ezh-res-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding-bottom: 14px;
+}
+
+.ezh .ezh-res-legendline { text-transform: none; letter-spacing: 0.04em; }
+
+.ezh .ezh-res-shell {
+  display: grid;
+  grid-template-columns: 1fr;
+  border: 1px solid var(--vt-home-f-rule);
+  border-radius: 3px;
+  background: var(--vt-home-f-raised);
+  overflow: hidden;
+}
+
+@media (min-width: 1000px) {
+  .ezh .ezh-res-shell { grid-template-columns: 1fr 336px; }
+}
+
+.ezh .ezh-res-main { padding: 26px 24px 30px; }
+
+@media (min-width: 1000px) {
+  .ezh .ezh-res-main { border-right: 1px solid var(--vt-home-f-rule); padding: 26px 28px 30px; }
+}
+
+.ezh .ezh-res-main h2 {
+  font-size: 1.375rem;
+  line-height: 1.25;
+}
+
+.ezh .ezh-res-sub {
+  margin: 8px 0 0;
+  font-size: 0.8125rem;
+  color: var(--vt-home-f-ink-muted);
+}
+
+.ezh .ezh-res-side {
+  padding: 26px 24px 30px;
+  background: var(--vt-home-f-inset);
+  border-top: 1px solid var(--vt-home-f-rule);
+}
+
+@media (min-width: 1000px) {
+  .ezh .ezh-res-side { border-top: 0; }
+}
+
+.ezh .ezh-res-side-h {
+  margin: 0;
+  font-family: var(--font-geist);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--vt-home-f-ink-strong);
+}
+
+.ezh .ezh-res-caption {
+  margin: 8px 0 0;
+  font-size: 0.8125rem;
+  color: var(--vt-home-f-ink-muted);
+}
+
+.ezh .ezh-tally {
+  margin: 16px 0 0;
+  border-top: 1px solid var(--vt-home-f-rule-strong);
+}
+
+.ezh .ezh-tally-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--vt-home-f-rule);
+}
+
+.ezh .ezh-tally-row dt {
+  font-size: 0.8125rem;
+  color: var(--vt-home-f-ink-muted);
+}
+
+.ezh .ezh-tally-row dd {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--vt-home-f-ink);
+}
+
+.ezh .ezh-res-next { margin-top: 22px; }
+
+.ezh .ezh-res-next p {
+  margin: 10px 0 0;
+  border: 1px solid var(--vt-home-f-rule);
+  border-radius: 3px;
+  background: var(--vt-home-f-raised);
+  padding: 12px 14px;
+  font-size: 0.875rem;
+  color: var(--vt-home-f-ink);
+}
+
+.ezh .ezh-res-disclose {
+  margin: 22px 0 0;
+  font-family: var(--font-geist-mono);
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--vt-home-f-ink-subtle);
+}
+
+/* the ledger — idle and packet/employer variants share it */
+.ezh .ezh-ledger {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--vt-home-f-rule-strong);
+}
+
+.ezh .ezh-lrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--vt-home-f-rule);
+}
+
+.ezh .ezh-lrow-main {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
   min-width: 0;
 }
 
-.ezh-rv-state {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  margin-left: auto;
-  flex-shrink: 0;
+.ezh .ezh-lrow-claim {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--vt-home-f-ink);
 }
 
-.ezh-rv-state.s-checked { color: var(--ezh-work); }
-.ezh-rv-state.s-reviewRequired,
-.ezh-rv-state.s-notFound { color: var(--ezh-hold); }
-.ezh-rv-state.s-pending,
-.ezh-rv-state.s-accessRequired { color: var(--ezh-wait); }
-
-/* progressive disclosure — closed by default, one tap for source & limits */
-.ezh-rv-more {
-  margin-top: 2px;
+.ezh .ezh-lrow-bar {
+  display: inline-block;
+  width: 64px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--vt-home-f-inset);
+  border: 1px solid var(--vt-home-f-rule);
 }
 
-.ezh-rv-more summary {
+.ezh .ezh-lrow-src {
+  font-family: var(--font-geist-mono);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--vt-home-f-ink-subtle);
+}
+
+@media (max-width: 700px) {
+  .ezh .ezh-lrow { flex-direction: column; align-items: flex-start; gap: 8px; }
+}
+
+/* the read log (resolving narration, log-set) */
+.ezh .ezh-rv-narration { margin-top: 18px; border-top: 1px solid var(--vt-home-f-rule-strong); padding-top: 14px; }
+
+.ezh .ezh-rv-steps {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.ezh .ezh-rv-step {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 0;
+  font-family: var(--font-geist-mono);
+  font-size: 0.8125rem;
+  color: var(--vt-home-f-ink-subtle);
+}
+
+.ezh .ezh-rv-step.is-read { color: var(--vt-home-f-ink); }
+.ezh .ezh-rv-step.is-running { color: var(--vt-home-f-ink-strong); }
+
+.ezh .ezh-rv-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--vt-home-f-rule-strong);
+  flex: none;
+  align-self: center;
+}
+
+.ezh .ezh-rv-step.is-read .ezh-rv-dot { background: var(--vt-home-f-ink); }
+.ezh .ezh-rv-step.is-running .ezh-rv-dot { background: var(--vt-home-f-signal); }
+
+.ezh .ezh-rv-now {
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--vt-home-f-signal);
+}
+
+.ezh .ezh-rv-narr-note {
+  margin: 14px 0 0;
+  font-size: 0.8125rem;
+  color: var(--vt-home-f-ink-subtle);
+}
+
+/* ── the reveal (resolved): the real rows in the ledger register ─────────── */
+
+.ezh .ezh-rv { margin-top: 18px; }
+
+.ezh .ezh-rv-id {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ezh .ezh-rv-mono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--vt-home-f-rule-strong);
+  border-radius: 3px;
+  font-family: var(--font-geist-mono);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--vt-home-f-ink-strong);
+  background: var(--vt-home-f-inset);
+}
+
+.ezh .ezh-rv-name {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.375rem;
+  font-weight: 540;
+  color: var(--vt-home-f-ink-strong);
+}
+
+.ezh .ezh-rv-meta {
+  margin: 2px 0 0;
+  font-size: 0.875rem;
+  color: var(--vt-home-f-ink-muted);
+}
+
+.ezh .ezh-rv-src {
+  margin: 10px 0 0;
+  font-family: var(--font-geist-mono);
+  font-size: 0.75rem;
+  color: var(--vt-home-f-ink-subtle);
+}
+
+.ezh .ezh-rv-rows { margin-top: 16px; }
+
+.ezh .ezh-rv-group { margin-top: 14px; }
+
+.ezh .ezh-rv-group-h {
+  margin: 0;
+  font-family: var(--font-geist-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--vt-home-f-ink-subtle);
+}
+
+.ezh .ezh-rv-group ul {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--vt-home-f-rule-strong);
+}
+
+.ezh .ezh-rv-row {
+  padding: 11px 0;
+  border-bottom: 1px solid var(--vt-home-f-rule);
+}
+
+.ezh .ezh-rv-row-main {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ezh .ezh-rv-claim {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--vt-home-f-ink);
+}
+
+.ezh .ezh-rv-returned {
+  font-size: 0.875rem;
+  color: var(--vt-home-f-ink-muted);
+}
+
+.ezh .ezh-rv-state { margin-left: auto; }
+
+@media (max-width: 700px) {
+  .ezh .ezh-rv-row-main { flex-direction: column; gap: 6px; }
+  .ezh .ezh-rv-state { margin-left: 0; }
+}
+
+.ezh .ezh-rv-more { margin-top: 6px; }
+
+.ezh .ezh-rv-more summary {
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  cursor: pointer;
-  list-style: none;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: var(--ezh-text3);
+  font-family: var(--font-geist-mono);
+  font-size: 0.75rem;
+  color: var(--vt-home-f-ink-subtle);
 }
 
-.ezh-rv-more summary::-webkit-details-marker { display: none; }
-
-.ezh-rv-more summary::before {
-  content: '+';
-  margin-right: 6px;
+.ezh .ezh-rv-more p {
+  margin: 4px 0 0;
+  font-family: var(--font-geist-mono);
+  font-size: 0.75rem;
+  line-height: 1.7;
+  color: var(--vt-home-f-ink-muted);
 }
 
-.ezh-rv-more[open] summary::before {
-  content: '−';
+.ezh .ezh-rv-next {
+  margin: 16px 0 0;
+  border: 1px solid var(--vt-home-f-rule);
+  border-radius: 3px;
+  background: var(--vt-home-f-inset);
+  padding: 12px 14px;
+  font-size: 0.875rem;
+  color: var(--vt-home-f-ink);
 }
 
-.ezh-rv-more summary:hover { color: var(--ezh-text2); }
+.ezh .ezh-rv-next .ezh-k { margin-bottom: 6px; }
 
-.ezh-rv-more p {
-  margin: 0 0 6px;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--ezh-text2);
-  max-width: 520px;
-}
-
-.ezh-rv-next {
-  margin: 12px 0 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--ezh-line);
-  font-size: 13px;
-  color: var(--ezh-text);
-}
-
-.ezh-rv-next .ezh-k {
-  margin-bottom: 4px;
-}
-
-/* ── actions ───────────────────────────────────────────────────────────── */
-
-.ezh-rv-actions {
+.ezh .ezh-rv-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 18px;
   flex-wrap: wrap;
-  margin-top: 16px;
+  margin-top: 20px;
 }
 
-/* The primary action of the whole recognition moment.
- *
- * Scoped `.ezh .ezh-rv-keep` (0,2,0) rather than `.ezh-rv-keep` (0,1,0)
- * BECAUSE OF A LIVE DEFECT, measured on production 2026-08-10: this control
- * is a Next `<Link>`, so it renders as an `<a>`, and `.ezh a` at the top of
- * this file is (0,1,1) — it outranked the bare class and the primary CTA
- * painted an inherited ink onto its own fill, invisibly. Asserted in
- * __tests__/home-cta-contrast.test.ts — a specificity assertion, because the
- * computed value is the thing that regressed, not the token. */
 .ezh .ezh-rv-keep {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  padding: 0 20px;
-  background: var(--ezh-cta-bg);
-  color: var(--ezh-cta-text);
-  font-size: 14px;
-  font-weight: 600;
+  min-height: 48px;
+  padding: 12px 22px;
+  background: var(--vt-home-f-action);
+  color: var(--vt-home-f-action-label);
   border-radius: var(--vt-shape-action-page);
-  transition: background-color 0.15s ease, color 0.15s ease;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
 }
 
-.ezh .ezh-rv-keep:hover,
-.ezh .ezh-rv-keep:focus-visible {
-  background: var(--ezh-cta-bg-hover);
-  color: var(--ezh-cta-text);
-}
+.ezh .ezh-rv-keep:active { background: var(--vt-home-f-action-press); }
 
-.ezh .ezh-rv-keep:active {
-  background: var(--ezh-cta-bg-press);
-  color: var(--ezh-cta-text-press);
-}
-
-.ezh-rv-again {
+.ezh .ezh-rv-again {
   min-height: 44px;
-  padding: 0 14px;
   background: transparent;
-  border: 1px solid var(--ezh-line2);
-  border-radius: var(--vt-shape-action-page);
-  color: var(--ezh-text2);
-  font-size: 13px;
+  border: 0;
+  padding: 10px 0;
+  font-family: var(--font-geist);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--vt-home-f-signal);
   cursor: pointer;
 }
 
-.ezh-rv-again:hover { color: var(--ezh-text); border-color: var(--ezh-text3); }
-
-.ezh-rv-note {
+.ezh .ezh-rv-note {
   margin: 12px 0 0;
-  font-size: 12px;
-  color: var(--ezh-text3);
+  font-size: 0.8125rem;
+  color: var(--vt-home-f-ink-subtle);
 }
 
-/* ── three promises — the whole bottom-half story, once each ────────── */
-
-.ezh-promises .ezh-wrap {
-  padding-top: 96px;
-  padding-bottom: 24px;
+/* single-shot entrance for the reveal (transitions, not keyframes) */
+.ezh .ezh-rv .ezh-rv-id,
+.ezh .ezh-rv .ezh-rv-src,
+.ezh .ezh-rv .ezh-rv-rows,
+.ezh .ezh-rv .ezh-rv-actions {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 220ms cubic-bezier(0.22, 1, 0.36, 1), transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.ezh-promise-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 28px;
-  margin-top: 36px;
+.ezh .ezh-rv.is-in .ezh-rv-id,
+.ezh .ezh-rv.is-in .ezh-rv-src,
+.ezh .ezh-rv.is-in .ezh-rv-rows,
+.ezh .ezh-rv.is-in .ezh-rv-actions {
+  opacity: 1;
+  transform: none;
 }
 
-.ezh-promise {
-  border: 1px solid var(--ezh-line);
-  border-radius: var(--vt-shape-card);
-  background: var(--ezh-panel);
-  padding: 28px 26px 30px;
-  transition: border-color 0.12s ease;
+.ezh .ezh-rv.is-in .ezh-rv-src { transition-delay: 80ms; }
+.ezh .ezh-rv.is-in .ezh-rv-rows { transition-delay: 160ms; }
+.ezh .ezh-rv.is-in .ezh-rv-actions { transition-delay: 240ms; }
+
+.ezh .ezh-rv.is-instant .ezh-rv-id,
+.ezh .ezh-rv.is-instant .ezh-rv-src,
+.ezh .ezh-rv.is-instant .ezh-rv-rows,
+.ezh .ezh-rv.is-instant .ezh-rv-actions {
+  transition: none;
 }
 
-/* E.2 micro-interaction: border/ink shift only — the card grammar forbids
-   shadows, and nothing moves. */
-.ezh-promise:hover {
-  border-color: var(--ezh-text2);
+/* match feed inside the reveal */
+.ezh .ezh-result-matches {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
 }
 
-.ezh-promise p {
-  transition: color 0.12s ease;
+.ezh .ezh-result-match {
+  border: 1px solid var(--vt-home-f-rule);
+  border-radius: 3px;
+  background: var(--vt-home-f-raised);
+  padding: 10px 12px;
+  margin-top: 8px;
 }
 
-.ezh-promise:hover p {
-  color: var(--ezh-text);
-}
-
-.ezh-promise-glyph {
-  width: 48px;
-  height: 48px;
-  color: var(--ezh-text);
-}
-
-.ezh-promise h3 {
-  margin-top: 18px;
-  font-size: 19px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
-  color: var(--ezh-text);
-}
-
-.ezh-promise p {
-  margin-top: 10px;
-  font-size: 14.5px;
-  line-height: 1.6;
-  color: var(--ezh-text2);
-  max-width: 40ch;
-}
-
-/* ── quick answers — flat, three lines, no accordions ──────────────── */
-
-.ezh-qa .ezh-wrap {
-  padding-top: 56px;
-  padding-bottom: 72px;
-}
-
-.ezh-qa-list {
-  margin: 18px 0 0;
-  border-top: 1px solid var(--ezh-line);
-}
-
-.ezh-qa-row {
-  display: grid;
-  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
-  gap: 24px;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--ezh-line);
-  transition: border-color 0.12s ease;
-}
-
-/* E.2 micro-interaction: the row under the cursor sharpens — ink only. */
-.ezh-qa-row:hover {
-  border-bottom-color: var(--ezh-text2);
-}
-
-.ezh-qa-row dd {
-  transition: color 0.12s ease;
-}
-
-.ezh-qa-row:hover dd {
-  color: var(--ezh-text);
-}
-
-.ezh-qa-row dt {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--ezh-text);
-}
-
-.ezh-qa-row dd {
+.ezh .ezh-result-match-title {
   margin: 0;
-  font-size: 14.5px;
-  line-height: 1.55;
-  color: var(--ezh-text2);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--vt-home-f-ink-strong);
+}
+
+.ezh .ezh-result-match-meta {
+  margin: 2px 0 0;
+  font-family: var(--font-geist-mono);
+  font-size: 0.75rem;
+  color: var(--vt-home-f-ink-subtle);
+}
+
+/* ── the arc ─────────────────────────────────────────────────────────────── */
+
+.ezh .ezh-arc {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--vt-home-f-rule-strong);
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1000px) {
+  .ezh .ezh-arc { grid-template-columns: repeat(5, 1fr); }
+}
+
+.ezh .ezh-beat {
+  position: relative;
+  padding: 0 0 26px;
+  border-bottom: 1px solid var(--vt-home-f-rule);
+}
+
+@media (min-width: 1000px) {
+  .ezh .ezh-beat {
+    padding: 0 22px 26px 0;
+    border-bottom: 0;
+    border-right: 1px solid var(--vt-home-f-rule);
+  }
+  .ezh .ezh-beat:last-child { border-right: 0; }
+}
+
+.ezh .ezh-beat::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 64px;
+  height: 2px;
+  background: var(--vt-home-f-signal);
+}
+
+@media (min-width: 1000px) {
+  .ezh .ezh-beat::before { right: 0; width: auto; }
+}
+
+.ezh .ezh-beat-stage { margin: 18px 0 12px; }
+
+.ezh .ezh-beat h3 {
+  margin: 0 0 8px;
+  font-family: var(--font-serif);
+  font-size: 1.1875rem;
+  font-weight: 540;
+  letter-spacing: -0.01em;
+  color: var(--vt-home-f-ink-strong);
+}
+
+.ezh .ezh-beat p {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--vt-home-f-ink-muted);
+  max-width: 32ch;
+}
+
+.ezh .ezh-beat-frag {
+  margin-top: 16px;
+  border-top: 1px solid var(--vt-home-f-rule);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  align-items: flex-start;
+}
+
+.ezh .ezh-beat-frag .ezh-data {
+  font-size: 0.75rem;
+  color: var(--vt-home-f-ink-subtle);
+}
+
+.ezh .ezh-axis {
+  display: grid;
+  grid-template-columns: 1fr;
+  border-top: 1px solid var(--vt-home-f-rule-strong);
+  margin-top: 0;
+}
+
+@media (min-width: 1000px) {
+  .ezh .ezh-axis { grid-template-columns: repeat(5, 1fr); }
+}
+
+.ezh .ezh-axis span {
+  padding: 11px 22px 0 0;
+  font-family: var(--font-geist-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--vt-home-f-ink-subtle);
+}
+
+@media (min-width: 1000px) {
+  .ezh .ezh-axis span { border-right: 1px solid var(--vt-home-f-rule); }
+  .ezh .ezh-axis span:last-child { border-right: 0; }
+}
+
+.ezh .ezh-axis span.is-acc { color: var(--vt-home-f-signal); }
+
+.ezh .ezh-arc-note {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+}
+
+.ezh .ezh-arc-note p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--vt-home-f-ink-muted);
+  max-width: 60ch;
+}
+
+/* Roles: the live feed rides directly under the arc as beat 3's expansion. */
+.ezh .ezh-opportunities { border-top: 0; padding-top: 8px; }
+
+/* ── opportunity horizon (live feed — contract untouched, F register) ────── */
+
+.ezh .ezh-opportunity-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.ezh .ezh-opportunity-head h2 {
+  font-size: 1.5rem;
+  max-width: 26ch;
+  margin-top: 14px;
+}
+
+.ezh .ezh-sec-sub {
+  margin: 12px 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--vt-home-f-ink-muted);
   max-width: 62ch;
 }
 
-/* ── employers — subordinate second audience ───────────────────────────── */
-
-.ezh-emp {
-  background: var(--ezh-light);
-  color: var(--ezh-light-text);
-  border-top: 1px solid var(--ezh-light-line);
-}
-
-.ezh-emp .ezh-wrap {
-  padding-top: 26px;
-  padding-bottom: 96px;
-}
-
-.ezh-emp .ezh-k {
-  color: var(--ezh-light-text2);
-}
-
-.ezh-emp .ezh-sec-head h2 {
-  color: var(--ezh-light-text);
-}
-
-/* one warm row: heading, one line, one door */
-.ezh-emp-row {
-  display: flex;
-  align-items: baseline;
-  gap: 28px;
-  flex-wrap: wrap;
-  padding: 8px 0 0;
-}
-
-.ezh-emp-row h2 {
-  font-size: 22px;
-  letter-spacing: -0.02em;
-  color: var(--ezh-light-text);
-}
-
-.ezh-emp-row p {
-  color: var(--ezh-light-text2);
-  font-size: 14.5px;
-  line-height: 1.5;
-}
-
-.ezh .ezh-emp-cta {
+.ezh .ezh-opportunity-all {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  height: 48px;
-  padding: 0 22px;
-  border: 1px solid var(--ezh-light-text);
-  border-radius: var(--vt-shape-action-page);
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1;
-  color: var(--ezh-light-text);
-  transition: background-color 0.15s ease, color 0.15s ease;
+  gap: 6px;
+  min-height: 44px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--vt-home-f-signal);
+  text-decoration: none;
 }
 
-.ezh .ezh-emp-cta:hover,
-.ezh .ezh-emp-cta:focus-visible {
-  background: var(--ezh-light-text);
-  color: var(--ezh-light);
+.ezh .ezh-opportunity-all:hover { text-decoration: underline; }
+
+.ezh .ezh-opportunity-state {
+  border: 1px solid var(--vt-home-f-rule);
+  border-radius: 3px;
+  background: var(--vt-home-f-raised);
+  padding: 18px;
+  font-size: 0.9375rem;
+  color: var(--vt-home-f-ink-muted);
 }
 
-/* ── final action + footer composition ─────────────────────────────────── */
-
-.ezh-start .ezh-wrap {
-  padding-bottom: 110px;
+.ezh .ezh-opportunity-state a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 500;
 }
 
-.ezh-start-center {
+.ezh .ezh-opportunity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--vt-home-f-rule-strong);
+}
+
+.ezh .ezh-opportunity-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--vt-home-f-rule);
+}
+
+.ezh .ezh-opportunity-titleline {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ezh .ezh-opportunity-titleline h3 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  font-weight: 540;
+  color: var(--vt-home-f-ink-strong);
+}
+
+.ezh .ezh-opportunity-org {
+  font-size: 0.875rem;
+  color: var(--vt-home-f-ink-muted);
+}
+
+.ezh .ezh-opportunity-meta {
+  margin: 4px 0 0;
+  font-size: 0.875rem;
+  color: var(--vt-home-f-ink-muted);
+}
+
+.ezh .ezh-opportunity-source {
+  margin: 6px 0 0;
+  font-family: var(--font-geist-mono);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--vt-home-f-ink-subtle);
+}
+
+.ezh .ezh-opportunity-source i { font-style: normal; }
+
+.ezh .ezh-opportunity-action { flex: none; }
+
+.ezh .ezh-opportunity-boundary {
+  margin: 16px 0 0;
+  font-size: 0.8125rem;
+  color: var(--vt-home-f-ink-subtle);
+}
+
+/* ── one-shot section entrances (E.2's system, adopted by F) ─────────────────
+   `useSectionReveals` arms `data-ezh-motion` on the island root only after
+   hydration and only outside reduced motion; sections opt in via
+   `data-ezh-reveal`. The hidden state exists ONLY while the root reads
+   `armed`, so SSR, no-JS, and the safety-timer force-complete all show the
+   finished page. 340ms sits in the product-transformation band (EC-29). */
+
+.ezh [data-ezh-reveal] {
+  transition:
+    opacity 340ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ezh[data-ezh-motion='armed'] [data-ezh-reveal]:not(.is-in) {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+/* Late-mounted live-feed rows arrive once (E.2's `ezh-row-in`, kept). */
+.ezh[data-ezh-motion='armed'] .ezh-opportunity-row {
+  animation: ezh-row-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* The route's ONE lawful loop (EC-29 system-status exception): the live
+   feed's "Listed as open" availability dot restates, as a slow opacity
+   pulse, a status the row already states in words (EC-4). Killed with
+   everything else under reduced motion. */
+.ezh .ezh-opportunity-source i.is-open {
+  animation: ezh-status-pulse 2.8s ease-in-out infinite;
+}
+
+/* ── truth boundary ──────────────────────────────────────────────────────── */
+
+.ezh .ezh-truthline { padding: 28px 0; }
+
+.ezh .ezh-truth {
+  margin: 0;
+  font-family: var(--font-geist-mono);
+  font-size: 0.75rem;
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+  color: var(--vt-home-f-ink-subtle);
+}
+
+/* ── the exact packet ────────────────────────────────────────────────────── */
+
+.ezh .ezh-pkt-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+  align-items: start;
+}
+
+@media (min-width: 1000px) {
+  .ezh .ezh-pkt-grid { grid-template-columns: minmax(0, 760px) 1fr; gap: 56px; }
+}
+
+.ezh .ezh-pkt {
+  border: 1px solid var(--vt-home-f-rule-strong);
+  border-top: 3px solid var(--vt-home-f-ink);
+  border-radius: 3px;
+  background: var(--vt-home-f-raised);
+}
+
+.ezh .ezh-pkt-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 22px 26px 18px;
+  border-bottom: 1px solid var(--vt-home-f-rule);
+}
+
+.ezh .ezh-pkt-top h3 {
+  margin: 0 0 6px;
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 540;
+  color: var(--vt-home-f-ink-strong);
+}
+
+.ezh .ezh-pkt-id { display: block; }
+
+.ezh .ezh-pkt-meta {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0 32px;
+  margin: 0;
+  padding: 14px 26px;
+  border-bottom: 1px solid var(--vt-home-f-rule);
+}
+
+@media (min-width: 700px) {
+  .ezh .ezh-pkt-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.ezh .ezh-pkt-meta > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--vt-home-f-rule);
+}
+
+.ezh .ezh-pkt-meta > div:last-child { border-bottom: 0; }
+
+@media (min-width: 700px) {
+  .ezh .ezh-pkt-meta > div:nth-last-child(-n + 2) { border-bottom: 0; }
+}
+
+.ezh .ezh-pkt-meta dt {
+  font-size: 0.75rem;
+  color: var(--vt-home-f-ink-subtle);
+}
+
+.ezh .ezh-pkt-meta dd {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ezh .ezh-pkt-meta-note {
+  font-family: var(--font-geist-mono);
+  font-size: 0.6875rem;
+  color: var(--vt-home-f-ink-subtle);
+}
+
+.ezh .ezh-blankbar {
+  display: inline-block;
+  width: 72px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--vt-home-f-inset);
+  border: 1px solid var(--vt-home-f-rule);
+}
+
+.ezh .ezh-blankbar.is-wide { width: 112px; }
+
+.ezh .ezh-pkt-body { padding: 20px 26px; }
+
+.ezh .ezh-pkt-ledger { margin-top: 12px; }
+
+.ezh .ezh-pkt-not {
+  padding: 20px 26px 22px;
+  border-top: 1px solid var(--vt-home-f-rule-strong);
+  background: var(--vt-home-f-inset);
+}
+
+.ezh .ezh-pkt-not ul {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 14px;
-  padding-top: 40px;
+  gap: 8px;
 }
 
-.ezh-start-h {
-  font-size: clamp(30px, 3.6vw, 44px);
-  font-weight: 500;
-  letter-spacing: -0.035em;
-  line-height: 1.04;
-  color: var(--ezh-text);
-}
-
-.ezh-start-line {
-  font-size: 15.5px;
+.ezh .ezh-pkt-not li {
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  gap: 10px;
+  font-size: 0.8125rem;
   line-height: 1.55;
-  color: var(--ezh-text2);
+  color: var(--vt-home-f-ink-muted);
+}
+
+.ezh .ezh-pkt-not li s {
+  text-decoration: none;
+  color: var(--vt-home-f-ink-subtle);
+  font-family: var(--font-geist-mono);
+}
+
+.ezh .ezh-pkt-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 14px 26px;
+  border-top: 1px solid var(--vt-home-f-rule);
+}
+
+.ezh .ezh-pkt-foot .ezh-data { font-size: 0.75rem; color: var(--vt-home-f-ink-subtle); }
+
+.ezh .ezh-pkt-side {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.ezh .ezh-pkt-side-note {
+  margin: 12px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--vt-home-f-ink-muted);
+}
+
+.ezh .ezh-legend {
+  border: 1px solid var(--vt-home-f-rule);
+  border-radius: 3px;
+  background: var(--vt-home-f-raised);
+  padding: 18px 18px 20px;
+}
+
+.ezh .ezh-legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.ezh .ezh-legend-note {
+  margin: 16px 0 0;
+  font-size: 0.75rem;
+  color: var(--vt-home-f-ink-subtle);
+}
+
+/* ── employers ───────────────────────────────────────────────────────────── */
+
+.ezh .ezh-emp-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+  align-items: start;
+}
+
+@media (min-width: 1000px) {
+  .ezh .ezh-emp-grid { grid-template-columns: 1fr 1fr; gap: 64px; }
+}
+
+.ezh .ezh-emp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--vt-home-f-rule-strong);
+}
+
+.ezh .ezh-emp-list li {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--vt-home-f-rule);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: baseline;
+}
+
+.ezh .ezh-emp-idx { color: var(--vt-home-f-ink-subtle); }
+
+.ezh .ezh-emp-list h3 {
+  margin: 0 0 4px;
+  font-family: var(--font-geist);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--vt-home-f-ink);
+}
+
+.ezh .ezh-emp-list p {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--vt-home-f-ink-muted);
+}
+
+.ezh .ezh-emp-panel {
+  border: 1px solid var(--vt-home-f-rule);
+  border-radius: 3px;
+  background: var(--vt-home-f-raised);
+  padding: 22px 24px 24px;
+}
+
+.ezh .ezh-emp-ledger { margin-top: 14px; }
+
+.ezh .ezh-emp-actions {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 22px;
+}
+
+/* ── honest limits ───────────────────────────────────────────────────────── */
+
+.ezh .ezh-limits {
+  display: grid;
+  grid-template-columns: 1fr;
+  border-top: 1px solid var(--vt-home-f-rule-strong);
+}
+
+@media (min-width: 1000px) {
+  .ezh .ezh-limits { grid-template-columns: repeat(3, 1fr); }
+}
+
+.ezh .ezh-limits > div {
+  padding: 22px 24px 24px 0;
+  border-bottom: 1px solid var(--vt-home-f-rule);
+}
+
+@media (min-width: 1000px) {
+  .ezh .ezh-limits > div {
+    border-bottom: 0;
+    border-right: 1px solid var(--vt-home-f-rule);
+  }
+  .ezh .ezh-limits > div:last-child { border-right: 0; }
+}
+
+.ezh .ezh-limits h3 {
+  margin: 14px 0 8px;
+  font-family: var(--font-geist);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--vt-home-f-ink);
+}
+
+.ezh .ezh-limits p {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--vt-home-f-ink-muted);
+  max-width: 36ch;
+}
+
+/* ── close ───────────────────────────────────────────────────────────────── */
+
+.ezh .ezh-close {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  align-items: end;
+}
+
+@media (min-width: 1000px) {
+  .ezh .ezh-close { grid-template-columns: 1fr auto; gap: 48px; }
+}
+
+.ezh .ezh-start-line {
+  margin: 18px 0 0;
+  font-size: 1rem;
+  color: var(--vt-home-f-ink-muted);
   max-width: 52ch;
 }
 
-.ezh-start-center .ezh-start-cta {
-  margin-top: 10px;
+/* ── footer ──────────────────────────────────────────────────────────────── */
+
+.ezh .ezh-foot {
+  border-top: 1px solid var(--vt-home-f-rule);
+  padding: 36px 0 72px;
 }
 
-/* Fraunces survives on this route only as the serif editorial aside
-   (amendment E, Display row). Scoped above the sans-first `.ezh *` rule. */
-.ezh .ezh-serif-aside {
-  font-family: var(--font-fraunces-loaded, Georgia, 'Times New Roman', serif);
-  font-size: clamp(20px, 2.2vw, 26px);
-  font-style: italic;
-  line-height: 1.4;
-  letter-spacing: -0.02em;
-  color: var(--ezh-text);
-  max-width: 26ch;
+.ezh .ezh-foot-in {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px 24px;
+  flex-wrap: wrap;
+  align-items: baseline;
 }
 
-.ezh .ezh-start-cta {
+.ezh .ezh-foot-mark { color: var(--vt-home-f-ink-subtle); font-size: 0.75rem; }
+
+.ezh .ezh-foot-links {
+  display: flex;
+  gap: 4px 22px;
+  flex-wrap: wrap;
+}
+
+.ezh .ezh-foot-links a {
   display: inline-flex;
   align-items: center;
-  height: 52px;
-  padding: 0 26px;
-  background: var(--ezh-cta-bg);
-  color: var(--ezh-cta-text);
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 1;
-  border-radius: var(--vt-shape-action-page);
-  transition: background-color 0.15s ease, color 0.15s ease;
+  min-height: 44px;
+  font-size: 0.8125rem;
+  color: var(--vt-home-f-ink-muted);
+  text-decoration: none;
 }
 
-.ezh .ezh-start-cta:hover,
-.ezh .ezh-start-cta:focus-visible {
-  background: var(--ezh-cta-bg-hover);
-  color: var(--ezh-cta-text);
-}
+.ezh .ezh-foot-links a:hover { color: var(--vt-home-f-ink); text-decoration: underline; }
 
-.ezh .ezh-start-cta:active {
-  background: var(--ezh-cta-bg-press);
-  color: var(--ezh-cta-text-press);
-}
-
-.ezh-start-fine {
-  margin-top: 14px;
-  font-size: 12.5px;
-  color: var(--ezh-text3);
-}
-
-.ezh-foot {
-  border-top: 1px solid var(--ezh-line);
-  padding: 28px 0 42px;
-}
-
-.ezh-foot-in {
-  display: flex;
-  align-items: baseline;
-  gap: 28px;
-  flex-wrap: wrap;
-}
-
-.ezh-foot-mark {
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.ezh-foot-links {
-  display: flex;
-  gap: 22px;
-  flex-wrap: wrap;
-  font-size: 13px;
-  color: var(--ezh-text2);
-}
-
-.ezh-foot-links a:hover,
-.ezh-foot-links a:focus-visible {
-  color: var(--ezh-text);
-}
-
-.ezh-foot-truth {
-  width: 100%;
-  margin-top: 18px;
-  font-size: 11.5px;
+.ezh .ezh-foot-truth {
+  flex-basis: 100%;
+  margin: 14px 0 0;
+  font-family: var(--font-geist-mono);
+  font-size: 0.75rem;
   line-height: 1.7;
-  letter-spacing: 0.01em;
-  color: var(--ezh-text3);
-  max-width: 760px;
-}
-
-/* ── tablet fold ───────────────────────────────────────────────────────── */
-
-@media (max-width: 1099px) {
-  .ezh-promise-grid {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
-  }
-
-  .ezh-hero .ezh-wrap {
-    /* minmax(0, …): a bare 1fr floors at min-content and pushes past narrow
-       viewports. */
-    grid-template-columns: minmax(0, 1fr);
-    gap: 44px;
-    padding-top: 108px;
-  }
-
-  .ezh-hero-copy {
-    max-width: 640px;
-  }
-}
-
-@media (max-width: 1179px) {
-}
-
-/* ── true mobile ───────────────────────────────────────────────────────── */
-
-@media (max-width: 768px) {
-  .ezh-qa-row {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 6px;
-  }
-  .ezh-emp-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 14px;
-  }
-
-  .ezh {
-    --ezh-gutter: 20px;
-    font-size: 15px;
-  }
-
-  .ezh-hero .ezh-wrap {
-    /* mobile chrome: only the wordmark floats up top (controls pin to the
-       viewport bottom), so the hero clears the 56px brand zone */
-    padding-top: 92px;
-    padding-bottom: 56px;
-    gap: 36px;
-  }
-
-  .ezh-opportunity-head {
-    grid-template-columns: 1fr;
-    gap: 12px;
-    align-items: start;
-  }
-
-  .ezh-opportunity-all {
-    justify-self: start;
-    margin-top: 0;
-  }
-
-  .ezh-opportunity-row {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-
-  .ezh-opportunity-action {
-    justify-self: stretch;
-  }
-
-  .ezh-emp-points .ezh-tt {
-    min-width: 0;
-  }
-
-  .ezh-emp-points li {
-    flex-direction: column;
-    gap: 6px;
-  }
-}
-
-@media (max-width: 480px) {
-  .ezh-npi-row {
-    flex-direction: column;
-  }
-
-  /* A-3 — full width and a real target once the row stacks. */
-  .ezh-npi-input {
-    flex: none;
-    width: 100%;
-    height: 52px;
-    min-height: 52px;
-  }
-
-  .ezh-npi-submit {
-    width: 100%;
-    height: 52px;
-  }
-}
-
-/* ── reduced motion: nothing moves; the story is complete ──────────────── */
-
-@media (prefers-reduced-motion: reduce) {
-  .ezh *,
-  .ezh *::before,
-  .ezh *::after {
-    transition: none !important;
-    animation: none !important;
-  }
+  color: var(--vt-home-f-ink-subtle);
+  max-width: 88ch;
 }

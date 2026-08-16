@@ -1,6 +1,25 @@
 # Public style changes
 
-## 2026-08-16 — Amendment E.2: homepage clinical motion set
+## 2026-08-16 — Homepage v4 (amendment F)
+
+- The F recomposition retires the E.2 clinical-motion consumers it landed
+  beside on the same day: `ezh-badge-swing`, `ezh-fig-draw`, and
+  `ezh-count-pop` lose their consumers with the superseded E figures and are
+  removed from `motion.css`. Two E.2 animations KEEP consumers under F:
+  `ezh-status-pulse` — the route's ONE lawful loop (EC-29 system-status
+  exception, the "Listed as open" availability dot) — and `ezh-row-in`, the
+  one-shot arrival for late-mounted live-feed rows.
+- Added the single-shot `ezh-f-draw` and `ezh-f-arrive` house animations for
+  the v4 hero folio: the cadence line draws once (760ms, rare-narrative band)
+  and the four source tiles arrive once (220ms each, state-transition band,
+  staggered by delay). Section entrances reuse E.2's `useSectionReveals`
+  one-shot system (transitions, no new keyframes).
+- The founder's v4 illustration kit defaulted its animations to ambient
+  infinite loops; EC-29's no-loop rule holds, so only the single-shot
+  semantics were ported. Deviation recorded in amendment F.
+- SSR, no-JS, and reduced motion render the complete resting frame.
+
+## 2026-08-16 — Amendment E.2: homepage clinical motion set (superseded same day by F, except the status pulse)
 
 - Added five house animations in `motion.css`, all consumed by
   `easy-home.css` behind arming attributes hydration sets only outside
@@ -18,7 +37,7 @@
   - `ezh-count-pop` — 100ms control feedback on the NPI digit counter,
     animating only between real typed counts (EC-3).
 - SSR, no-JS, and reduced motion render the complete resting frame; the
-  easy-home reduced-motion block now also sets `animation: none`.
+  easy-home reduced-motion block now also set `animation: none`.
 
 ## 2026-08-14 — Homepage warm-glass career horizon
 

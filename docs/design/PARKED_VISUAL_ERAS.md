@@ -108,6 +108,22 @@ outstanding: `apps/web/app/fonts/` does exist (Geist, Geist Mono and Fraunces ar
 `next/font/local`), and `scripts/check-design-lint.ts` is on mainline behind the required
 `check-design-lint` status check.
 
+## Parked by amendment F (the founder's Homepage v4, 2026-08-16)
+
+The **amendment E / E.1 Direction A homepage composition** — the drawn
+six-figure paper page (`#FBFAF7` ground, hot `#D92800` action, Geist display,
+no mono, the ThreePromises band, quick answers, cycling payoff word) — is
+parked. It was rewritten in place inside the `easy` island (the same
+precedent as E replacing D.7), so its recovery path is the git revert of the
+amendment F squash commit rather than an env-switchable variant; the
+`--vt-home-e-*` token family stays declared in `styles/themes/index.css` as
+the historical record until nothing references it (scene-token-contract still
+pins its values). Deleted with the recomposition, recoverable from history:
+`components/home/easy/WorkSurface.tsx`, `ThreePromises.tsx`,
+`CyclingWord.tsx`, and `figures/` (`MatchExplanationFigure`,
+`FigureMarkers`). The E rows in the constitution carry dated
+`SUPERSEDED by F` markers; nothing here was silently forked.
+
 ## What "unparking" would take
 
 A parked treatment returns only via a constitution amendment (dated rationale, founder-approved)

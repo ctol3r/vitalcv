@@ -1,0 +1,25 @@
+[after-1440x900] error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+[after-1440x900] requestfailed: http://localhost:3311/api/opportunities?limit=3 — net::ERR_ABORTED
+[after-1440x900] requestfailed: http://localhost:3311/sign-in?_rsc=1p-R_iEY6bj0jY31 — net::ERR_ABORTED
+[after-1440x900] requestfailed: http://localhost:3311/explore?_rsc=1p-R_iEY6bj0jY31 — net::ERR_ABORTED
+[after-390x844] error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+[after-390x844] requestfailed: http://localhost:3311/api/opportunities?limit=3 — net::ERR_ABORTED
+[after-390x844] requestfailed: http://localhost:3311/explore?_rsc=1p-R_iEY6bj0jY31 — net::ERR_ABORTED
+[after-768x1024] error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+[after-768x1024] requestfailed: http://localhost:3311/api/opportunities?limit=3 — net::ERR_ABORTED
+[after-768x1024] requestfailed: http://localhost:3311/sign-in?_rsc=1p-R_iEY6bj0jY31 — net::ERR_ABORTED
+[after-768x1024] requestfailed: http://localhost:3311/explore?_rsc=1p-R_iEY6bj0jY31 — net::ERR_ABORTED
+[after-1728x1117] error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+[after-1728x1117] requestfailed: http://localhost:3311/api/opportunities?limit=3 — net::ERR_ABORTED
+[after-1728x1117] requestfailed: http://localhost:3311/sign-in?_rsc=1p-R_iEY6bj0jY31 — net::ERR_ABORTED
+[after-1728x1117] requestfailed: http://localhost:3311/explore?_rsc=1p-R_iEY6bj0jY31 — net::ERR_ABORTED
+[after-375x812] error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+[after-375x812] requestfailed: http://localhost:3311/api/opportunities?limit=3 — net::ERR_ABORTED
+[after-375x812] requestfailed: http://localhost:3311/explore?_rsc=1p-R_iEY6bj0jY31 — net::ERR_ABORTED
+[after-360x800] error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+[after-360x800] requestfailed: http://localhost:3311/api/opportunities?limit=3 — net::ERR_ABORTED
+[after-360x800] requestfailed: http://localhost:3311/explore?_rsc=1p-R_iEY6bj0jY31 — net::ERR_ABORTED
+[reduced-motion] error: Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+[reduced-motion] requestfailed: http://localhost:3311/api/opportunities?limit=3 — net::ERR_ABORTED
+[reduced-motion] requestfailed: http://localhost:3311/sign-in?_rsc=1p-R_iEY6bj0jY31 — net::ERR_ABORTED
+[reduced-motion] requestfailed: http://localhost:3311/explore?_rsc=1p-R_iEY6bj0jY31 — net::ERR_ABORTED

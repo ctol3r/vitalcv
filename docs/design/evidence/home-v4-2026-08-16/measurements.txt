@@ -1,0 +1,34 @@
+── measured contrast (painted, 1440) ──
+h1 on ground: 14.75:1 (color rgb(26, 24, 21))
+hero lede: 6.38:1 (color rgb(87, 83, 74))
+micro-label (ezh-k): 5.34:1 (color rgb(101, 94, 81))
+NPI count (mono): 6.38:1 (color rgb(87, 83, 74))
+NPI fine print: 5.34:1 (color rgb(101, 94, 81))
+primary action label: 16.12:1 (color rgb(246, 244, 239))
+ledger claim: 13.36:1 (color rgb(43, 40, 35))
+ledger source line: 5.84:1 (color rgb(101, 94, 81))
+state stamp word: 13.36:1 (color rgb(43, 40, 35))
+tally caption: 5.76:1 (color rgb(87, 83, 74))
+beat body: 6.38:1 (color rgb(87, 83, 74))
+packet refuses item: 5.76:1 (color rgb(87, 83, 74))
+legend note: 5.84:1 (color rgb(101, 94, 81))
+truth boundary: 5.34:1 (color rgb(101, 94, 81))
+footer cadence: 5.34:1 (color rgb(101, 94, 81))
+footer link: 6.38:1 (color rgb(87, 83, 74))
+quiet link (signal): 6.58:1 (color rgb(67, 56, 202))
+secondary hero link: 6.58:1 (color rgb(67, 56, 202))
+
+── touch targets (island, 1440) — floor 44px tall ──
+total interactive: 16; under 44px tall: 0
+
+@1440px — min effective figure text: 14.15px ("only you open it") · horizontal overflow: 0px
+@768px — min effective figure text: 16.00px ("only you open it") · horizontal overflow: 0px
+@390px — min effective figure text: 12.76px ("Sources read on their own ca") · horizontal overflow: 0px
+@375px — min effective figure text: 12.15px ("01 · Named sources") · horizontal overflow: 0px
+@360px — min effective figure text: 11.54px ("01 · Named sources") · horizontal overflow: 0px
+
+── focus (programmatic :focus computed outline) ──
+#ezh-npi: outline 2px solid rgb(67, 56, 202), offset 3px
+[data-home-primary-cta]: outline 2px solid rgb(67, 56, 202), offset 3px
+.ezh-hero-opportunity: outline 2px solid rgb(67, 56, 202), offset 3px
+

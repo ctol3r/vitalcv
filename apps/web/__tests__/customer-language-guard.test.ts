@@ -42,13 +42,18 @@ const WALLET_FREE_SURFACES = [
   'components/mobile/ClinicianHomeSurface.tsx',
   'components/ui/CommandPalette.tsx',
   // The Direction A recomposition (amendment E) retired the last "CV Wallet"
-  // from `/` — the acquisition surface now stays wallet-free outright, not
-  // via the ratified-compound exception.
+  // from `/`; the Homepage v4 port (amendment F, 2026-08-16) corrected every
+  // "wallet" in the founder's v4 file to "record" before it shipped — the
+  // acquisition surface stays wallet-free outright, not via the
+  // ratified-compound exception. WorkSurface/ThreePromises retired with E.1;
+  // the F components inherit the commitment.
   'components/home/easy/EasyHome.tsx',
-  'components/home/easy/WorkSurface.tsx',
-  // Questions.tsx retired 2026-08-16 (amendment E.1); its successors carry
-  // the same wallet-free commitment.
-  'components/home/easy/ThreePromises.tsx',
+  'components/home/easy/HeroFolio.tsx',
+  'components/home/easy/ResolutionScene.tsx',
+  'components/home/easy/TrustFlowFigure.tsx',
+  'components/home/easy/ArcBeats.tsx',
+  'components/home/easy/PacketArtifact.tsx',
+  'components/home/easy/EmployerLedger.tsx',
 ];
 
 /**

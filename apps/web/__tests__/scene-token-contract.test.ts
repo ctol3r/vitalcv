@@ -127,6 +127,47 @@ describe('scene register token contract (D-01A)', () => {
     });
   });
 
+  describe('F register — the founder Homepage v4 (amendment F, 2026-08-16)', () => {
+    it('every F ink tier clears AA on ground, raised, and inset paper', () => {
+      for (const fg of ['--vt-home-f-ink-strong', '--vt-home-f-ink', '--vt-home-f-ink-muted', '--vt-home-f-ink-subtle']) {
+        for (const bg of ['--vt-home-f-ground', '--vt-home-f-raised', '--vt-home-f-inset']) {
+          expect(contrast(token(fg), token(bg)), `${fg} on ${bg}`).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    });
+
+    it('the F action label clears AA at rest and press', () => {
+      const label = token('--vt-home-f-action-label');
+      for (const bg of ['--vt-home-f-action', '--vt-home-f-action-press']) {
+        expect(contrast(label, token(bg)), `F action label on ${bg}`).toBeGreaterThanOrEqual(4.5);
+      }
+    });
+
+    it('the F signal and the minted snapshot hue clear the graphics floor on paper', () => {
+      for (const hue of ['--vt-home-f-signal', '--vt-home-f-snapshot']) {
+        for (const bg of ['--vt-home-f-ground', '--vt-home-f-raised']) {
+          expect(contrast(token(hue), token(bg)), `${hue} on ${bg}`).toBeGreaterThanOrEqual(3);
+        }
+      }
+    });
+
+    it('the F action and signal are not state hues, and severity red stays reserved', () => {
+      const action = token('--vt-home-f-action').toLowerCase();
+      const signal = token('--vt-home-f-signal').toLowerCase();
+      const states = [
+        token('--vt-state-source-confirmed'),
+        token('--vt-state-pending'),
+        token('--vt-home-f-snapshot'),
+        token('--vt-severity-critical'),
+      ].map((v) => v.toLowerCase());
+      expect(states, 'the F action resolved to a state hue').not.toContain(action);
+      // The signal deliberately shares the CD-4 indigo with --vt-state-access
+      // (access is indigo BY the A-1 focus/atmosphere decision); it may never
+      // equal a green/amber/red state or the reserved severity red.
+      expect(states, 'the F signal resolved to a non-indigo state hue').not.toContain(signal);
+    });
+  });
+
   it('the bridged islands declare no literal colours', () => {
     const colourish =
       /(?:color|background|border|fill|stroke|shadow|outline)[a-z-]*\s*:[^;]*(?:#[0-9a-fA-F]{3,8}\b|\b(?:oklch|rgba?|hsla?)\()|(?:^|[{;])\s*--(?!vt-)[a-z0-9-]+\s*:\s*[^;]*(?:#[0-9a-fA-F]{3,8}\b|\b(?:oklch|rgba?|hsla?)\()/;

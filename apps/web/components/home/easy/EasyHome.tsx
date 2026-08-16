@@ -1,180 +1,103 @@
 'use client';
 
 /**
- * EasyHome — the `/` production experience (Direction A, amendment E).
+ * EasyHome — the `/` production experience (Homepage v4, amendment F).
  *
- * The Direction A recomposition: warm paper, ink, one hot action colour,
- * Geist display type, and six drawn self-labelling figures in place of the
- * D.7 frosted folio. The hero states the thesis — Enter your NPI. VitalCV
- * does the rest. — beside Figure 1 (where the record comes from); the live
- * opportunity feed renders as Roles framed by the match-explanation figure;
- * the dark band keeps its seven pinned steps with the approval-boundary and
- * reuse figures as its drawn material; and the standing watch states the
- * clinician-does-nothing thesis to the limit of what the product truthfully
- * does.
+ * The founder's v4 composition on warm paper #EDEAE3: hairline-ruled document
+ * surfaces, Fraunces display, Geist text, and Geist Mono for machine facts —
+ * if you are looking at mono type, a source returned it. Sections, in order:
+ * hero (the NPI underline field is where the whole visual budget goes, beside
+ * the hero folio figure) → the interactive resolution scene (eight real
+ * registry rows, read log, lane tally, next actions) → the trust-flow diagram
+ * (four hops, one barred lane) → the five-beat arc (record → readiness →
+ * roles → apply with proof → start) with the LIVE opportunity feed as the
+ * Roles beat's expansion → the exact-packet shape and its state legend →
+ * employers → honest limits → close → footer.
  *
  * The NPI entry is the same real flow the previous homepage ran: checkNpi
  * gates format locally, /api/identity/bootstrap and /api/trust-state resolve
  * the person, the anonymous feed suggests roles, and "Keep this record" hands
  * the NPI to /onboarding. No API, auth, consent, or data behavior changes
- * here — this file is presentation over the existing hook.
+ * here — this file is presentation over the existing hook. Real data replaces
+ * the illustrative ledger on resolve (the recognition-moment contract).
  *
  * Truth contract carried forward, not relaxed: every figure is labelled
- * illustrative with a hidden transcript, every value in every figure is a
- * blank bar, opportunities are loaded from the live provenance-bearing public
- * API, and institution review remains an unresolved employer decision.
+ * illustrative with a hidden transcript, every value is a blank bar, the NPI
+ * in every illustration is masked, opportunities come only from the live
+ * provenance-bearing public API, durations carry the pilot-target note, and
+ * institution review remains an unresolved employer decision.
  */
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
-import CyclingWord from '@/components/home/easy/CyclingWord';
-import FigureMarkers from '@/components/home/easy/figures/FigureMarkers';
-import { NpiReveal, ResolvingNarration } from '@/components/home/easy/NpiReveal';
+import ArcBeats from '@/components/home/easy/ArcBeats';
+import EmployerLedger from '@/components/home/easy/EmployerLedger';
+import HeroFolio from '@/components/home/easy/HeroFolio';
+import { useHeroLoop, type HeroLoop } from '@/components/home/easy/heroLoop';
 import OpportunityHorizon from '@/components/home/easy/OpportunityHorizon';
-import ThreePromises from '@/components/home/easy/ThreePromises';
+import PacketArtifact from '@/components/home/easy/PacketArtifact';
+import ResolutionScene from '@/components/home/easy/ResolutionScene';
+import { StateStamp } from '@/components/home/easy/stateVocabulary';
+import TrustFlow from '@/components/home/easy/TrustFlowFigure';
 import { useSectionReveals } from '@/components/home/easy/useSectionReveals';
-import WorkSurface from '@/components/home/easy/WorkSurface';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/funnel';
-import { useCareerLoop } from '@/lib/career-loop/useCareerLoop';
-import { writeNpiHandoff } from '@/lib/onboarding/npiHandoff';
 import { sourceCadenceSentence } from '@/lib/trust/sourceCadence';
 
-/**
- * The hero's one source of truth, lifted out of `NpiEntry` so BOTH hero
- * columns can read it.
- *
- * Why it moved (measured on production 2026-08-10): the entry column and the
- * stage column were siblings, and only the entry column could see the loop
- * state. So when the registry actually named someone — from a live NPPES
- * read — the real record appeared as a modest card under the form while the
- * dominant two-thirds of the hero kept playing an illustration of that same
- * story. The product's best moment was the smallest thing on the screen.
- *
- * Nothing about the pipeline changes here: same `useCareerLoop`, same real
- * `/api/identity/bootstrap` + `/api/trust-state` pairing, same capsule. This
- * is composition — who gets to render the result.
- */
-function useHeroLoop() {
-  const { state, onInput, submit, reset } = useCareerLoop();
-  const [raw, setRaw] = useState('');
-  // The recognition pacing (UX-05): `settled` goes false the moment a submit
-  // starts and true only when the narration's floor elapses — so the reveal
-  // never beats the narration, and fast networks still get the beat. Under
-  // prefers-reduced-motion the floor is zero (the pacing hook settles
-  // instantly), which preserves today's immediate result exactly.
-  const [settled, setSettled] = useState(true);
-  const [attempt, setAttempt] = useState(0);
-  const digits = raw.replace(/\D/g, '').slice(0, 10);
-  const resolving = state.phase === 'resolving';
-  const narrating = resolving || !settled;
-
-  const handleChange = (value: string) => {
-    const next = value.replace(/\D/g, '').slice(0, 10);
-    setRaw(next);
-    onInput(next);
-  };
-
-  const handleSubmit = () => {
-    if (resolving) return;
-    setSettled(false);
-    setAttempt((a) => a + 1);
-    void submit(raw);
-  };
-
-  const handleSettled = useCallback(() => setSettled(true), []);
-  const handleReset = useCallback(() => {
-    setRaw('');
-    reset();
-  }, [reset]);
-
-  const profile = state.outcome === 'individual' ? state.profile : null;
-
-  return {
-    state, raw, digits, resolving, narrating, attempt, profile,
-    handleChange, handleSubmit, handleSettled, handleReset,
-  };
-}
-
-type HeroLoop = ReturnType<typeof useHeroLoop>;
-
-function NpiEntry({
-  state, raw, digits, resolving, narrating, profile,
-  handleChange, handleSubmit, handleReset,
-}: HeroLoop) {
+function NpiEntry(loop: HeroLoop) {
+  const { state, raw, digits, resolving, narrating, handleChange, handleSubmit, handleReset } = loop;
 
   return (
-    <div className="ezh-entry">
-      {/* The one dark object on the paper page: the NPI entry card. Direction
-          A's locked composition makes the real action the darkest thing in
-          the viewport. */}
+    <div className="ezh-claim">
       <form
-        className="ezh-npi-form ezh-npi-card"
+        className="ezh-npi-form"
         onSubmit={(event) => {
           event.preventDefault();
           handleSubmit();
         }}
       >
         <label className="ezh-k ezh-npi-k" htmlFor="ezh-npi">
-          Your NPI
+          Your NPI &middot; 10 digits
         </label>
-        <div className="ezh-npi-row">
-          <Input
+        <div className="ezh-field">
+          <input
             id="ezh-npi"
-            className="ezh-npi-input"
+            className="ezh-npi-in"
             type="text"
             inputMode="numeric"
             autoComplete="off"
             maxLength={10}
-            placeholder="10 digits"
+            /* The founder file's placeholder was ten zeros; the homepage's
+               masked-NPI rule bans any ten-digit sequence in the render, so
+               the placeholder wears the same 3-3-4 mask the figures use. */
+            placeholder="··· ··· ····"
+            aria-describedby="ezh-npi-hint"
             value={raw}
             onChange={(event) => handleChange(event.target.value)}
           />
-          <Button className="ezh-npi-submit" type="submit" data-home-primary-cta="" disabled={resolving}>
+          <button className="ezh-action ezh-npi-submit" type="submit" data-home-primary-cta="" disabled={resolving}>
             {resolving ? 'Checking the registry…' : 'Start with your NPI'}
-          </Button>
+          </button>
         </div>
-        {/* The per-digit pop (E.2): re-keying the span restarts the 100ms
-            feedback animation on every REAL count change — never on load,
-            never at zero, and only when the motion system is armed. */}
-        <p className="ezh-npi-count">
-          <span
-            key={digits.length}
-            className={digits.length > 0 ? 'ezh-npi-count-num is-pop' : 'ezh-npi-count-num'}
-          >
-            {digits.length}
-          </span>
-          /10 digits &middot; free, no account needed
-        </p>
+        <p className="ezh-npi-count ezh-data">{digits.length}/10 digits &middot; free, no account needed</p>
         {state.phase === 'invalid' && state.invalidReason ? (
           <p className="ezh-npi-note" role="status">{state.invalidReason}</p>
         ) : null}
-        <p className="ezh-npi-fine">
-          Free for clinicians &mdash; entering your NPI starts nothing you don&rsquo;t approve.
+        <p className="ezh-npi-fine" id="ezh-npi-hint">
+          Free for clinicians, always. We read public and permissioned sources only, and nothing
+          leaves your record until you approve a specific recipient.
         </p>
       </form>
-
-      {/*
-        The narration and the reveal render in the STAGE column — see
-        `HeroStage`. They are the result, and the result belongs where the
-        illustration of it sits, not underneath the form.
-      */}
 
       {!narrating && state.outcome === 'organization' ? (
         <div className="ezh-result" role="status">
           <p className="ezh-result-name">This NPI names an organization.</p>
           <p className="ezh-result-note">
-            VitalCV profiles start from an individual (Type&nbsp;1) NPI. Hiring for this
+            VitalCV records start from an individual (Type&nbsp;1) NPI. Hiring for this
             organization? <Link href="/employers">VitalCV for employers</Link>.
           </p>
           <div className="ezh-result-actions">
-            <button
-              type="button"
-              className="ezh-result-again"
-              onClick={handleReset}
-            >
+            <button type="button" className="ezh-result-again" onClick={handleReset}>
               Check another NPI
             </button>
           </div>
@@ -189,11 +112,7 @@ function NpiEntry({
             guess. Try again in a moment.
           </p>
           <div className="ezh-result-actions">
-            <button
-              type="button"
-              className="ezh-result-again"
-              onClick={handleReset}
-            >
+            <button type="button" className="ezh-result-again" onClick={handleReset}>
               Try again
             </button>
           </div>
@@ -203,73 +122,13 @@ function NpiEntry({
   );
 }
 
-/**
- * The hero's right-hand column — one slot, three states, never two at once.
- *
- *   idle       Figure 1: where the record comes from, captioned illustrative
- *   resolving  the process narration (what we are DOING, never a result)
- *   resolved   the REAL record the registry returned
- *
- * Figure 1 carries its own self-labelling caption, so the caption unmounts
- * with the figure the moment a live NPPES read names a person — the sentence
- * "no real people" never stands beside a real one.
- *
- * The organization / unavailable outcomes deliberately stay in the entry
- * column: they are answers about the NUMBER, not a record to display, and the
- * illustration should keep explaining the product while the visitor retries.
- */
-function HeroStage({
-  state, resolving, narrating, attempt, profile, handleSettled, handleReset,
-}: HeroLoop) {
-  if (narrating && attempt > 0 && state.phase !== 'invalid') {
-    return <ResolvingNarration key={attempt} done={!resolving} onSettled={handleSettled} />;
-  }
-
-  if (!narrating && profile) {
-    return (
-      <NpiReveal
-        profile={profile}
-        capsule={state.capsule}
-        isDemo={state.isDemo}
-        onKeep={() => writeNpiHandoff(profile.npi)}
-        onReset={handleReset}
-      >
-        {state.matchPhase === 'loading' ? (
-          <p className="ezh-result-note">Finding roles that fit&hellip;</p>
-        ) : null}
-        {state.matchPhase === 'loaded' && state.matches.length > 0 ? (
-          <ul className="ezh-result-matches">
-            {state.matches.slice(0, 3).map((match) => (
-              <li key={match.opportunityId || match.title} className="ezh-result-match">
-                <p className="ezh-result-match-title">{match.title}</p>
-                <p className="ezh-result-match-meta">
-                  {[match.organizationName, match.location, match.hiringType]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </p>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-        {state.matchPhase === 'empty' ? (
-          <p className="ezh-result-note">
-            No open roles matched just now. The profile still moves you forward &mdash; keep it
-            and VitalCV keeps watching.
-          </p>
-        ) : null}
-        {state.matchPhase === 'error' ? (
-          <p className="ezh-result-note">Role matching is unavailable right now.</p>
-        ) : null}
-      </NpiReveal>
-    );
-  }
-
-  return <WorkSurface />;
-}
-
 export default function EasyHome() {
   const loop = useHeroLoop();
   const rootRef = useRef<HTMLElement | null>(null);
+
+  // E.2's one-shot section-entrance system, adopted by F: the server frame
+  // is complete; hydration outside reduced motion arms a single reveal per
+  // section, a safety timer force-completes, late mounts are caught.
   useSectionReveals(rootRef);
 
   useEffect(() => {
@@ -277,10 +136,8 @@ export default function EasyHome() {
   }, []);
 
   return (
-    <main ref={rootRef} className="ezh" data-home-variant="easy">
-      <FigureMarkers />
-
-      {/* ── 1 · hero: the thesis beside Figure 1 ─────────────────────────── */}
+    <main className="ezh" data-home-variant="easy" ref={rootRef}>
+      {/* ── 1 · hero: the thesis beside the folio ────────────────────────── */}
       <section
         id="npi"
         className="ezh-hero"
@@ -288,19 +145,18 @@ export default function EasyHome() {
         data-header-theme="light"
         aria-label="VitalCV — enter your NPI"
       >
-        <div className="ezh-wrap">
+        <div className="ezh-wrap ezh-hero-grid">
           <div className="ezh-hero-copy">
-            <span className="ezh-hero-eyebrow">For US clinicians</span>
-            <h1>Enter your NPI. VitalCV does the rest.</h1>
-            <p className="ezh-payoff">
-              <span aria-hidden="true">One profile. Every <CyclingWord />.</span>
-              <span className="ezh-sr">
-                One profile. Every role, shift, hospital, state, and application.
-              </span>
-            </p>
-            {/* Amendment E.2: one sentence (supersedes the E copy-table row). */}
-            <p className="ezh-hero-sub">
-              We find what we can, show you exactly what remains, and keep it that way.
+            <span className="ezh-k ezh-hero-eyebrow">
+              <i aria-hidden="true" />For clinicians &middot; no account required
+            </span>
+            <h1>
+              Get hired. <em className="ezh-accent-word">Start working</em> sooner.
+            </h1>
+            <p className="ezh-lede">
+              Parts of your record already live in public sources employers trust. Enter your
+              NPI and see what they return, what still needs you, and what nobody can read yet
+              &mdash; before anyone asks you for a folder.
             </p>
 
             <NpiEntry {...loop} />
@@ -310,111 +166,122 @@ export default function EasyHome() {
             </Link>
           </div>
 
-          <div className="ezh-hero-stagecol" data-home-stage="">
-            <HeroStage {...loop} />
+          <div className="ezh-hero-figcol" data-home-stage="">
+            <HeroFolio />
           </div>
         </div>
       </section>
 
-      {/* ── 2 · Roles: the live feed framed by the match figure ──────────── */}
+      {/* ── 2 · the resolution scene: real rows replace the idle ledger ──── */}
+      <ResolutionScene loop={loop} />
+
+      {/* ── 3 · trust flow: sources read, you hold, you release ──────────── */}
+      <section id="flow" className="ezh-flow-sec" data-header-theme="light" data-ezh-reveal="" aria-labelledby="ezh-flow-h">
+        <div className="ezh-wrap">
+          <div className="ezh-sec-head">
+            <div>
+              <span className="ezh-k">How evidence moves</span>
+              <h2 id="ezh-flow-h">
+                Sources read. You hold. <em className="ezh-accent-word">You release</em>.
+              </h2>
+            </div>
+            <p className="ezh-sec-lede">
+              Four hops, drawn honestly: what a source returned, where it rests, the gate only
+              you open, and the desk where a human still decides. One source stops at a barred
+              rule &mdash; we are not allowed to read it, and it is drawn that way on purpose.
+            </p>
+          </div>
+          <TrustFlow />
+        </div>
+      </section>
+
+      {/* ── 4 · the arc, with the live feed as the Roles beat's expansion ── */}
+      <ArcBeats />
       <OpportunityHorizon />
 
-      {/* ── 3 · the truth boundary, in its own words ─────────────────────── */}
-      <section
-        className="ezh-truthline"
-        data-header-theme="light"
-        data-ezh-reveal=""
-        aria-label="What this page does not claim"
-      >
+      {/* ── 5 · the truth boundary, in its own words ─────────────────────── */}
+      <section className="ezh-truthline" data-header-theme="light" data-ezh-reveal="" aria-label="What this page does not claim">
         <div className="ezh-wrap">
           <p className="ezh-truth" data-home-truth-boundary="">
-            Drawn illustrations, not real people or results &mdash; nothing has been sent, and
-            institution review decides.
+            Drawn illustrations; no real clinician, employer, or result; nothing has been sent,
+            and institution review decides the outcome.
           </p>
         </div>
       </section>
 
-      {/* ── 4 · three promises: the whole bottom-half story, once each ───── */}
-      <ThreePromises />
+      {/* ── 6 · the exact packet, and what it refuses to decide ──────────── */}
+      <PacketArtifact />
 
-      {/* ── 5 · quick answers: flat, one line each (E.2) ─────────────────── */}
-      <section
-        className="ezh-qa"
-        data-header-theme="light"
-        data-ezh-reveal=""
-        aria-labelledby="ezh-qa-h"
-      >
-        <div className="ezh-wrap">
-          <h2 id="ezh-qa-h" className="ezh-qa-h">
-            Quick answers
-          </h2>
-          <dl className="ezh-qa-list">
-            <div className="ezh-qa-row">
-              <dt>Is this credentialing?</dt>
-              <dd>No &mdash; those decisions always stay with the employer.</dd>
-            </div>
-            <div className="ezh-qa-row">
-              <dt>What does it cost?</dt>
-              <dd>Nothing. VitalCV is free for clinicians.</dd>
-            </div>
-            <div className="ezh-qa-row">
-              <dt>Do I need an account just to look?</dt>
-              <dd>No &mdash; enter your NPI and see what the public record shows.</dd>
-            </div>
-          </dl>
-        </div>
-      </section>
+      {/* ── 7 · employers ────────────────────────────────────────────────── */}
+      <EmployerLedger />
 
-      {/* ── 6 · the employer doorway, one warm line ──────────────────────── */}
-      <section
-        className="ezh-emp"
-        data-header-theme="light"
-        data-ezh-reveal=""
-        aria-labelledby="ezh-emp-h"
-      >
+      {/* ── 8 · honest limits ────────────────────────────────────────────── */}
+      <section id="limits" className="ezh-limits-sec" data-header-theme="light" data-ezh-reveal="" aria-labelledby="ezh-limits-h">
         <div className="ezh-wrap">
-          <div className="ezh-emp-row">
-            <h2 id="ezh-emp-h">Hiring clinicians?</h2>
-            <p>Meet candidates whose records arrive ready to review.</p>
-            <Link
-              className="ezh-emp-cta"
-              href="/employers"
-              data-home-employer-cta
-              onClick={() => trackFunnelEvent(FUNNEL_EVENTS.EMPLOYER_ENTRY_CLICKED)}
-            >
-              VitalCV for employers <span aria-hidden="true">&#8627;</span>
-            </Link>
+          <div className="ezh-sec-head">
+            <div>
+              <span className="ezh-k">Honest limits</span>
+              <h2 id="ezh-limits-h">
+                What we <em className="ezh-accent-word">cannot</em> see.
+              </h2>
+            </div>
+            <p className="ezh-sec-lede">
+              Published here rather than discovered later. A product that reads sources for a
+              living owes you the boundary of what it reads.
+            </p>
+          </div>
+          <div className="ezh-limits">
+            <div>
+              <StateStamp state="access">Access required</StateStamp>
+              <h3>Sources we are not allowed to read</h3>
+              <p>
+                State licensure is not open to us yet, and some federal sources answer only the
+                clinician. Where that is true, the row says so instead of guessing.
+              </p>
+            </div>
+            <div>
+              <StateStamp state="snapshot">Snapshot &middot; monthly or quarterly</StateStamp>
+              <h3>Sources that publish in batches</h3>
+              <p>
+                The OIG exclusion file is monthly; Medicare enrollment is quarterly. Those rows
+                carry the file&rsquo;s date, never the word &ldquo;current&rdquo;.
+              </p>
+            </div>
+            <div>
+              <StateStamp state="unchecked">Not checked</StateStamp>
+              <h3>Things nobody has asked for yet</h3>
+              <p>
+                Privileges, employment and references need an issuer to attest. Until one does,
+                the row stays empty and says so.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── 7 · final action ─────────────────────────────────────────────── */}
-      <section
-        className="ezh-start"
-        data-header-theme="light"
-        data-ezh-reveal=""
-        aria-labelledby="ezh-start-h"
-      >
-        <div className="ezh-wrap ezh-start-center">
-          {/* Fraunces survives on this route only as the serif editorial
-              aside (amendment E, Display row). */}
-          <p className="ezh-serif-aside">Your work travels with you. You never start over.</p>
-          <h2 id="ezh-start-h" className="ezh-start-h">
-            Ready when you are.
-          </h2>
-          <p className="ezh-start-line">
-            It takes one number you already know &mdash; and nothing happens without your say.
-          </p>
-          <a className="ezh-start-cta" href="#npi">
+      {/* ── 9 · close ────────────────────────────────────────────────────── */}
+      <section className="ezh-start" data-header-theme="light" data-ezh-reveal="" aria-labelledby="ezh-start-h">
+        <div className="ezh-wrap ezh-close">
+          <div>
+            <h2 id="ezh-start-h">
+              Ten digits. Then <em className="ezh-accent-word">read it yourself</em>.
+            </h2>
+            <p className="ezh-start-line">
+              No demo call, no gated download, no account. You see your record first &mdash; and
+              nothing is shared unless you say so.
+            </p>
+          </div>
+          <a className="ezh-action ezh-start-cta" href="#npi">
             Start with your NPI
           </a>
-          <p className="ezh-start-fine">Free for clinicians.</p>
         </div>
       </section>
 
       <footer className="ezh-foot">
         <div className="ezh-wrap ezh-foot-in">
-          <span className="ezh-foot-mark">VitalCV</span>
+          <span className="ezh-foot-mark ezh-data">
+            © 2026 VitalCV &middot; a record the clinician owns
+          </span>
           <nav className="ezh-foot-links" aria-label="Footer">
             <Link href="/employers">For employers</Link>
             <Link href="/pricing">Pricing</Link>
@@ -425,7 +292,8 @@ export default function EasyHome() {
             <Link href="/sign-in">Sign in</Link>
           </nav>
           <p className="ezh-foot-truth" data-home-source-cadence="">
-            {sourceCadenceSentence()} Where a source hasn&rsquo;t answered, the profile says so.
+            Source freshness, stated plainly: {sourceCadenceSentence()} Where a source
+            hasn&rsquo;t answered, the record says so instead of guessing.
           </p>
         </div>
       </footer>

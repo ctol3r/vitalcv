@@ -243,6 +243,46 @@ html[data-theme='dark'] {
      (EC-4): the dashes, unfilled boxes and words carry the meaning. */
   --vt-home-e-figure-accent: #D92800;
   --vt-home-e-figure-accent-band: #FF6B4A;
+  /* ── Homepage v4 — route register, amendment F (2026-08-16) ──────────────
+     Founder directive: "Implement: VitalCV Homepage v4.html". Warm paper
+     #EDEAE3 with raised/inset paper surfaces, indigo signal, and the mono law
+     restored on `/` (machine facts in Geist Mono). The E family above stays
+     declared as the historical record until nothing references it.
+
+     `--vt-home-f-signal` is byte-equal to the light-theme `--vt-accent`
+     (#4338CA, the CD-4 indigo) but is declared literally so the island is
+     register-locked: `/` renders inside a light document, and the accent
+     token legally flips with the document theme while this page may not.
+     The signal is atmosphere, links, focus and the accent word — never a
+     state hue and never a status fill.
+
+     State glyph hues alias the EXISTING semantic state tokens wherever the
+     meaning is identical (no duplicate state colours). `-snapshot` is the one
+     minted value: "true as of a dated file" has no existing hue. All values
+     measured against ground/raised/inset (WCAG):
+       ink-strong 14.75/16.12/13.31 · ink 12.22/13.36 · ink-muted 6.38/6.97/5.76
+       ink-subtle 5.34/5.87/4.82 · signal 6.58/7.19 · snapshot 5.56 ground
+       action label on action 16.12 · on press 11.97. */
+  --vt-home-f-ground: #EDEAE3;
+  --vt-home-f-raised: #F6F4EF;
+  --vt-home-f-inset: #E3DFD5;
+  --vt-home-f-ink-strong: #1A1815;
+  --vt-home-f-ink: #2B2823;
+  --vt-home-f-ink-muted: #57534A;
+  --vt-home-f-ink-subtle: #655E51;
+  --vt-home-f-rule: #D9D4C8;
+  --vt-home-f-rule-strong: #B8B1A1; /* decorative hairlines only — never text */
+  --vt-home-f-signal: #4338CA;
+  --vt-home-f-signal-wash: #ECEBF8;
+  --vt-home-f-action: #1A1815; /* paper-inverse instrument (A-1); label 16.12:1 */
+  --vt-home-f-action-label: #F6F4EF;
+  --vt-home-f-action-press: #32302D; /* label 11.97:1 */
+  --vt-home-f-confirmed: var(--vt-state-source-confirmed); /* #047857 · 4.56:1 ground */
+  --vt-home-f-snapshot: #6E5A1C; /* minted · 5.56:1 ground */
+  --vt-home-f-attention: var(--vt-state-pending); /* #92400E · 5.90:1 ground */
+  --vt-home-f-access: var(--vt-state-access); /* #4338CA */
+  --vt-home-f-unchecked: var(--vt-home-f-ink-subtle); /* the default state carries no hue */
+
   /* Established DG-18.4 material-above-flow stop, made available to the live
      register; it is not a new layer in the seven-stop z scale. */
   --vt-z-raised: 10;
