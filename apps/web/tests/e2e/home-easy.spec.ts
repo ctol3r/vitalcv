@@ -382,6 +382,61 @@ test.describe('home — reduced motion', () => {
     );
     expect(hidden).toBe(0);
     await expect(surface(page).locator('.ezh-fig-cap')).toBeVisible();
+
+    // The promise arrival is armed by an observer, so it can hide content in a
+    // way the figure reveal cannot: under reduced motion it must never arm.
+    // Asserting the finished opacity alone would pass even if it did arm and
+    // then completed — so pin the STAGE, which never leaves 'static' here.
+    await expect(page.locator('.ezh-promise-grid')).toHaveAttribute('data-motion', 'static');
+    const hiddenPromises = await page.evaluate(
+      () =>
+        [...document.querySelectorAll('.ezh-promise')].filter(
+          (card) => getComputedStyle(card).opacity !== '1',
+        ).length,
+    );
+    expect(hiddenPromises).toBe(0);
+  });
+
+  test('the promise arrival runs, staggers, and leaves nothing hidden', async ({ page }) => {
+    await routeOpportunities(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+
+    // Park below the observer threshold so the arrival has not been triggered.
+    await page.locator('.ezh-promise-grid').evaluate((grid) => {
+      window.scrollTo(0, grid.getBoundingClientRect().top + window.scrollY - window.innerHeight);
+    });
+    await expect(page.locator('.ezh-promise-grid')).toHaveAttribute('data-motion', 'static');
+
+    // Release it, and sample while the transition is still playing. A change
+    // that never animates and one that animates correctly both END at 1 —
+    // only a mid-flight sample separates them.
+    const sawStagger = await page.evaluate(async () => {
+      const grid = document.querySelector('.ezh-promise-grid');
+      const cards = [...document.querySelectorAll('.ezh-promise')];
+      grid.scrollIntoView({ block: 'center' });
+      let staggered = false;
+      const start = performance.now();
+      while (performance.now() - start < 900) {
+        const opacities = cards.map((c) => getComputedStyle(c).opacity);
+        if (new Set(opacities).size > 1) staggered = true;
+        await new Promise((r) => setTimeout(r, 30));
+      }
+      return staggered;
+    });
+    expect(sawStagger).toBe(true);
+
+    // And it always settles: the finished row stands whatever the transition did.
+    await expect
+      .poll(async () =>
+        page.evaluate(
+          () =>
+            [...document.querySelectorAll('.ezh-promise')].filter(
+              (card) => getComputedStyle(card).opacity !== '1',
+            ).length,
+        ),
+      )
+      .toBe(0);
   });
 
   test('the no-JavaScript frame keeps the thesis, figure, settled word, and doorway', async ({ browser }) => {
@@ -402,6 +457,17 @@ test.describe('home — reduced motion', () => {
     await expect(page.locator('[data-home-cycling-word]')).toHaveText('application');
     await expect(page.locator('[data-home-opportunity-cta]')).toHaveAttribute('href', '/explore');
     await expect(page.getByText('Reading the current opportunity feed…')).toBeVisible();
+    // The promise arrival is script-armed, so without script the finished row
+    // must simply be present — never the armed (hidden) frame.
+    await expect(page.locator('.ezh-promise-grid')).toHaveAttribute('data-motion', 'static');
+    await expect(page.locator('.ezh-promise')).toHaveCount(3);
+    const nojsHidden = await page.evaluate(
+      () =>
+        [...document.querySelectorAll('.ezh-promise')].filter(
+          (card) => getComputedStyle(card).opacity !== '1',
+        ).length,
+    );
+    expect(nojsHidden).toBe(0);
     await context.close();
   });
 });

@@ -1,3 +1,7 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+
 /**
  * ThreePromises — the whole bottom-half story in three warm cards.
  *
@@ -13,8 +17,74 @@
  * is stated as the rule it is. No state vocabulary, no process diagrams.
  * The glyphs are decorative pictograms (aria-hidden), not scenes — they
  * depict no source, count, person, or result, so they carry no self-label.
+ *
+ * MOTION (2026-08-16, founder-selected reference study). The three cards
+ * arrive in sequence as the section is reached — the "accumulation" grammar:
+ * three things gathering into one record, which is what the section says.
+ * The reference expresses accumulation by PINNING cards as you scroll; that
+ * mechanic was measured against this content and does not transfer — the
+ * three cards fit inside one viewport at every supported width (767px stacked
+ * against an 844px phone viewport), so pinning has no scroll distance to work
+ * in, and buying that distance would pad the page amendment E.1 cut in half.
+ *
+ * The arrival follows this island's own entrance contract (WorkSurface's
+ * static → armed → run → done), not the platform `Reveal` primitive, whose
+ * animation lives in the PARKED Calm Wave stylesheet — importing a parked era
+ * into the amendment E register is exactly what PARKED_VISUAL_ERAS forbids.
+ * The server frame renders the finished state; script only ARMS the
+ * enhancement; reduced motion never arms it; a safety timeout strips the
+ * machinery so a transition that never paints can strand nothing.
  */
+type Stage = 'static' | 'armed' | 'run' | 'done';
+
 export default function ThreePromises() {
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const [stage, setStage] = useState<Stage>('static');
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return undefined;
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    // Reduced motion is a composition, not a fallback (XS-7/EC-25): the
+    // finished row is simply present, and nothing is ever hidden first.
+    if (reducedMotion.matches) return undefined;
+    // Without IntersectionObserver, never arm — the completed frame stands.
+    if (typeof IntersectionObserver === 'undefined') return undefined;
+
+    let first = 0;
+    let second = 0;
+    let settle = 0;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        setStage('armed');
+        first = window.requestAnimationFrame(() => {
+          second = window.requestAnimationFrame(() => setStage('run'));
+        });
+        // Safety: whatever the transitions did, the finished frame stands.
+        settle = window.setTimeout(() => setStage('done'), 2400);
+      },
+      { threshold: 0.2, rootMargin: '0px 0px -8% 0px' },
+    );
+    io.observe(grid);
+
+    const stopForReducedMotion = () => {
+      if (reducedMotion.matches) setStage('static');
+    };
+    reducedMotion.addEventListener('change', stopForReducedMotion);
+
+    return () => {
+      io.disconnect();
+      window.cancelAnimationFrame(first);
+      window.cancelAnimationFrame(second);
+      window.clearTimeout(settle);
+      reducedMotion.removeEventListener('change', stopForReducedMotion);
+    };
+  }, []);
+
   return (
     <section className="ezh-promises" data-header-theme="light" aria-labelledby="ezh-promises-h">
       <div className="ezh-wrap">
@@ -23,7 +93,7 @@ export default function ThreePromises() {
           <h2 id="ezh-promises-h">Three things. That&rsquo;s the whole idea.</h2>
         </div>
 
-        <div className="ezh-promise-grid">
+        <div className="ezh-promise-grid" ref={gridRef} data-motion={stage}>
           <article className="ezh-promise">
             <svg className="ezh-promise-glyph" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
               <rect x="9" y="7" width="22" height="28" rx="3" fill="none" stroke="currentColor" strokeWidth="2" />

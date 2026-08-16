@@ -1115,6 +1115,43 @@
   padding: 28px 26px 30px;
 }
 
+/* Sequenced arrival — the accumulation grammar (founder reference study,
+   2026-08-16). Three things gather into one record, which is what this
+   section says; the motion explains that rather than decorating it (EC-10).
+
+   The reference gathers cards by PINNING them as the reader scrolls. Measured
+   against this content that mechanic has no scroll distance to work in: the
+   three cards fit inside one viewport at every supported width, and buying
+   the distance would pad a page amendment E.1 deliberately cut. The grammar
+   transfers; the pinning does not.
+
+   Island contract, unchanged: the server frame renders the FINISHED row, so
+   the cards are visible unless hydration explicitly arms the enhancement.
+   Durations are EC-29 tokens, never literals — 320ms is the product
+   transformation band, and the stagger token is a band-exempt sibling offset.
+   No keyframes, no z-index, no scroll ownership: the browser scrolls, we
+   observe (XS-1). */
+.ezh-promise-grid[data-motion='armed'] .ezh-promise {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.ezh-promise-grid[data-motion='run'] .ezh-promise {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--duration-normal) var(--vt-ease-system),
+    transform var(--duration-normal) var(--vt-ease-system);
+}
+
+.ezh-promise-grid[data-motion='run'] .ezh-promise:nth-child(2) {
+  transition-delay: calc(var(--duration-stagger) * 2);
+}
+
+.ezh-promise-grid[data-motion='run'] .ezh-promise:nth-child(3) {
+  transition-delay: calc(var(--duration-stagger) * 4);
+}
+
 .ezh-promise-glyph {
   width: 48px;
   height: 48px;
@@ -1459,5 +1496,16 @@
   .ezh *::before,
   .ezh *::after {
     transition: none !important;
+  }
+
+  /* Killing the transition is not enough on its own for anything that hides
+     itself first: without this, an armed frame would strand the cards at
+     opacity 0 permanently, since no transition remains to bring them back.
+     ThreePromises never arms under reduced motion, so this is the backstop
+     for the mid-session toggle, not the plan (XS-7: reduced motion is a
+     composition — here, the finished row). */
+  .ezh-promise-grid .ezh-promise {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
