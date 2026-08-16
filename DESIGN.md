@@ -28,11 +28,11 @@ specificity, so this list is the precedence:
 | # | File | `--vt-*` declarations |
 |---|---|---|
 | 1 | `apps/web/styles/themes/index.css` | 172 |
-| 2 | `apps/web/styles/tokens.css` | 33 |
+| 2 | `apps/web/styles/tokens.css` | 32 |
 | 3 | `apps/web/styles/vitalTokens.css` | 65 |
 | 4 | `apps/web/styles/matcha-zen.css` | 16 |
 
-**286 declarations across 4 files, 197 distinct tokens.**
+**285 declarations across 4 files, 196 distinct tokens.**
 
 ### Route-scoped token files (outside the global cascade)
 
@@ -210,7 +210,7 @@ table — the table says what exists, this says what to do.
 
 ## Tokens
 
-Role sentences come from `docs/design/design-md-roles.json`. **12 of 197**
+Role sentences come from `docs/design/design-md-roles.json`. **12 of 196**
 tokens have a documented role; the rest say so plainly rather than inventing one.
 
 | Token | Effective value | Declared in | Role |
@@ -279,7 +279,6 @@ tokens have a documented role; the rest say so plainly rather than inventing one
 | `--vt-critical` | `var(--vt-severity-critical)` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-divider-light` | `oklch(0.90 0.008 80)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-divider-ops` | `oklch(0.274 0 0)` | `styles/vitalTokens.css` | — *(role not documented)* |
-| `--vt-duration-interact` | `320ms` | `styles/tokens.css` | — *(role not documented)* |
 | `--vt-ease-system` | `cubic-bezier(0.2, 0.8, 0.2, 1)` | `styles/tokens.css` | — *(role not documented)* |
 | `--vt-edge-co-author` | `#333333` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-edge-co-grant` | `#333333` | `styles/themes/index.css` | — *(role not documented)* |

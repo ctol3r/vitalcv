@@ -31,7 +31,7 @@ export const TabsTrigger = React.forwardRef<
     className={cn(
       // CD-10: chrome is 10px, never a pill. CD-15: 44px floor — `min-h-9` was 36px.
       'inline-flex min-h-11 items-center justify-center rounded-[10px] px-[var(--vt-space-16)] text-[length:var(--vt-type-meta-size)] font-[var(--vt-font-weight-medium)] text-[var(--vt-text-secondary)]',
-      'transition-[background-color,color] duration-[var(--vt-motion-fast)] ease-[var(--vt-ease-standard)]',
+      'transition-[background-color,color] duration-[var(--vt-motion-control)] ease-[var(--vt-ease-standard)]',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vt-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--vt-bg)]',
       'data-[state=active]:bg-[var(--vt-surface)] data-[state=active]:text-[var(--vt-text-primary)]',
       className,
