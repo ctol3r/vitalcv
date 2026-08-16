@@ -400,10 +400,6 @@ function asString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }
 
-function asNumber(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
-}
-
 function normalizeRequirementLevel(value: string | null | undefined): RequirementLevel {
   return value === 'L3' || value === 'L2' || value === 'L1' ? value : 'L1';
 }
@@ -1422,11 +1418,19 @@ export async function buildClinicianOpportunityProfile(input: {
       continue;
     }
 
-    const confidence = asNumber(row.data.overallConfidence) ?? 0;
     const status = row.status.toUpperCase();
-    const level: RequirementLevel = status === 'VERIFIED' || (status === 'PENDING_VERIFICATION' && confidence >= 0.9)
-      ? 'L3'
-      : 'L2';
+    // The candidate-credential lane is self-attested: a clinician uploads a
+    // document, the OCR/regex pipeline (services/ai/documentPipeline.ts) parses
+    // it, and the clinician confirms the extracted fields (status
+    // PENDING_VERIFICATION). `overallConfidence` is the mean of hardcoded
+    // per-pattern regex constants (0.82-0.90) — it measures how confidently a
+    // regex matched text, never whether a source corroborated the claim. L3 is
+    // the primary-source-verified requirement tier ("Primary Source
+    // Verification Packet", "NPI Verified" — see launchOpportunitySeed.ts);
+    // nothing in this lane has been checked against a source, so it must never
+    // reach it. Cap at L2 regardless of status or confidence — reaching L3
+    // requires a real source-corroboration path this lane does not provide.
+    const level: RequirementLevel = 'L2';
     const heldStatus: ClinicianHeldCredential['status'] = status === 'VERIFIED'
       ? 'active'
       : 'pending';

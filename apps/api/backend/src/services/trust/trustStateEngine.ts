@@ -1457,7 +1457,13 @@ export async function computeClinicianTrustState(npi: string): Promise<Clinician
       factType,
       source: 'DocumentIntelligence',
       status: cred.status,
-      verifiedAt: cred.createdAt.toISOString(),
+      // No verifiedAt. This fact is minted from a self-attested
+      // CandidateCredential (status UNVERIFIED / PENDING_VERIFICATION) that has
+      // never been checked against a source. `cred.createdAt` is when the row
+      // was written, not when anything was verified — stamping it into
+      // `verifiedAt` presented an upload time as an observation/verification
+      // time (the wallet renders this field as "Observed {date}"). Leave it
+      // undefined until a real verification event exists.
     });
   }
 
