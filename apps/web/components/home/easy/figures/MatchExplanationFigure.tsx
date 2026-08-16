@@ -79,10 +79,10 @@ export default function MatchExplanationFigure() {
             <rect x="18" y="44" width="200" height="9" rx="4" />
             <rect x="18" y="62" width="160" height="9" rx="4" />
           </g>
-          <text x="18" y="88" fontSize="11.5" fill="currentColor" fillOpacity=".55">licenses &middot; specialty &middot; sources</text>
+          <text x="18" y="88" fontSize="13" fill="currentColor" fillOpacity=".55">licenses &middot; specialty &middot; sources</text>
 
           <path className="ezh-sh ezh-draw ezh-draw-d2" style={DRAW_40} d="M164 98 C 164 112, 164 116, 164 132" fill="none" markerEnd="url(#ezh-arh)" />
-          <text x="176" y="120" fontSize="11.5" className="ezh-fh">scored against the record</text>
+          <text x="176" y="120" fontSize="13" className="ezh-fh">scored against the record</text>
 
           <rect className="ezh-draw ezh-draw-d3" style={DRAW_1150} x="2" y="140" width="326" height="238" rx="10" fill="none" stroke="currentColor" strokeOpacity=".26" />
           <text x="18" y="166" fontSize="13" fontWeight="600" fill="currentColor">An open role</text>
@@ -95,20 +95,20 @@ export default function MatchExplanationFigure() {
           </g>
           <g>
             <rect x="18" y="202" width="10" height="10" fill="currentColor" fillOpacity=".5" />
-            <text x="36" y="211" fontSize="12" fill="currentColor">Your state license covers the role</text>
+            <text x="36" y="211" fontSize="13" fill="currentColor">Your state license covers the role</text>
           </g>
           <g>
             <rect x="18" y="234" width="10" height="10" fill="currentColor" fillOpacity=".5" />
-            <text x="36" y="243" fontSize="12" fill="currentColor">Your specialty matches the ask</text>
+            <text x="36" y="243" fontSize="13" fill="currentColor">Your specialty matches the ask</text>
           </g>
           <g>
             <rect x="18" y="266" width="10" height="10" fill="none" className="ezh-sh" strokeWidth="1.5" />
-            <text x="36" y="275" fontSize="12" className="ezh-fh">Board certification isn&rsquo;t on</text>
-            <text x="36" y="292" fontSize="12" className="ezh-fh">your record yet &mdash; said up front,</text>
-            <text x="36" y="309" fontSize="12" className="ezh-fh">not after the interview</text>
+            <text x="36" y="275" fontSize="13" className="ezh-fh">Board certification isn&rsquo;t on</text>
+            <text x="36" y="292" fontSize="13" className="ezh-fh">your record yet &mdash; said up front,</text>
+            <text x="36" y="309" fontSize="13" className="ezh-fh">not after the interview</text>
           </g>
-          <text x="18" y="348" fontSize="11.5" fill="currentColor" fillOpacity=".55">what lines up and what doesn&rsquo;t,</text>
-          <text x="18" y="364" fontSize="11.5" fill="currentColor" fillOpacity=".55">in plain terms</text>
+          <text x="18" y="348" fontSize="13" fill="currentColor" fillOpacity=".55">what lines up and what doesn&rsquo;t,</text>
+          <text x="18" y="364" fontSize="13" fill="currentColor" fillOpacity=".55">in plain terms</text>
         </svg>
       </div>
       <figcaption className="ezh-fig-cap">

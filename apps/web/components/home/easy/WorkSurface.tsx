@@ -206,7 +206,7 @@ export default function WorkSurface() {
             {/* federal-list flag */}
             <path d="M272 23.5 V9.5 M272 10.5 h9 v5.5 h-9" />
           </g>
-          <g fontSize="12" fill="currentColor" textAnchor="middle">
+          <g fontSize="13" fill="currentColor" textAnchor="middle">
             <text x="53" y="38">NPPES</text>
             <text x="164" y="38">State board</text>
             <text x="276" y="38">Federal list</text>
@@ -216,7 +216,7 @@ export default function WorkSurface() {
             <line className="ezh-draw ezh-draw-d2" style={DRAW_60} x1="164" y1="48" x2="164" y2="82" markerEnd="url(#ezh-ar)" />
             <line className="ezh-draw ezh-draw-d2" style={DRAW_60} x1="276" y1="48" x2="238" y2="82" markerEnd="url(#ezh-ar)" />
           </g>
-          <text x="176" y="68" fontSize="11.5" fill="currentColor" fillOpacity=".62">returns what it holds</text>
+          <text x="176" y="68" fontSize="13" fill="currentColor" fillOpacity=".62">returns what it holds</text>
 
           {/* The badge (Option 1 "Chart & Badge"): accent band, slot, photo
               frame, identity bar, then the chart rows. */}
@@ -231,36 +231,36 @@ export default function WorkSurface() {
           <line x1="23" y1="147" x2="51" y2="117" stroke="currentColor" strokeOpacity=".18" strokeWidth="2" />
           <text x="66" y="126" fontSize="13" fontWeight="600" fill="currentColor">Your profile</text>
           <rect className="ezh-fb" x="66" y="134" width="84" height="8" rx="4" />
-          <text x="312" y="126" fontSize="11.5" fill="currentColor" fillOpacity=".55" textAnchor="end">&bull;&bull;&bull; &bull;&bull;&bull; &bull;&bull;&bull;&bull;</text>
+          <text x="312" y="126" fontSize="13" fill="currentColor" fillOpacity=".55" textAnchor="end">&bull;&bull;&bull; &bull;&bull;&bull; &bull;&bull;&bull;&bull;</text>
           <line x1="2" y1="162" x2="328" y2="162" stroke="currentColor" strokeOpacity=".14" />
 
           <g className="ezh-rowfx" data-r="1">
             <text x="18" y="188" fontSize="13" fill="currentColor">Name and specialty</text>
-            <text x="18" y="207" fontSize="11.5" fill="currentColor" fillOpacity=".55">NPPES registry</text>
+            <text x="18" y="207" fontSize="13" fill="currentColor" fillOpacity=".55">NPPES registry</text>
             <rect className="ezh-fb" x="200" y="180" width="112" height="9" rx="4" />
             <line x1="18" y1="220" x2="312" y2="220" stroke="currentColor" strokeOpacity=".1" />
           </g>
           <g className="ezh-rowfx" data-r="2">
             <text x="18" y="246" fontSize="13" fill="currentColor">Practice location</text>
-            <text x="18" y="265" fontSize="11.5" fill="currentColor" fillOpacity=".55">NPPES registry</text>
+            <text x="18" y="265" fontSize="13" fill="currentColor" fillOpacity=".55">NPPES registry</text>
             <rect className="ezh-fb" x="200" y="238" width="112" height="9" rx="4" />
             <line x1="18" y1="278" x2="312" y2="278" stroke="currentColor" strokeOpacity=".1" />
           </g>
           <g className="ezh-rowfx" data-r="3">
             <text x="18" y="304" fontSize="13" fill="currentColor">State license record</text>
-            <text x="18" y="323" fontSize="11.5" fill="currentColor" fillOpacity=".55">State board record</text>
+            <text x="18" y="323" fontSize="13" fill="currentColor" fillOpacity=".55">State board record</text>
             <rect className="ezh-fb" x="200" y="296" width="112" height="9" rx="4" />
             <line x1="18" y1="336" x2="312" y2="336" stroke="currentColor" strokeOpacity=".1" />
           </g>
           <g className="ezh-rowfx" data-r="4">
             <text x="18" y="362" fontSize="13" fill="currentColor">Federal exclusion list</text>
-            <text x="18" y="381" fontSize="11.5" fill="currentColor" fillOpacity=".55">Checked</text>
+            <text x="18" y="381" fontSize="13" fill="currentColor" fillOpacity=".55">Checked</text>
             <line x1="18" y1="394" x2="312" y2="394" stroke="currentColor" strokeOpacity=".1" />
           </g>
           <g className="ezh-rowfx" data-r="5">
             <rect x="12" y="404" width="306" height="46" rx="6" fill="none" className="ezh-sh" strokeDasharray="4 3" />
             <text x="24" y="426" fontSize="13" className="ezh-fh">Preferred location</text>
-            <text x="24" y="443" fontSize="11.5" className="ezh-fh">no source answered &mdash; only you can</text>
+            <text x="24" y="443" fontSize="13" className="ezh-fh">no source answered &mdash; only you can</text>
           </g>
           </g>
         </svg>
