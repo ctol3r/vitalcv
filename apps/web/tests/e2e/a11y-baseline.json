@@ -194,5 +194,13 @@
       "color-contrast": 6
     },
     "smallTargets": 7
+  },
+  "/explore@desktop": {
+    "violations": {},
+    "smallTargets": 0
+  },
+  "/explore@mobile": {
+    "violations": {},
+    "smallTargets": 0
   }
 }

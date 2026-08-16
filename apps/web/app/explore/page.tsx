@@ -45,9 +45,9 @@ export default async function ExplorePage({
             <h1>Find clinical work with the source in view.</h1>
             <p className="opf-hero-lede">
               Shape the field by profession, specialty, setting, source observation,
-              pay range and basis, visa sponsorship, start timing, employer, and
-              application path. Every listing keeps its source, availability, and
-              limitations attached.
+              pay range, visa sponsorship, start timing, employer, and application
+              path. Every listing keeps its source, availability, and limitations
+              attached — including what the source never said.
             </p>
             <div className="opf-hero-boundary" aria-label="Opportunity field boundaries">
               <p>

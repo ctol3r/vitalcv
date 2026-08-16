@@ -158,6 +158,17 @@
   padding: 0.1rem 0 1rem;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
+  /*
+   * The last card used to sit flush against the rail's right edge, reading as
+   * cut off rather than as "scroll for more".
+   *
+   * The 2026-08-16 UX audit (item 64) asks for scroll-snap here too. Design
+   * lint XS-1c retires scroll-snap outright (CD-13 amendment, mode: error,
+   * no exception hook), so the snap half of that item needs a ruling on the
+   * rule before it can ship — it is not something this pass may simply add.
+   * Trailing space fixes the clipping on its own.
+   */
+  padding-inline-end: 1.25rem;
   scrollbar-color: var(--vt-home-d-ink) var(--vt-home-d-rule);
   scrollbar-width: thin;
 }
@@ -434,9 +445,42 @@
   letter-spacing: -0.04em;
 }
 
+/*
+ * The count reads as a metric, not as small print beside the heading. Figure
+ * in mono because it is a machine-counted fact; unit beneath it in the same
+ * dim ink the rest of the board uses for labels. No card, no fill, no accent —
+ * the emphasis is size and alignment only, which keeps this inside the warm
+ * paper register rather than importing a panel treatment.
+ */
 .opf-result-count {
-  padding-bottom: 0.3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: end;
+  gap: 0.15rem;
+  padding-bottom: 0.35rem;
+  margin: 0;
   color: var(--vt-home-d-dim);
+  text-align: right;
+}
+
+.opf-result-count[data-state='ready'] {
+  color: var(--vt-home-d-ink);
+}
+
+.opf-result-figure {
+  font-family: var(--font-geist-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: clamp(1.75rem, 3.1vw, 2.75rem);
+  font-weight: 500;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.opf-result-unit {
+  color: var(--vt-home-d-dim);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .opf-role-list {
@@ -551,6 +595,23 @@
   font-size: 0.82rem;
   line-height: 1.4;
   overflow-wrap: anywhere;
+}
+
+/*
+ * The one line that replaces a cell per silent field.
+ *
+ * Deliberately quiet — dim ink, no rule, no box, and a plain readable sentence.
+ * An earlier pass set the lead-in as an 11px uppercase mono label, which is
+ * exactly the "10-11px mono" legibility risk the 2026-08-16 UX audit raises
+ * (item 81); a record of what the source did NOT say is not worth spending a
+ * new instance of a known accessibility problem on. Prose is also quieter than
+ * a mono label, which is what this line wants to be.
+ */
+.opf-role-silence {
+  margin: 0.85rem 0 0;
+  color: var(--vt-home-d-dim);
+  font-size: 0.8125rem;
+  line-height: 1.45;
 }
 
 .opf-role-proof {
@@ -816,6 +877,17 @@
   .opf-results-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  /*
+   * The heading stacks here, so the metric must stack WITH it. Left as
+   * right-aligned it floated under the headline against neither margin —
+   * flush left puts it on the same line the eyebrow and headline start from.
+   */
+  .opf-result-count {
+    align-items: start;
+    padding-bottom: 0;
+    text-align: left;
   }
 
   .opf-results-heading h2 {

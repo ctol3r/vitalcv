@@ -12,10 +12,8 @@ import {
   opportunityApplicationMode,
   opportunityAvailability,
   opportunityCompensationMethod,
-  opportunityEmployment,
-  opportunityLocation,
-  opportunityProfession,
-  opportunitySchedule,
+  opportunityRowFacts,
+  formatUnstatedFields,
 } from '@/lib/explore/opportunity-display';
 
 export function BoardResultRow({
@@ -35,11 +33,11 @@ export function BoardResultRow({
   const applicationMode = opportunityApplicationMode(opportunity);
   const sourceUrl = opportunity.source?.url ?? null;
   const sourceLabel = opportunity.source?.label ?? 'Source not stated';
-  const compensation = formatOpportunityPay(opportunity);
-  const location = opportunityLocation(opportunity);
-  const profession = opportunityProfession(opportunity);
-  const schedule = opportunitySchedule(opportunity);
-  const employment = opportunityEmployment(opportunity);
+  const facts = opportunityRowFacts(opportunity);
+  // Provenance for a figure that does not exist is noise: when the source
+  // published no pay, this cell repeated the same "not supplied" the fact list
+  // already carried. It earns its place only when there IS a figure to source.
+  const showCompensationSource = facts.stated.some((f) => f.label === 'Compensation');
 
   return (
     <article
@@ -87,31 +85,19 @@ export function BoardResultRow({
         </div>
 
         <dl className="opf-role-facts">
-          <div>
-            <dt>Profession</dt>
-            <dd>{profession}</dd>
-          </div>
-          <div>
-            <dt>Location</dt>
-            <dd>{location}</dd>
-          </div>
-          <div>
-            <dt>Schedule</dt>
-            <dd>{schedule}</dd>
-          </div>
-          <div>
-            <dt>Employment</dt>
-            <dd>{employment}</dd>
-          </div>
-          <div>
-            <dt>Specialty</dt>
-            <dd>{opportunity.specialty || 'Not stated'}</dd>
-          </div>
-          <div>
-            <dt>Compensation</dt>
-            <dd>{compensation ?? 'Not supplied by source'}</dd>
-          </div>
+          {facts.stated.map((fact) => (
+            <div key={fact.label}>
+              <dt>{fact.label}</dt>
+              <dd>{fact.value}</dd>
+            </div>
+          ))}
         </dl>
+
+        {facts.unstated.length > 0 ? (
+          <p className="opf-role-silence">
+            Source didn&rsquo;t state {formatUnstatedFields(facts.unstated)}.
+          </p>
+        ) : null}
 
         <div className="opf-role-proof">
           <div>
@@ -133,10 +119,12 @@ export function BoardResultRow({
             <p>{formatOpportunityObserved(availability.observedAt)}</p>
             <p>{CONFIDENCE_LABEL[availability.confidence]}</p>
           </div>
-          <div>
-            <p className="opf-proof-label">Compensation source</p>
-            <p>{opportunityCompensationMethod(opportunity)}</p>
-          </div>
+          {showCompensationSource ? (
+            <div>
+              <p className="opf-proof-label">Compensation source</p>
+              <p>{opportunityCompensationMethod(opportunity)}</p>
+            </div>
+          ) : null}
         </div>
 
         <p className="opf-role-limitation">{availability.limitation}</p>

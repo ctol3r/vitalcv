@@ -171,10 +171,33 @@ export function BoardClient({ initial }: { initial: OpportunityListPayload }) {
           <p className="opf-kicker">Current source records</p>
           <h2 id="opportunity-field-title">The opportunity field</h2>
         </div>
-        <p className="opf-result-count" aria-live="polite">
+        {/*
+          The count is the fact a clinician came for, and it was set as dim
+          small print beside a display-size heading. It reads as the metric it
+          is: the figure carries the weight, the word beneath it labels the
+          figure. aria-live stays on the wrapper so the whole result is
+          announced as one phrase, not as a bare number.
+        */}
+        <p className="opf-result-count" aria-live="polite" data-state={displayState}>
           {displayState === 'loading' ? 'Reading current sources…' : null}
           {displayState === 'error' ? 'Source unavailable' : null}
-          {displayState === 'ready' ? `${total}${truncated ? '+' : ''} ${total === 1 ? 'role' : 'roles'}` : null}
+          {displayState === 'ready' ? (
+            <>
+              <span className="opf-result-figure">
+                {total}
+                {truncated ? '+' : ''}
+              </span>
+              {/*
+                "roles", not "roles open now". A recent source observation is
+                not a guarantee the role is still open — that caveat is the
+                board's whole premise and every row carries it. The header must not
+                undo it in two words.
+              */}
+              <span className="opf-result-unit">
+                {total === 1 ? 'role' : 'roles'} in the field
+              </span>
+            </>
+          ) : null}
         </p>
       </div>
 
