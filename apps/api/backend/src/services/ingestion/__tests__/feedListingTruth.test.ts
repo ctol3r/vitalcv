@@ -23,6 +23,8 @@ function makeFeedRecord(): OpportunityTruthRecord {
     organizationId: 'org-feed-1',
     title: 'Physician (Internal Medicine)',
     specialty: 'Medical Officer',
+    // USAJOBS states no clinician type, so the title classifier decides.
+    statedProfession: null,
     hiringType: 'perm',
     state: 'CA',
     payRange: null,

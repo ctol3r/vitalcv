@@ -42,6 +42,7 @@ function listing(title: string, sourceRef: string): FeedListing {
     remote: false,
     description: null,
     specialty: null,
+    profession: null,
     payMin: null,
     payMax: null,
     postedAt: null,

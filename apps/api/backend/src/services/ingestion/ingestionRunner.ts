@@ -232,6 +232,10 @@ export async function ingestFeed(
         // The feed's own classification, or a neutral placeholder — never a
         // specialty inferred from the job title.
         specialty: listing.specialty ?? SPECIALTY_NOT_STATED,
+        // Null when the employer said nothing, or named more than one licence.
+        // The read path then classifies the title instead of claiming a
+        // statement they did not make.
+        statedProfession: listing.profession,
         hiringType: 'perm',
         state: listing.state as string,
         payRange: null,
