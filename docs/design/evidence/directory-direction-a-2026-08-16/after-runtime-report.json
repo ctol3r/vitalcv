@@ -1,0 +1,45 @@
+{
+  "phase": "after",
+  "capturedAt": "2026-08-16T13:00:24.875Z",
+  "pages": {
+    "1440x900": {
+      "overflow": {
+        "scrollWidth": 1440,
+        "innerWidth": 1440
+      }
+    },
+    "390x844": {
+      "overflow": {
+        "scrollWidth": 390,
+        "innerWidth": 390
+      }
+    },
+    "768x1024": {
+      "overflow": {
+        "scrollWidth": 768,
+        "innerWidth": 768
+      }
+    }
+  },
+  "claimCta": {
+    "box": {
+      "x": 1006.734375,
+      "y": 511.6971740722656,
+      "width": 171.265625,
+      "height": 52.000030517578125
+    },
+    "colors": {
+      "bg": [
+        200,
+        37,
+        0
+      ],
+      "fg": [
+        255,
+        255,
+        255
+      ]
+    }
+  },
+  "consoleErrors": []
+}
