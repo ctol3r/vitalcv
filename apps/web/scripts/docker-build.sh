@@ -29,6 +29,8 @@ for var in \
   NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL \
   NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL \
   NEXT_PUBLIC_BACKEND_URL \
+  NEXT_PUBLIC_POSTHOG_KEY \
+  NEXT_PUBLIC_POSTHOG_HOST \
 ; do
   eval "value=\${${var}:-}"
   if [ -z "${value}" ]; then
