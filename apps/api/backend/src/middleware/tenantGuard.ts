@@ -189,8 +189,9 @@ export function shouldSkipTenantContext(path: string): boolean {
   // swallowed by its caller. The requirement-resolution PATCH
   // (/activation/requirements/:id) carries the same in-route contract and its
   // own proxy. Unlisted siblings (/start-state, /start/cancel,
-  // /activation/instantiate, and the orphaned GET /activation read) stay
-  // guarded — nothing proxies them.
+  // /activation/instantiate) stay guarded — nothing proxies them. The
+  // orphaned GET /activation read was deleted outright (superseded by the
+  // joined /hire-to-start case); its path shape stays non-exempt.
   const isAuthorizedDecisionRoute = /^\/api\/applications\/[^/]+\/(review|workflow|workflow-action|withdraw|start-ready|start)$/.test(normalized);
   const isAuthorizedRequirementRoute = /^\/api\/applications\/[^/]+\/activation\/requirements\/[^/]+$/.test(normalized);
 
