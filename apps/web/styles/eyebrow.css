@@ -1,34 +1,41 @@
 /**
- * eyebrow.css — the shared public chrome, rebuilt to the palantir.com header
- * grammar (founder directive 2026-08-09: "exact to palantir").
+ * eyebrow.css — the shared public chrome, rebuilt as the v4 FLOATING GLASS RAIL
+ * (founder directive 2026-08-16: "build the glass rail"; EC-10 amendment A-4).
  *
- * There is no bar. `.vcv-eb` is a zero-height sticky group; its instruments
- * float over the page at a 30px gutter: wordmark upper-left, and a right
- * cluster of sharp-cornered instruments — quiet sign-in, one rectangular
- * dominant action (40px tall, 205px minimum), and a fused pair of 40px
- * square instruments (lookup, menu) whose 1px borders collapse into one
- * hairline between them. Radius 0 everywhere: the chrome sits inside the
- * constitution's "evidence and operational surfaces stay near-sharp" clause;
- * the pill remains available in the scene register but the chrome no longer
- * uses it (A-1 permits pills, it does not mandate them).
+ * The chrome is now a single, detached, max-width GLASS BAR floating over the
+ * page: `position: fixed`, held 14px from the top, centred, `calc(100% - 40px)`
+ * wide and capped at the 1400px content column, rounded (`--vt-shape-card`) and
+ * frosted (`backdrop-filter`). Content scrolls beneath it; its geometry never
+ * moves on scroll (register/colour may change, position never). LEFT: the
+ * wordmark. MIDDLE: the durable primary link row (PRIMARY_NAV — Jobs, For
+ * employers, How it works). RIGHT: quiet sign-in, the shield-check verify
+ * affordance, the one contextual dominant action, and the menu trigger that
+ * opens the full index.
  *
- * Register behavior is unchanged in mechanism: sections declare
- * `data-header-theme`, useHeaderScene reflects it, and every color routes
- * through the --eb-* island mapped to the shared --vt-scene-* register.
- * Over dark scenes the instruments are paper-on-transparent with paper
- * hairlines; over light scenes they are paper-filled with ink hairlines; the
- * dominant action is always the paper instrument. Hover fills the ink
- * inverse. Geometry NEVER changes on scroll or inversion — only color.
+ * This SUPERSEDES the A-2/A-3 "palantir" eyebrow (a zero-height sticky group of
+ * absolutely-positioned instruments over an inert frosted rectangle). The
+ * banned-forms line in EC-10 that prohibited a "floating rounded container" and
+ * a "backdrop-blur navbar" is amended in the same PR — the founder's directive
+ * ratifies exactly this shape.
  *
- * The takeover menu is a fixed full-viewport ink canvas painted BELOW the
- * chrome (DOM order, no z-index): three hairline-topped columns, 10px
- * uppercase register labels, large-type destinations with a ↳ detail line.
+ * Register behaviour is UNCHANGED in mechanism: sections declare
+ * `data-header-theme`, useHeaderScene reflects it onto `data-eb-theme`, and the
+ * frost + instruments resolve through the shared --eb-* island mapped to the
+ * --vt-scene-* register. Over a light band the bar is a paper frost with ink
+ * instruments and a filled INK action; over a dark band (and while the takeover
+ * is open, which forces dark) it is a graphite frost with paper instruments and
+ * a filled PAPER action. A-1 permits frost on chrome; the color-mix degrades to
+ * a solid panel wherever backdrop-filter is unsupported (@supports below).
+ *
+ * The takeover menu is a fixed full-viewport ink canvas painted BELOW the still-
+ * live rail (DOM order, no z-index war): three hairline-topped columns plus a
+ * visible ✕ close (audit #56); the rail's menu glyph also toggles ≡ → ×.
  */
 
 /* UX-03: .vcv-pc — the signed-in product bar — and .vcv-trail share the
    island TOKENS rather than restating them. The product bar remains a solid
    64px paper bar (its geometry lives below and in product-chrome.css); only
-   the public .vcv-eb takes the floating zero-height grammar. The two bars
+   the public .vcv-eb takes the floating glass-rail grammar. The two bars
    never co-render (each returns null on the other's surfaces). */
 .vcv-eb,
 .vcv-pc,
@@ -38,31 +45,9 @@
      styles/themes/index.css. The --eb-* names stay; the source is shared. */
   --eb-h: 64px;
   --eb-gutter: 30px;
-  /* the wide rectangle: inset 10px, 70px tall, held 16px from the top, and
-     the instruments centred inside it (16 + 70/2 - 40/2 = 31) */
-  --eb-shape-inset: 10px;
-  --eb-shape-top: 16px;
-  --eb-shape-h: 70px;
-  --eb-ctl-top: 31px;
-  /* …but the rectangle STOPS GROWING at 1480px and centres from there. The
-     first rebuild measured the reference only at 1440 — below the cap — and
-     read a plain 10px inset, so the chrome ran the full width of a large
-     display. Re-probed 2026-08-09 at 1280/1440/1512/1728/1920/2560, the
-     reference paints 1260/1420/1480/1480/1480/1480, centred once capped.
-     The percentage resolves against .vcv-eb (width:100%), not 100vw, so a
-     classic scrollbar cannot push the band off-centre. */
-  --eb-band-max: 1480px;
-  --eb-band-inset: max(var(--eb-shape-inset), (100% - var(--eb-band-max)) / 2);
-  /* every instrument sits 20px inside the rectangle's edge — which is why the
-     gutter reads 30px (10 + 20) at every width below the cap */
-  --eb-band-pad: 20px;
-  /* the transparent ring that lifts a 40px painted box to a 44px target */
+  /* the transparent ring that lifts a 40px painted box to a 44px target,
+     retained for the product bar's own instruments */
   --eb-pad: 2px;
-  /* A-1 permits frost on chrome. One neutral value serves both registers, as
-     the reference does: it lifts a dark ground and settles a light one, and
-     the blur does the rest. color-mix over a scene token degrades to a flat
-     translucent panel wherever backdrop-filter is unsupported. */
-  --eb-shape-bg: color-mix(in oklab, var(--vt-scene-text-secondary) 10%, transparent);
   --eb-bg: var(--vt-scene-canvas);
   --eb-text: var(--vt-scene-text);
   --eb-text2: var(--vt-scene-text-secondary);
@@ -117,134 +102,232 @@
   transition: background-color 0.24s ease, color 0.24s ease, border-color 0.24s ease;
 }
 
-/* ── the public chrome: a zero-height sticky group, instruments floating ── */
-
+/* ── the public chrome: rail-specific frost + action tokens ──────────────────
+   Added on .vcv-eb ONLY (not the shared island) so the product bars above are
+   untouched. Base is the dark register; the light override follows. */
 .vcv-eb {
-  position: sticky;
-  top: 0;
-  width: 100%;
-  height: 0;
-  background: none;
-  border: 0;
+  /* the detached glass bar */
+  --eb-rail-top: 14px;
+  --eb-rail-inset: 20px;               /* 20px each side → calc(100% - 40px) */
+  --eb-rail-max: 1400px;               /* aligns with the ~1400px content column */
+  --eb-rail-radius: var(--vt-shape-card);        /* 20px — the chrome surface */
+  --eb-rail-radius-inner: var(--vt-shape-action-page); /* 8px — word-labels/instruments */
+  --eb-rail-radius-action: var(--vt-shape-control);    /* 10px — the dominant action */
+  --eb-ctl-h: 44px;                    /* EC-5 target floor, measured */
+
+  /* frost — chrome material, register-aware, degrades to a solid panel */
+  --eb-rail-surface: color-mix(in oklab, var(--vt-scene-panel) 74%, transparent);
+  --eb-rail-solid: var(--vt-scene-panel);
+  --eb-rail-hairline: color-mix(in oklab, var(--vt-scene-text) 16%, transparent);
+  --eb-rail-hover-wash: color-mix(in oklab, var(--vt-scene-text) 12%, transparent);
+
+  /* the dominant action is a FILLED instrument in both registers */
+  --eb-rail-action-bg: var(--vt-action-primary-bg);          /* paper on dark */
+  --eb-rail-action-fg: var(--vt-action-primary-fg);          /* ink */
+  --eb-rail-action-bg-press: var(--vt-action-primary-bg-press);
+}
+
+.vcv-eb[data-eb-theme='light'] {
+  --eb-rail-surface: color-mix(in oklab, var(--vt-scene-paper) 80%, transparent);
+  --eb-rail-solid: var(--vt-scene-paper);
+  --eb-rail-hairline: color-mix(in oklab, var(--vt-scene-paper-text) 12%, transparent);
+  --eb-rail-hover-wash: color-mix(in oklab, var(--vt-scene-paper-text) 7%, transparent);
+  --eb-rail-action-bg: var(--vt-action-primary-inverse-bg);  /* ink on paper */
+  --eb-rail-action-fg: var(--vt-action-primary-inverse-fg);  /* paper */
+  --eb-rail-action-bg-press: var(--vt-action-primary-inverse-bg-press);
+}
+
+/* The header is a zero-layout wrapper for the fixed rail + fixed takeover; its
+   z-index lifts the whole chrome above page content, and DOM order (menu, then
+   rail) keeps the rail painted above the takeover with no per-child z-index. */
+.vcv-eb {
   color: var(--eb-text);
 }
 
-/* The wide rectangle: the chrome's one surface. Everything else floats over
-   it. Inert by construction — it spans the viewport and must not swallow a
-   click meant for the page. */
-.vcv-eb__shape {
-  position: absolute;
-  left: var(--eb-band-inset);
-  right: var(--eb-band-inset);
-  top: var(--eb-shape-top);
-  height: var(--eb-shape-h);
-  border-radius: var(--vt-shape-control);
-  background: var(--eb-shape-bg);
-  backdrop-filter: blur(10px);
-  pointer-events: none;
-}
-
-/* The mark centres on the rectangle (16 + 35 = 51), less the 22px half-height
-   the wordmark link gains from being padded out to the 44px target floor. */
-.vcv-eb__brand {
-  position: absolute;
-  left: calc(var(--eb-band-inset) + var(--eb-band-pad));
-  top: 0;
-  padding: 29px 0 16px;
+/* ── the rail: one detached, centred, frosted bar ───────────────────────── */
+.vcv-eb__rail {
+  position: fixed;
+  top: var(--eb-rail-top);
+  left: 50%;
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  width: calc(100% - (var(--eb-rail-inset) * 2));
+  max-width: var(--eb-rail-max);
   display: flex;
   align-items: center;
+  gap: 4px;
+  padding: 8px 10px 8px 20px;
+  background: var(--eb-rail-surface);
+  -webkit-backdrop-filter: blur(14px) saturate(1.08);
+  backdrop-filter: blur(14px) saturate(1.08);
+  border: 1px solid var(--eb-rail-hairline);
+  border-radius: var(--eb-rail-radius);
+  box-shadow: var(--vt-shadow-card);
+  color: var(--eb-text);
+  transition: background-color 0.24s ease, color 0.24s ease, border-color 0.24s ease;
+}
+
+/* Frost is a permitted enhancement, never a dependency: where backdrop-filter
+   is unsupported the bar is a solid panel (EC-20 A-1). */
+@supports not ((-webkit-backdrop-filter: blur(2px)) or (backdrop-filter: blur(2px))) {
+  .vcv-eb__rail {
+    background: var(--eb-rail-solid);
+  }
 }
 
 .vcv-eb__wordmark {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  min-height: var(--eb-ctl-h);
+  padding: 0 6px;
+  margin-right: 12px;
   font-family: var(--font-geist);
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  line-height: 20px;
+  line-height: 1;
   color: var(--eb-text);
-  transition: color 0.25s ease-in-out;
+  white-space: nowrap;
+  transition: color 0.24s ease;
 }
 
-/* Instruments carry 2px of transparent padding so the interactive element is
-   44px while the painted box is the reference's 40px (--eb-pad). The row is
-   pulled back by that padding on both axes, so the VISIBLE edges — not the
-   hit areas — land on the 30px gutter and the 30px top offset. */
-.vcv-eb__controls {
-  position: absolute;
-  right: calc(var(--eb-band-inset) + var(--eb-band-pad) - var(--eb-pad));
-  top: calc(var(--eb-ctl-top) - var(--eb-pad));
+/* ── the middle: the durable primary link row ─────────────────────────────
+   `min-width: 0` is load-bearing, not cosmetic — the same automatic-minimum
+   trap amendment F hit on the homepage grid. A flex item defaults to
+   `min-width: auto`, i.e. min-content, and every label in this bar is
+   `white-space: nowrap`; without this the link row refuses to shrink below its
+   full text width and pushes the end cluster out of the bar (at a width where
+   `document.scrollWidth` can still read clean, because the rail is a fixed,
+   centred, transform-positioned element). The link row is the designated
+   shrinker: it folds entirely at ≤900px, and between there and the cap it
+   yields space to identity and action rather than widening the chrome. */
+.vcv-eb__links {
   display: flex;
   align-items: center;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
 }
 
-/* ── right cluster: quiet sign-in, one rectangular action, fused squares ── */
+.vcv-eb__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--eb-ctl-h);
+  padding: 0 12px;
+  border-radius: var(--eb-rail-radius-inner);
+  font-family: var(--font-geist);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--eb-text2);
+  white-space: nowrap;
+  transition: color 0.24s ease, background-color 0.24s ease;
+}
 
-/* Text-only control: no painted box, so it takes the 44px floor directly. */
+.vcv-eb__link:hover,
+.vcv-eb__link:focus-visible {
+  color: var(--eb-text);
+  background: var(--eb-rail-hover-wash);
+}
+
+/* ── the right cluster: sign-in, verify, action, menu ───────────────────── */
+/* Identity and the action cluster hold their size; the link row above is the
+   only part that yields. Without these the browser would shrink whichever item
+   it reached first, and the thing it reaches first is the wordmark. */
+.vcv-eb__end {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.vcv-eb__wordmark {
+  flex-shrink: 0;
+}
+
 .vcv-eb__signin {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  min-height: var(--eb-ctl-h);
+  padding: 0 10px;
+  border-radius: var(--eb-rail-radius-inner);
   font-family: var(--font-geist);
-  font-size: 16px;
-  font-weight: 400;
+  font-size: 14px;
+  font-weight: 500;
   line-height: 1;
   color: var(--eb-text);
-  opacity: 0.85;
-  margin-right: 30px;
-  transition: color 0.25s ease-in-out, opacity 0.25s ease-in-out;
+  opacity: 0.86;
+  white-space: nowrap;
+  transition: color 0.24s ease, opacity 0.24s ease, background-color 0.24s ease;
 }
 
 .vcv-eb__signin:hover,
 .vcv-eb__signin:focus-visible {
   opacity: 1;
+  background: var(--eb-rail-hover-wash);
 }
 
-.vcv-eb__cta {
-  display: inline-flex;
-  align-items: center;
-  padding: var(--eb-pad);
-  /* the 30px reference gap, less this instrument's and the cluster's padding */
-  margin-right: calc(30px - var(--eb-pad) - var(--eb-pad));
-  color: var(--eb-cta-text);
-  transition: color 0.25s ease-in-out;
-}
-
-.vcv-eb__cta-box {
+/* Icon instruments — verify (shield-check) and the menu trigger. 44px targets,
+   soft-cornered to sit inside the rail. */
+.vcv-eb__icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 40px;
-  min-width: 205px;
-  padding: 0 20px;
-  background: var(--eb-cta-bg);
-  color: inherit;
-  border: 1px solid var(--eb-cta-line);
-  border-radius: 0;
+  width: var(--eb-ctl-h);
+  height: var(--eb-ctl-h);
+  padding: 0;
+  border: 0;
+  border-radius: var(--eb-rail-radius-inner);
+  background: none;
+  color: var(--eb-text);
+  cursor: pointer;
+  transition: color 0.24s ease, background-color 0.24s ease;
+}
+
+.vcv-eb__icon-btn:hover,
+.vcv-eb__icon-btn:focus-visible {
+  background: var(--eb-rail-hover-wash);
+}
+
+.vcv-eb__icon-btn svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+/* The one contextual dominant action — a filled instrument in both registers. */
+.vcv-eb__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--eb-ctl-h);
+  padding: 0 18px;
+  margin-left: 2px;
+  border: 1px solid transparent;
+  border-radius: var(--eb-rail-radius-action);
+  background: var(--eb-rail-action-bg);
+  color: var(--eb-rail-action-fg);
   font-family: var(--font-geist);
-  font-size: 16px;
-  font-weight: 400;
+  font-size: 14px;
+  font-weight: 500;
   line-height: 1;
   white-space: nowrap;
-  transition: background-color 0.25s ease-in-out, color 0.25s ease-in-out,
-    border-color 0.25s ease-in-out;
+  transition: background-color 0.24s ease, color 0.24s ease, border-color 0.24s ease;
 }
 
 .vcv-eb__cta:hover,
 .vcv-eb__cta:focus-visible {
-  color: var(--eb-press-text);
+  background: var(--eb-rail-action-bg-press);
 }
 
-.vcv-eb__cta:hover .vcv-eb__cta-box,
-.vcv-eb__cta:focus-visible .vcv-eb__cta-box {
-  background: var(--eb-press-bg);
-  border-color: transparent;
+.vcv-eb__cta-short {
+  display: none;
 }
 
 /* EC-5 — indigo focus ring, register-resolved. */
-.vcv-eb :focus-visible {
+.vcv-eb :focus-visible,
+.vcv-eb-menu :focus-visible {
   outline: 2px solid var(--vt-focus-ring-scene);
   outline-offset: 2px;
 }
@@ -253,89 +336,27 @@
   outline-color: var(--vt-focus-ring-scene-paper);
 }
 
-.vcv-eb__cta-short {
-  display: none;
-}
-
-.vcv-eb__cluster {
-  display: flex;
-}
-
-/* Adjacent instruments fuse into one segmented control: the shift is the two
-   transparent pads plus 1px, so the PAINTED borders collapse into a single
-   shared hairline. */
-.vcv-eb__cluster > * + * {
-  margin-left: calc((var(--eb-pad) * -2) - 1px);
-}
-
-.vcv-eb__icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--eb-pad);
-  background: none;
-  border: 0;
-  color: var(--eb-instr-text);
-  cursor: pointer;
-  transition: color 0.25s ease-in-out;
-}
-
-/* The painted box: the reference's exact 40px square. */
-.vcv-eb__instr {
-  width: 40px;
-  height: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--eb-instr-bg);
-  color: inherit;
-  border: 1px solid var(--eb-instr-line);
-  border-radius: 0;
-  transition: background-color 0.25s ease-in-out, color 0.25s ease-in-out,
-    border-color 0.25s ease-in-out;
-}
-
-.vcv-eb__icon-btn:hover,
-.vcv-eb__icon-btn:focus-visible {
-  color: var(--eb-press-text);
-}
-
-.vcv-eb__icon-btn:hover .vcv-eb__instr,
-.vcv-eb__icon-btn:focus-visible .vcv-eb__instr {
-  background: var(--eb-press-bg);
-}
-
-/* While the takeover is open the menu instrument fills paper and its glyph
-   turns to ink — the reference's close-state treatment. */
-.vcv-eb[data-menu-open='true'] .vcv-eb__menu-btn {
-  color: var(--vt-action-primary-fg);
-}
-
-.vcv-eb[data-menu-open='true'] .vcv-eb__menu-btn .vcv-eb__instr {
-  background: var(--vt-action-primary-bg);
-  border-color: var(--vt-action-primary-bg);
-}
-
+/* The menu glyph: ≡ that becomes × while the takeover is open. */
 .vcv-eb__menu-glyph {
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 4px;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 14px;
 }
 
 .vcv-eb__menu-glyph i {
   display: block;
-  height: 1px;
+  height: 1.5px;
+  border-radius: 1px;
   background: currentColor;
-  transition: transform 0.25s ease-in-out, opacity 0.25s ease-in-out;
+  transition: transform 0.24s ease, opacity 0.24s ease;
 }
 
-/* ≡ becomes × while the takeover is open — same instrument, same box. */
 .vcv-eb[data-menu-open='true'] .vcv-eb__menu-glyph i:nth-child(1) {
-  transform: translateY(5px) rotate(45deg);
+  transform: translateY(5.5px) rotate(45deg);
 }
 
 .vcv-eb[data-menu-open='true'] .vcv-eb__menu-glyph i:nth-child(2) {
@@ -343,20 +364,21 @@
 }
 
 .vcv-eb[data-menu-open='true'] .vcv-eb__menu-glyph i:nth-child(3) {
-  transform: translateY(-5px) rotate(-45deg);
+  transform: translateY(-5.5px) rotate(-45deg);
 }
 
-/* Off-home page tops were composed under a 64px solid bar; the floating
-   chrome has zero footprint, so this spacer keeps them clear. */
+/* Off-home page tops were composed under a solid bar; the floating rail has
+   zero layout footprint, so this spacer keeps compositions clear of it.
+   14px top + 60px bar + breathing room. */
 .vcv-eb__space {
-  height: 104px;
+  height: 90px;
 }
 
-/* ── full-takeover index menu: an ink canvas below the chrome ───────────── */
+/* ── full-takeover index menu: an ink canvas below the live rail ─────────── */
 
-/* The takeover is ALWAYS the dark register (the chrome above it forces
-   data-eb-theme=dark while open), so it reads the dark scene tokens
-   directly and never inverts. */
+/* The takeover is ALWAYS the dark register (the rail above it forces
+   data-eb-theme=dark while open), so it reads the dark scene tokens directly
+   and never inverts. */
 .vcv-eb-menu {
   --ebm-bg: var(--vt-scene-canvas);
   --ebm-text: var(--vt-scene-text);
@@ -368,13 +390,48 @@
   inset: 0;
   background: var(--ebm-bg);
   color: var(--ebm-text);
-  /* the takeover's columns ride the same capped band as the chrome that stays
-     live above them — measured on the reference at 1920: columns open at 240
-     and the last one closes at 240, i.e. the 1480 band plus its 20px inner */
-  padding: 120px calc(var(--eb-band-inset) + var(--eb-band-pad)) 40px;
+  /* the takeover's columns ride the same centred, capped band as the rail that
+     stays live above them; the top padding clears the floating rail so the
+     overlay's own controls are never under it (the rail paints above). */
+  padding: 84px max(var(--eb-rail-inset), calc((100% - var(--eb-rail-max)) / 2)) 48px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+}
+
+/* The visible close control (audit #56) — the rail glyph toggles ≡ → × too, but
+   the overlay carries its own explicit ✕ so the exit is never hidden. It is a
+   flow child at the top of the content (below the live rail), not an absolute
+   corner element, so the rail floating above it cannot intercept its click. */
+.vcv-eb-menu__close {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-bottom: 20px;
+  padding: 0 10px;
+  border: 0;
+  background: none;
+  color: var(--ebm-text2);
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.24s ease;
+}
+
+.vcv-eb-menu__close:hover,
+.vcv-eb-menu__close:focus-visible {
+  color: var(--ebm-text);
+}
+
+.vcv-eb-menu__close svg {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .vcv-eb-menu__grid {
@@ -385,8 +442,6 @@
   align-items: start;
 }
 
-/* Each column opens with a bright hairline rule, then its register label —
-   the reference's column head, in the warm register. */
 .vcv-eb-menu__col {
   border-top: 1px solid var(--ebm-text);
   padding-top: 12px;
@@ -412,13 +467,13 @@
   display: block;
   padding: 10px 0;
   color: var(--ebm-text);
-  transition: color 0.25s ease-in-out;
+  transition: color 0.24s ease;
 }
 
 .vcv-eb-menu__link-label {
   display: block;
   font-family: var(--font-geist);
-  font-size: 34px;
+  font-size: 30px;
   font-weight: 400;
   letter-spacing: -0.01em;
   line-height: 1.18;
@@ -431,15 +486,13 @@
   font-weight: 400;
   color: var(--ebm-text2);
   margin-top: 6px;
-  transition: color 0.25s ease-in-out;
+  transition: color 0.24s ease;
 }
 
 .vcv-eb-menu__detail i {
   font-style: normal;
 }
 
-/* Hovering one destination quiets its column siblings — the reference's
-   dimming read, done with color alone. */
 .vcv-eb-menu__list:hover .vcv-eb-menu__link:not(:hover) {
   color: var(--ebm-text3);
 }
@@ -459,67 +512,56 @@
   color: var(--ebm-text3);
 }
 
-/* ── mobile recomposition: wordmark up top, controls pinned to the bottom ── */
+/* Signed-in visitors get a menu entry into their workspace; it lives in the
+   takeover foot so the resting rail stays quiet. */
+.vcv-eb-menu__foot-link {
+  color: var(--ebm-text2);
+  transition: color 0.24s ease;
+}
 
+.vcv-eb-menu__foot-link:hover,
+.vcv-eb-menu__foot-link:focus-visible {
+  color: var(--ebm-text);
+}
+
+/* Tablet: the inline link row folds into the takeover before it can crowd the
+   bar; the wordmark, sign-in, verify, action and menu carry the rail. */
+@media (max-width: 900px) {
+  .vcv-eb__links {
+    display: none;
+  }
+}
+
+/* ── mobile recomposition: the rail stays ONE object at the top ─────────────
+   Unlike the retired eyebrow (which split identity to the top and pinned the
+   controls to the viewport bottom), the glass rail is a single detached bar and
+   stays that way on mobile — narrower inset, the middle link row and the text
+   sign-in fold into the takeover, the action shortens. Recorded as the rail's
+   deliberate mobile behaviour (EC-10 amendment A-4). */
 @media (max-width: 767px) {
-  .vcv-eb {
-    --eb-gutter: 20px;
-    /* the band collapses on mobile — the rectangle is full-bleed, so the
-       instruments measure from the viewport edge and the gutter IS the inset */
-    --eb-band-inset: 0px;
-    --eb-band-pad: var(--eb-gutter);
+  .vcv-eb__rail {
+    top: 10px;
+    width: calc(100% - 20px);
+    max-width: none;
+    padding: 6px 8px 6px 14px;
+    gap: 2px;
+    border-radius: var(--vt-shape-control);
   }
 
-  /* The rectangle goes full-bleed and square on mobile — the reference drops
-     both the inset and the radius, and shortens the band to 65px. */
-  .vcv-eb__shape {
-    left: 0;
-    right: 0;
-    top: 0;
-    height: 65px;
-    border-radius: 0;
+  .vcv-eb__wordmark {
+    font-size: 17px;
+    margin-right: 4px;
+    padding: 0 4px;
   }
 
-  .vcv-eb__brand {
-    /* the mark centres on the 65px band (32.5), less the wordmark's 22px
-       half-height from the 44px target floor */
-    padding: 10px 0 16px;
-  }
-
+  /* The middle link row and the standalone sign-in fold into the takeover. */
+  .vcv-eb__links,
   .vcv-eb__signin {
     display: none;
   }
 
-  /* The control cluster pins to the bottom of the viewport: menu and lookup
-     on the left, the action on the right — the reference's mobile grammar.
-     Offsets absorb the instruments' 2px hit-area padding on all three edges,
-     so the painted boxes sit on the 20px gutter and 20px above the bottom. */
-  .vcv-eb__controls {
-    position: fixed;
-    left: calc(var(--eb-gutter) - var(--eb-pad));
-    right: calc(var(--eb-gutter) - var(--eb-pad));
-    top: auto;
-    bottom: calc(20px - var(--eb-pad));
-    justify-content: space-between;
-  }
-
-  .vcv-eb__cluster {
-    order: -1;
-    flex-direction: row-reverse;
-  }
-
-  .vcv-eb__cluster > * + * {
-    margin-left: 0;
-    margin-right: calc((var(--eb-pad) * -2) - 1px);
-  }
-
   .vcv-eb__cta {
-    margin-right: 0;
-  }
-
-  .vcv-eb__cta-box {
-    min-width: 0;
-    padding: 0 16px;
+    padding: 0 14px;
   }
 
   .vcv-eb__cta-long {
@@ -531,21 +573,11 @@
   }
 
   .vcv-eb__space {
-    height: 72px;
-  }
-
-  /* The pinned cluster floats over the page, so the page must end above it.
-     Measured without this: at the document bottom the footer's last two links
-     ("Start a Pilot", "Contact") sat underneath the cluster and could not be
-     tapped. The reference reserves the same clearance — its footer ends
-     ~30px above its own control row. The homepage suppresses the shared
-     footer, so its closing band carries the clearance in easy-home.css. */
-  .vcv-eb ~ footer {
-    padding-bottom: 84px;
+    height: 78px;
   }
 
   .vcv-eb-menu {
-    padding: 96px var(--eb-gutter, 20px) 100px;
+    padding: 76px 20px 96px;
   }
 
   .vcv-eb-menu__grid {
@@ -559,8 +591,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .vcv-eb,
-  .vcv-eb *,
+  .vcv-eb__rail,
+  .vcv-eb__rail *,
   .vcv-eb-menu,
   .vcv-eb-menu * {
     transition: none;
