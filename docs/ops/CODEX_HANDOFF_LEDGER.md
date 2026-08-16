@@ -3,6 +3,33 @@
 Append-only. **Newest entry at the top.** One entry per work order is recorded
 in the same pull request as its implementation or takeover evidence.
 
+## PTC-WAVE-00 · Professional Trust Computing architecture — OPEN #1386
+
+- **Date:** 2026-08-14
+- **Claim-check:** No open or merged PR implements TrustSpec, TrustIR, or the
+  Trust Compiler. Draft #1382 is a direct coordination dependency because it
+  adds reviewed, versioned credential-operations templates and frozen case
+  tasks. Drafts #1378, #1380, #1381, and #1384 are the active acceptance/start
+  stack and must settle before a demo acceptance adapter is selected.
+- **Change:** Adds the repository-specific architecture map, Demo 1 execution
+  plan, legacy-equivalence contract, research register, exact T001-T013 golden
+  fixtures, file-level proposal, migration boundary, and explicit Q1-Q10
+  answers required by PTC-WAVE-00.
+- **Truth, authority, and transaction boundary:** This is documentation-only
+  archaeology. It adds no compiler, policy, proof, route, schema, migration,
+  decision, source call, graph record, or UI. Computational satisfaction stays
+  separate from employer acceptance. All proposed Demo 1 people, employers,
+  evidence, sources, actions, costs, and outcomes are explicitly synthetic.
+- **Architecture decision:** Add pure compiler primitives to
+  `@vitalcv/domain-evidence`; extend the existing `@vitalcv/career-graph` only
+  from immutable provenance; adapt `OpportunityRequirement`; reuse packet and
+  Decision Capsule integrity patterns without relabeling either artifact; and
+  use a bounded exact breadth-first optimizer for minimum action count.
+- **Next gate:** Review and approve the architecture before PTC-WAVE-01. The
+  review must resolve #1382 ownership, the canonical acceptance service, the
+  cross-runtime canonical JSON/SHA-256 boundary, and private evidence
+  hydration. Do not start implementation automatically.
+
 ## WO-18 · Explore documentary media pause — OPEN
 
 - **Date:** 2026-08-14
