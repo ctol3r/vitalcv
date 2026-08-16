@@ -527,6 +527,44 @@ all three now do, and each records what was measured rather than a value nobody
 has chosen. No row in this table is an open question, and no wave may fill a
 DEFERRED row by inventing a value — EC-22 applies unchanged.
 
+#### Composition amendment E.1 — the simple bottom half (2026-08-16)
+
+Founder directive, same day the E recomposition reached its first production
+render, quoted verbatim: *"everything currently live on localhost:3210 i am
+not liking at all — specifically from 'only what you approved crosses over.'
+down to the end of the page is all wrong. i dont like the visuals, i dont like
+the headlines, its very very complicated and confusing. the user doesnt even
+need to know the information presented. vitalcv needs to show simple,
+practical, easy, positivity, and fun. not: boring, text-heavy, confusing,
+complicated and constipated."*
+
+**What this amends.** E's composition rows below the Roles section. Retired
+from `/`: the seven-step career-mobility band (a D.1 inheritance), the
+standing-watch section, the ownership/attribution section (four state cards +
+ledger), and the five-item FAQ — with their four figures (owner routing,
+approval boundary, reuse, standing watch). The information was true; a
+homepage visitor does not need it. It remains taught where it is load-bearing:
+`/trust` (the state grammar), the product surfaces themselves (ownership and
+approval mechanics, at the moment of use).
+
+**What replaced it.** One `ThreePromises` band — three benefit cards, each a
+single claim stated once (the record moves with you · nothing is shared
+without your say · VitalCV watches the dates), each with a small aria-hidden
+pictogram that depicts no source, count, person, or result — then three flat
+Quick-answer lines (the credentialing boundary, cost, no-account look), a
+one-row employer doorway, and a centred final action ("Ready when you are.").
+
+**Deliberate non-changes.** The hero, Recognition moment, Roles section, and
+truth-boundary line stand exactly as E shipped them. The E register rows
+(palette, action colour ladder, radius, type, figure material) are untouched —
+this is a composition amendment, not a register amendment. The truth contract
+loses nothing: consent and the institution-review boundary are still stated,
+once each, in words a visitor would actually read.
+
+**Composition budget.** The page-wide prose text-node ceiling tightens from
+145 to **110**, enforced by `homepage-composition-gate.test.tsx`. Additions
+are funded by cuts, permanently.
+
 #### Acquisition-vocabulary amendment C1 (2026-08-15)
 
 Per the founder vocabulary rulings of 2026-08-15 (Wave C1): **"Provider Career

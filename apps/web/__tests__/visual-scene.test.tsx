@@ -113,20 +113,14 @@ describe('server render is the composed static scene (EC-26)', () => {
     expect(html).toContain('Nothing leaves the workspace without that explicit step.');
   });
 
-  it('the homepage documentary crop stays manifest-owned and provenance-bound', () => {
-    const html = renderToStaticMarkup(
-      <VisualScene
-        scene="journey_film"
-        kind="process"
-        routeVariant="home_documentary"
-        priority="hero"
-      />,
-    );
-    expect(html).toContain('data-scene-variant="home_documentary"');
-    expect(html).toContain('aspect-ratio:4 / 5');
-    expect(html).toContain('/scenes/home-career-forward-portrait.jpg');
-    expect(html).toContain('fetchPriority="high"');
-    expect(html).toContain('No real clinician, patient, employer, credential, or outcome is represented.');
+  it('the retired homepage documentary crop stays deleted', () => {
+    // Amendment E: `/` draws its figures in-repo and mounts no documentary
+    // scene. The WO-12 portrait and its route variant were deleted with the
+    // Direction A recomposition; the scene family survives on its other
+    // routes with their own provenance-bound posters.
+    const manifestSource = JSON.stringify(SCENE_MANIFEST);
+    expect(manifestSource).not.toContain('home_documentary');
+    expect(manifestSource).not.toContain('home-career-forward-portrait');
   });
 
   it('the explore documentary frame is a separately budgeted manifest asset', () => {

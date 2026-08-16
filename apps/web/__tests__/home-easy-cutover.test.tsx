@@ -1,6 +1,7 @@
 /**
- * `/` serves the Direction-D production experience — the record builds in the
- * first viewport while the real NPI action remains available.
+ * `/` serves the Direction A production experience (amendment E) — the drawn
+ * record figure holds the first viewport while the real NPI action remains
+ * available.
  *
  * These pin what the production homepage IS, and what it must never claim.
  * They render the ROUTE (`app/page.tsx`), not the component, so a future
@@ -58,15 +59,17 @@ const FILM = 'data-film-scene';
 
 // ── 1–3 · the cutover and its rollbacks ─────────────────────────────────────
 
-describe('1 — / renders the UX-V1 experience by default', () => {
-  it('serves the Easy Button hero with no variant configured', async () => {
+describe('1 — / renders the Direction A experience by default', () => {
+  it('serves the amendment E hero with no variant configured', async () => {
     const html = await renderRoot(undefined);
     expect(html).toContain(EASY);
-    expect(html).toContain('Your VitalCV profile. Ready for every move.');
-    expect(html).toContain('One career record. More ways forward.');
-    expect(html).toContain('Build my free profile');
+    expect(html).toContain('For US clinicians');
+    expect(html).toContain('Enter your NPI. VitalCV does the rest.');
+    expect(html).toContain('One profile. Every');
+    expect(html).toContain('Start with your NPI');
     expect(html).toContain('Explore clinician opportunities');
     expect(html).toContain('data-home-work-surface');
+    expect(html).toContain('data-visual-material="drawn-ink"');
   });
 
   it('the resolver defaults to easy', () => {
@@ -95,8 +98,18 @@ describe('2 — / visibly differs from every former homepage', () => {
       'The same profile, handed over',
       'Review starts ahead, not from zero',
       'Your career evidence, ready before your next job',
+      // Direction D-era copy, superseded by the amendment E table. The
+      // metadata tagline legitimately keeps "One career record. More ways
+      // forward." — metadata is not part of this render.
+      'The Provider Career Evidence Network.',
+      'Start my CV Wallet',
+      'CV Wallet',
+      'Your career record, source by source.',
+      'One career record. More ways forward.',
+      'See where your record could go next.',
+      'frosted-glass',
     ]) {
-      expect(html, `retired copy "${retired}" reached the UX-V1 homepage`).not.toContain(retired);
+      expect(html, `retired copy "${retired}" reached the served homepage`).not.toContain(retired);
     }
   });
 
@@ -209,15 +222,15 @@ describe('nothing claims completion before a backend success', () => {
 // ── the work surface tells the truthful progression ─────────────────────────
 
 describe('the work surface states record truth without manufacturing an outcome', () => {
-  it('names source state, control, and access limits in the first viewport', () => {
+  it('names its sources and leaves the unanswered row open in the first viewport', () => {
     const html = renderHomepageHtml();
     for (const line of [
-      'CV Wallet',
-      'Identity',
-      'Source-backed',
-      'Access required',
-      'Needs your review',
-      'Choose what you share',
+      'NPPES registry',
+      'State board',
+      'Federal exclusion list',
+      'Checked',
+      'no source answered',
+      'Your profile',
     ]) {
       expect(html).toContain(line);
     }
@@ -232,11 +245,10 @@ describe('the work surface states record truth without manufacturing an outcome'
     expect(html).toContain('nothing has been sent');
   });
 
-  it('the mobility sequence names clinician choice and institution review honestly', () => {
+  it('the promises keep the consent rule and the credentialing boundary honest', () => {
     const html = renderHomepageHtml();
-    expect(html).toContain('Employer review');
-    expect(html).toContain('You select what the employer may review.');
-    expect(html).toContain('Only after the employer records that decision.');
+    expect(html).toContain('Nothing leaves your record until you say so.');
+    expect(html).toContain('those decisions always stay with the employer');
   });
 });
 
@@ -317,17 +329,5 @@ describe('banned vocabulary and claims stay out of the homepage', () => {
     // The one lane genuinely read per request is named; the snapshots are not
     // allowed to inherit its freshness.
     expect(html).toMatch(/snapshot/i);
-  });
-
-  it('the 2026-08-15 retired acquisition vocabulary cannot silently return', () => {
-    // Founder vocabulary rulings (Wave C1, 2026-08-15): "Provider Career
-    // Evidence Network" is retired as public category language, and the
-    // acquisition CTA is "Build my free profile" — CV Wallet may survive as a
-    // secondary product noun (the work-surface register still says it) but is
-    // never required to enter the product. The full route render includes the
-    // JSON-LD block, so this also guards the structured-data description.
-    const html = renderHomepageHtml();
-    expect(html).not.toContain('Provider Career Evidence Network');
-    expect(html).not.toContain('Start my CV Wallet');
   });
 });

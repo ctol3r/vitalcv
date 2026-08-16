@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+import MatchExplanationFigure from '@/components/home/easy/figures/MatchExplanationFigure';
 import { Button } from '@/components/ui/button';
 import type { OpportunitySummary } from '@/lib/launch/marketplace';
 
@@ -80,13 +81,23 @@ export default function OpportunityHorizon() {
       <div className="ezh-wrap">
         <div className="ezh-opportunity-head">
           <div>
-            <span className="ezh-k">Clinician opportunities</span>
-            <h2 id="ezh-opportunities-heading">See where your record could go next.</h2>
+            <span className="ezh-k">Roles</span>
+            <h2 id="ezh-opportunities-heading">
+              A job board that reads your credentials, not your keywords.
+            </h2>
+            <p className="ezh-sec-sub">
+              Most boards match the words on your r&eacute;sum&eacute;. VitalCV scores a role
+              against what your record already shows &mdash; and names what stands between you
+              and it, before you apply. When nothing fits, it says nothing fits instead of
+              padding the list.
+            </p>
           </div>
           <Link className="ezh-opportunity-all" href="/explore">
             Explore all opportunities <span aria-hidden="true">↗</span>
           </Link>
         </div>
+
+        <MatchExplanationFigure />
 
         {state.phase === 'loading' ? (
           <div className="ezh-opportunity-state" role="status">

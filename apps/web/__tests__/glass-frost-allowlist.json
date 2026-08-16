@@ -26,9 +26,15 @@
     "Class A — A-2 amending the chrome's shape did not license that composite."
   ],
   "frostPermitted": {
-    "styles/band-system-components.css": "Scene-register component island. `.bs-surface` is the floating chrome/overlay container; A-1 permits frost there and the file binds --vt-frost-bg with a color-mix fallback.",
-    "styles/easy-home.css": "Founder-locked D.7 homepage scene overlay. The frosted CV Wallet is explicitly illustrative marketing composition, never current or submitted evidence and never a decision surface. Every translucent fill is color-mix/token backed, while reduced motion and no JavaScript preserve the complete solid-readable frame."
+    "styles/band-system-components.css": "Scene-register component island. `.bs-surface` is the floating chrome/overlay container; A-1 permits frost there and the file binds --vt-frost-bg with a color-mix fallback."
   },
+  "$removedComment": [
+    "styles/easy-home.css left this list with the amendment E recomposition",
+    "(2026-08-15): the E Material row retires frost from `/` outright — the",
+    "D.7 frosted folio was replaced by the drawn Figure 1 on flat paper. The",
+    "file now carries zero backdrop-filter declarations; if one returns, the",
+    "ratchet below fails it as new unreviewed glass, which is correct."
+  ],
 
   "$evidenceComment": [
     "Files the path heuristic classes as EVIDENCE that already carry glass, re-measured",
