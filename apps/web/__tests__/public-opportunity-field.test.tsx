@@ -1,3 +1,4 @@
+import { formatUnstatedFields, opportunityRowFacts } from '@/lib/explore/opportunity-display';
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
@@ -71,7 +72,13 @@ describe('WO-13 public opportunity field', () => {
     expect(html).toContain('Listed on greenhouse');
     expect(html).toContain('Observed Aug 14, 2026');
     expect(html).toContain('Recent source observation');
-    expect(html).toContain('Not supplied by source');
+    // The silence is still disclosed — it moved from a fact cell (and a
+    // duplicate provenance cell) into the one line that names every field the
+    // source left empty. Collapsing must never mean concealing.
+    expect(html).toContain('Source didn');
+    expect(html).toContain('compensation');
+    // ...and the duplicate provenance cell is gone with no pay to source.
+    expect(html).not.toContain('Compensation source');
     expect(html).toContain('View original listing');
     expect(html).toContain('/opportunities/opp-external');
     expect(html).toContain('https://job-boards.greenhouse.io/example/jobs/123');
@@ -247,5 +254,48 @@ describe('WO-13 public opportunity field', () => {
     expect(clampedBoardPage(99, 25)).toBe(3);
     expect(clampedBoardPage(3, 25)).toBeNull();
     expect(clampedBoardPage(9, 0)).toBe(1);
+  });
+});
+
+describe('collapsed silence line', () => {
+  it('names every field the source left empty, and no field it filled', () => {
+    // The row's density fix must not become a disclosure fix. A field the
+    // source DID state belongs in the fact list; one it did not belongs in
+    // the sentence — and nothing may fall out of both.
+    const facts = opportunityRowFacts({
+      ...externalRole(),
+      profession: 'nursing',
+      state: 'TX',
+      remote: false,
+      schedule: null,
+      specialty: 'Not stated',
+      compensationProvenance: { state: 'not_supplied' },
+      payRange: null,
+      payRangeMin: null,
+      payRangeMax: null,
+    } as never);
+
+    expect(facts.stated.map((f) => f.label)).toEqual(['Profession', 'Location', 'Employment']);
+    expect(facts.unstated).toEqual(['schedule', 'specialty', 'compensation']);
+    // Six fields in, six fields out — collapsing loses nothing.
+    expect(facts.stated.length + facts.unstated.length).toBe(6);
+  });
+
+  it('compares the placeholder as a whole string, never a substring', () => {
+    // Contains the placeholder EXACTLY ('Not stated'), and is still a real
+    // value the employer wrote. A substring test would call this silence and
+    // hide a stated specialty inside the "didn't state" sentence.
+    const facts = opportunityRowFacts({
+      ...externalRole(),
+      specialty: 'Not stated on the source posting, confirmed by phone',
+    } as never);
+    expect(facts.unstated).not.toContain('specialty');
+    expect(facts.stated.map((f) => f.label)).toContain('Specialty');
+  });
+
+  it('joins the list as a person would read it', () => {
+    expect(formatUnstatedFields(['schedule'])).toBe('schedule');
+    expect(formatUnstatedFields(['schedule', 'specialty'])).toBe('schedule and specialty');
+    expect(formatUnstatedFields(['a', 'b', 'c'])).toBe('a, b and c');
   });
 });

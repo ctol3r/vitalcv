@@ -183,3 +183,74 @@ export function opportunityFromPayload(value: unknown): OpportunitySummary | nul
   if (typeof record.id !== 'string' || typeof record.title !== 'string') return null;
   return raw as OpportunitySummary;
 }
+
+/**
+ * The placeholder the ingestion path writes when a feed published no specialty.
+ * `Opportunity.specialty` is non-nullable, so silence needs a stored value —
+ * see SPECIALTY_NOT_STATED in the backend's ingestion types. Compared as a
+ * whole string, never a substring: a real specialty could contain these words.
+ */
+const SPECIALTY_SILENCE = 'Not stated';
+
+export interface OpportunityRowFacts {
+  /** Facts the source actually published, in reading order. */
+  stated: Array<{ label: string; value: string }>;
+  /** Field names the source said nothing about, lowercase for one prose line. */
+  unstated: string[];
+}
+
+/**
+ * Split a row's facts into what the source stated and what it did not.
+ *
+ * Statedness is read from the DATA, never from the rendered label. The display
+ * helpers return prose like "Schedule not stated", and matching on that string
+ * would break the moment someone rewords it — and would misfire on a real
+ * value that happened to contain the words.
+ *
+ * The silent fields are returned, not dropped. A row that simply omitted them
+ * would read as though the employer had answered and we were hiding it; the
+ * board's whole claim is that silence is visible. One line naming all of them
+ * says the same thing as six cells, and leaves the stated facts scannable.
+ */
+export function opportunityRowFacts(opportunity: OpportunitySummary): OpportunityRowFacts {
+  const stated: Array<{ label: string; value: string }> = [];
+  const unstated: string[] = [];
+
+  const push = (label: string, isStated: boolean, value: string) => {
+    if (isStated) stated.push({ label, value });
+    else unstated.push(label.toLowerCase());
+  };
+
+  const professionStated = Boolean(opportunity.profession)
+    && opportunity.profession !== 'not_stated';
+  push('Profession', professionStated, opportunityProfession(opportunity));
+
+  const locationStated = opportunity.remote === true || Boolean(opportunity.state);
+  push('Location', locationStated, opportunityLocation(opportunity));
+
+  const scheduleStated = Boolean(opportunity.schedule)
+    && opportunity.schedule !== 'not_stated';
+  push('Schedule', scheduleStated, opportunitySchedule(opportunity));
+
+  // Employment is deliberately NOT tested for statedness here. Feed rows carry
+  // a hardcoded hiringType, so "Permanent" is a default rather than something
+  // the employer said — but correcting that is a read-path change with its own
+  // blast radius, tracked separately. Presenting it exactly as before keeps
+  // this pass to density and avoids contradicting that fix mid-flight.
+  stated.push({ label: 'Employment', value: opportunityEmployment(opportunity) });
+
+  const specialtyStated = Boolean(opportunity.specialty)
+    && opportunity.specialty !== SPECIALTY_SILENCE;
+  push('Specialty', specialtyStated, opportunity.specialty || SPECIALTY_SILENCE);
+
+  const pay = formatOpportunityPay(opportunity);
+  push('Compensation', pay !== null, pay ?? '');
+
+  return { stated, unstated };
+}
+
+/** "schedule, specialty and compensation" — a list a person reads aloud. */
+export function formatUnstatedFields(fields: string[]): string {
+  if (fields.length <= 1) return fields[0] ?? '';
+  return `${fields.slice(0, -1).join(', ')} and ${fields[fields.length - 1]}`;
+}

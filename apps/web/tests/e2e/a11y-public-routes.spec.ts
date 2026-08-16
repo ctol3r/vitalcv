@@ -82,6 +82,9 @@ const ROUTES = [
   '/review',
   '/docs',
   '/pilot',
+  // The public board. It was absent while it was actively being restyled,
+  // so the gate passed without ever measuring the surface under change.
+  '/explore',
 ] as const;
 
 interface RouteBaseline {

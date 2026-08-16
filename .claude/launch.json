@@ -4,27 +4,53 @@
     {
       "name": "marketing-dev",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@vitalcv/marketing", "dev"],
+      "runtimeArgs": [
+        "--filter",
+        "@vitalcv/marketing",
+        "dev"
+      ],
       "port": 3001
     },
     {
       "name": "web-dev",
       "runtimeExecutable": "/bin/zsh",
-      "runtimeArgs": ["-l", "-c", "pnpm --filter @vitalcv/web dev"],
+      "runtimeArgs": [
+        "-l",
+        "-c",
+        "pnpm --filter @vitalcv/web dev"
+      ],
       "port": 3000,
       "autoPort": true
     },
     {
       "name": "api-dev",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@vitalcv/api", "dev"],
+      "runtimeArgs": [
+        "--filter",
+        "@vitalcv/api",
+        "dev"
+      ],
       "port": 4000
     },
     {
       "name": "web-dev-w12a",
       "runtimeExecutable": "/bin/zsh",
-      "runtimeArgs": ["-l", "-c", "cd /tmp/vitalcv-wave-12a && PORT=3010 pnpm --filter @vitalcv/web exec next dev -p 3010"],
+      "runtimeArgs": [
+        "-l",
+        "-c",
+        "cd /tmp/vitalcv-wave-12a && PORT=3010 pnpm --filter @vitalcv/web exec next dev -p 3010"
+      ],
       "port": 3010
+    },
+    {
+      "name": "explore-prod",
+      "runtimeExecutable": "/bin/zsh",
+      "runtimeArgs": [
+        "-l",
+        "-c",
+        "cd /tmp/vitalcv-explore && BACKEND_URL=https://api.vitalcv.com NEXT_PUBLIC_API_BASE=https://api.vitalcv.com pnpm --filter @vitalcv/web exec next start -p 3030"
+      ],
+      "port": 3030
     }
   ]
 }
