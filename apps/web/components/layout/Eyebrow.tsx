@@ -202,12 +202,15 @@ export default function Eyebrow() {
             </Link>
           ) : null}
           <div className="vcv-eb__cluster">
-            {/* The reference's search slot, mapped to VitalCV's one real
-                lookup: the public NPI check. Never a decorative control. */}
+            {/* The reference's search slot, mapped to VitalCV's real reviewer
+                tool: /verify (check a shared record's signature and claims). A
+                magnifier here read as "search" and opened a JWT verifier, so
+                the glyph now matches the destination. Geometry is unchanged
+                (EC-10) — only the glyph and label. */}
             <Link
               href="/verify"
               className="vcv-eb__icon-btn vcv-eb__lookup"
-              aria-label="Look up a clinician by NPI"
+              aria-label="Verify a shared record"
             >
               <span className="vcv-eb__instr">
                 <svg
@@ -217,10 +220,12 @@ export default function Eyebrow() {
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                   aria-hidden="true"
                 >
-                  <circle cx="7" cy="7" r="5.25" />
-                  <path d="M11 11l4 4" />
+                  <path d="M8 1.5 2.75 3.4v3.9c0 3.05 2.15 5.4 5.25 6.7 3.1-1.3 5.25-3.65 5.25-6.7V3.4L8 1.5Z" />
+                  <path d="M5.9 7.9 7.4 9.4l2.9-3.1" />
                 </svg>
               </span>
             </Link>

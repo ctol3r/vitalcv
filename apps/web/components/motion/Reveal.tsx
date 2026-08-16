@@ -66,7 +66,19 @@ export function Reveal({
       { threshold: 0.12, rootMargin: '0px 0px -8% 0px' },
     );
     io.observe(el);
-    return () => io.disconnect();
+    // Safety net: never leave content hidden if the observer never reports an
+    // intersection (element laid out off the observer's root, a zero-size
+    // ancestor, a late/aborted hydration). The reveal is an enhancement, not a
+    // gate — force it complete. The CSS carries an equivalent backstop for the
+    // case where this component never hydrates at all.
+    const failsafe = window.setTimeout(() => {
+      setShown(true);
+      io.disconnect();
+    }, 1600);
+    return () => {
+      io.disconnect();
+      window.clearTimeout(failsafe);
+    };
   }, [shown]);
 
   return (

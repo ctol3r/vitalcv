@@ -144,12 +144,15 @@ describe('the right cluster: one quiet sign-in, one action, fused instruments', 
     }
   });
 
-  it('the lookup instrument is the real public NPI check, never decorative', async () => {
+  it('the verify instrument points at /verify and is labelled for what it does', async () => {
     await mount(<Eyebrow />);
     const lookup = container.querySelector('.vcv-eb__lookup');
     expect(lookup).not.toBeNull();
     expect(lookup!.getAttribute('href')).toBe('/verify');
-    expect(lookup!.getAttribute('aria-label')).toBe('Look up a clinician by NPI');
+    // The glyph and label describe /verify (check a shared record), not an NPI
+    // search — a magnifier that opened the JWT verifier was a broken affordance.
+    expect(lookup!.getAttribute('aria-label')).toBe('Verify a shared record');
+    expect(lookup!.getAttribute('aria-label')).not.toMatch(/search|look up/i);
   });
 
   it('carries no center content: no ticker, no route cue, no link row', async () => {

@@ -526,19 +526,41 @@
 @keyframes mz-fade { from { opacity: 0; } to { opacity: 1; } }
 
 /* Reveal-on-view: paired with the <Reveal> component, which adds `.is-in` when
-   the element scrolls into view. Staggerable via --mz-delay. The default state
-   is hidden so nothing flashes before the observer fires. */
-.mz-reveal { opacity: 0; }
-.mz-reveal.is-in {
+   the element scrolls into view. Staggerable via --mz-delay.
+
+   Content is VISIBLE BY DEFAULT. The served HTML, no-JS clients, crawlers, and
+   any environment where the enhancement script or hydration never runs all
+   show the page at full opacity — the rise/fade entrance is a pure progressive
+   enhancement, never a precondition for reading the page. (It used to default
+   to `opacity: 0`, so the served /verify HTML rendered its whole main column
+   ghosted until the observer happened to fire; if it never did, the page
+   stayed blank.) */
+.mz-reveal { opacity: 1; }
+
+/* The client signals it can run the entrance by setting data-reveal="js" on
+   <html> before first paint (app/layout.tsx). Only then do reveals start
+   hidden and rise into place when observed. */
+[data-reveal='js'] .mz-reveal { opacity: 0; }
+[data-reveal='js'] .mz-reveal.is-in {
   animation: mz-rise var(--mz-rise-dur, 720ms) var(--mz-ease) var(--mz-delay, 0ms) both;
 }
-/* No-JS safety: without scripting the IntersectionObserver never adds .is-in,
-   so reveal content would stay at opacity:0 forever. Force it visible — every
-   chapter must be readable with JS disabled (a homepage fallback requirement). */
+[data-reveal='js'] .mz-reveal-fade.is-in { animation-name: mz-fade; }
+
+/* Failsafe: even with the enhancement armed, content is NEVER trapped hidden.
+   If `.is-in` is never added — the observer never reports an intersection, or
+   hydration aborts — the element reveals itself after a short delay. Reuses the
+   house `mz-fade` (0 → 1); `.is-in` overrides this with the real rise/fade the
+   moment it lands. The <Reveal> component also force-completes on a JS timer,
+   so this only backstops a dead client. */
+[data-reveal='js'] .mz-reveal:not(.is-in) {
+  animation: mz-fade 1ms linear 2s forwards;
+}
+
+/* No-JS safety retained as belt-and-suspenders — the visible default above
+   already covers it, but this is explicit insurance if data-reveal is unset. */
 @media (scripting: none) {
   .mz-reveal { opacity: 1 !important; animation: none !important; }
 }
-.mz-reveal-fade.is-in { animation-name: mz-fade; }
 
 /* A calm attention pulse for "a pleasant surprise" moments (new evidence, a
    state settling). One shot, never looping. */
