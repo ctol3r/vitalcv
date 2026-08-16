@@ -178,6 +178,17 @@ const NEVER_SKIP_TENANT_CONTEXT = [
 export function shouldSkipTenantContext(path: string): boolean {
   const normalized = normalizePath(path);
   const isAuthorizedPacketRead = /^\/api\/applications\/[^/]+\/(packet|hire-to-start)$/.test(normalized);
+  // The canonical decision family (/review, /workflow, /workflow-action) and
+  // the clinician's own /withdraw authorize entirely in-route: verified Clerk
+  // identity (requireVerifiedClerkUserId), the org-role guard, and org scope
+  // derived server-side from membership (getOrgForVerifier → 404 cross-org).
+  // The marketplace proxies forward verified identity but never an org header,
+  // so leaving these behind the turnstile ships the entire employer decision
+  // path inert — accept/reject/clarify/withdraw all die as
+  // organization_context_required before routing, swallowed by their callers.
+  // /activation is deliberately NOT here: it is orphaned by the joined-case
+  // swap and stays guarded until deleted.
+  const isAuthorizedDecisionRoute = /^\/api\/applications\/[^/]+\/(review|workflow|workflow-action|withdraw)$/.test(normalized);
 
   if (NEVER_SKIP_TENANT_CONTEXT.includes(normalized as typeof NEVER_SKIP_TENANT_CONTEXT[number])) {
     return false;
@@ -283,6 +294,14 @@ export function shouldSkipTenantContext(path: string): boolean {
     // (routes/__tests__/hireToStartReachability.test.ts pins reachability).
     // Other /api/applications routes remain tenant guarded.
     || isAuthorizedPacketRead
+    // Decision-route family: see isAuthorizedDecisionRoute above. Pinned by
+    // routes/__tests__/decisionRouteReachability.test.ts, which also pins that
+    // unlisted siblings (e.g. /activation) stay guarded.
+    || isAuthorizedDecisionRoute
+    // The clinician's own application list: self-scoped, verified-identity
+    // only (no org exists for most clinicians). Same reachability defect and
+    // pin as the decision family.
+    || normalized === '/api/clinician/applications'
     // MATCHA clinician demand-side surfaces: NPI-keyed scoring reads plus
     // Clerk-header-scoped intent/opportunity writes, called via the web
     // proxies before any org context exists (same posture as
