@@ -188,11 +188,11 @@ function main(): void {
    * the one thing no human currently does by hand.
    */
   const CONFLICTS: Array<{ row: string; rule: string; fams: string[]; extra?: string[] }> = [
-    { row: 'Glass treatment', rule: '**None.** Solid surfaces everywhere; no blur halos', fams: ['glass'] },
+    { row: 'Glass treatment', rule: 'Frost on **chrome and scene overlays only** (A-1); evidence surfaces stay solid', fams: ['glass'] },
     { row: 'Card grammar', rule: 'Solid hairline-ruled panels, radius 0–3px, **no shadows**', fams: ['shadow'] },
     {
       row: 'Corner-radius philosophy + pill policy',
-      rule: 'Near-sharp **0–3px** on panels and instruments; **pills retired**',
+      rule: 'Scene shape scale (A-1); actions square on chrome, `--vt-shape-action-page` on page actions (A-2, E); pills for word-labels only',
       fams: ['radius', 'shape'],
     },
     {

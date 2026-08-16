@@ -30,8 +30,10 @@ import path from 'node:path';
  *      `glass-frost-allowlist.json`, each required to carry a degradation path
  *      (`color-mix` or `@supports`), which is A-1's own condition.
  *   3. THE UNREVIEWED TAIL is ratcheted — everything else cannot grow, so the
- *      retirement in `docs/design/glass-retirement-scope-2026-08-10.md` is not
- *      undone while it is sequenced.
+ *      sequenced retirement is not undone while it runs. (An earlier revision
+ *      cited docs/design/glass-retirement-scope-2026-08-10.md here — that file
+ *      never existed on main; the authorities are `glass-frost-allowlist.json`
+ *      and the EC-20 glass row as amended A-1/E.)
  *
  * Regenerate the tail baseline after a genuine reduction:
  *   UPDATE_GLASS_BASELINE=1 pnpm exec vitest run __tests__/glass-ratchet.test.ts

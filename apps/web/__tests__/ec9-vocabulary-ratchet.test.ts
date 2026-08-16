@@ -93,9 +93,15 @@ const MATCHERS = rules.ec9BannedCustomerFacingNouns.map((noun) => ({
  * it is retired in favour of the canonical engine.
  */
 const RATIFIED_COMPOUNDS = [
+  // "CV Wallet" stays ratified per the C1 founder ruling (2026-08-15): lawful
+  // as a secondary noun on interior locked surfaces, retired from acquisition
+  // copy surface-by-surface as each recomposition ships.
   /\bCV\s+Wallet\b/gi,
   /\bExact\s+packet\b/gi,
-  /\bProvider\s+Career\s+Evidence\s+Network\b/gi,
+  // "Provider Career Evidence Network" — ratification REVOKED by amendment E
+  // (2026-08-15): retired as public category language everywhere. Remaining
+  // occurrences are frozen baseline debt, scheduled against the C1 vocabulary
+  // PR and the Direction A surface waves.
 ];
 
 function walk(dir: string, acc: string[] = []): string[] {
