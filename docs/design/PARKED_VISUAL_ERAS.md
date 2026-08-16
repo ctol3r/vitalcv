@@ -82,8 +82,9 @@ Notes:
 - Two parallel component systems (`design-system/` vs `components/ui/`); a `Badge` import
   resolves differently by path; **≥30 status/badge components** express the same truth states.
 
-**Removal note (2026-08-15).** Commit `41296095d` deleted three era-less dead
-motion components — RevealOnScroll and BackgroundField under components/motion,
+**Removal note (2026-08-15).** The #1411 squash commit — the commit that
+carries this note, findable with `git log --grep "#1411"` — deleted three
+era-less dead motion components — RevealOnScroll and BackgroundField under components/motion,
 plus ScrollReveal under components/ui (deliberately written without path
 syntax: the files no longer exist, and the citability guard is right to reject
 a dead path; the unrelated BackgroundField under components/ui stays). All
