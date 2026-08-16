@@ -34,6 +34,14 @@ const BOARDS_API = 'https://boards-api.greenhouse.io/v1/boards';
  *
  * Adding an employer is a deliberate act: probe the token, confirm clinical
  * roles, add it here. It is not a crawl and must not become one.
+ *
+ * REMOVING one is equally deliberate, and more urgent than it looks. A token
+ * whose board has since been taken down answers 404, which clears
+ * `allBoardsSucceeded`, which makes the sweep report incomplete — and the
+ * runner correctly refuses to expire stale rows after a partial sweep. So one
+ * dead token silently freezes expiry for the whole feed and withdrawn roles
+ * stay on the board indefinitely. `cerebral` sat here doing exactly that until
+ * a 2026-08-16 probe of the roster caught it. Re-probe when expiry looks stuck.
  */
 export const BOARDS: readonly string[] = [
   'onemedical',
@@ -47,8 +55,12 @@ export const BOARDS: readonly string[] = [
   'oshihealth',
   'valerahealth',
   'galileo',
-  'cerebral',
 ];
+
+interface GreenhouseMetadataField {
+  name?: string;
+  value?: unknown;
+}
 
 interface GreenhouseJob {
   id?: number | string;
@@ -57,6 +69,44 @@ interface GreenhouseJob {
   updated_at?: string;
   location?: { name?: string } | null;
   content?: string;
+  metadata?: GreenhouseMetadataField[] | null;
+}
+
+/**
+ * The metadata field an employer fills in to state the specialty.
+ *
+ * Greenhouse boards carry employer-defined custom fields. This is the one whose
+ * value is the specialty itself; it is matched by exact name because a looser
+ * match would pick up neighbouring fields ("Clinician Type", "Operations Role")
+ * whose values are not specialties.
+ */
+const SPECIALTY_FIELD = 'clinical specialty';
+
+/**
+ * The specialty the EMPLOYER stated, or null.
+ *
+ * `FeedListing.specialty` permits a specialty "only when the feed states one"
+ * and forbids guessing one from a job title. A value an employer typed into
+ * their own board's specialty field is the former, not the latter — so this
+ * reads that field and nothing else. It does not fall back to `departments`
+ * ("Clinical", "Outreach", "Allied Health"), which are org units rather than
+ * specialties, and it does not read the title.
+ *
+ * The employer's own wording is kept verbatim rather than mapped onto a
+ * VitalCV taxonomy: "Family Medicine (14 years and older)" is what they said,
+ * and the age qualifier is part of the statement. Specialty filtering is a
+ * substring match, so a clinician searching "family medicine" still reaches it.
+ */
+export function extractStatedSpecialty(job: GreenhouseJob): string | null {
+  for (const field of job.metadata ?? []) {
+    if (field?.name?.trim().toLowerCase() !== SPECIALTY_FIELD) continue;
+    // Greenhouse returns absent custom fields as null, and multi-selects as
+    // arrays. Only a single plain string is an unambiguous statement.
+    if (typeof field.value !== 'string') continue;
+    const value = field.value.trim();
+    if (value.length > 0) return value.slice(0, 120);
+  }
+  return null;
 }
 
 /**
@@ -132,11 +182,16 @@ export function normalizeBoardJobs(jobs: GreenhouseJob[], board: string): FeedLi
       state: extractState(locationName),
       remote: isRemote(locationName),
       description: toPlainText(job.content),
-      // Greenhouse publishes no specialty field. Inferring one from the title
-      // would put a role in front of the wrong clinician (see FeedListing).
-      specialty: null,
-      // The public boards endpoint carries no structured compensation. A
-      // number parsed out of prose would be a guess presented as a figure.
+      // Read from the employer's own specialty metadata field, and null when
+      // they left it empty. Still never inferred from the title (see
+      // FeedListing) — a wrong specialty puts a role in front of the wrong
+      // clinician, and a title is not a statement of specialty.
+      specialty: extractStatedSpecialty(job),
+      // The public boards endpoint carries no structured compensation: probed
+      // across the whole roster on 2026-08-16, zero of 777 jobs returned
+      // `pay_input_ranges`, and no metadata field held a figure. A number
+      // parsed out of prose would be a guess presented as a figure, so pay
+      // stays absent until a feed publishes it as data.
       payMin: null,
       payMax: null,
       postedAt: posted && !Number.isNaN(posted.getTime()) ? posted : null,

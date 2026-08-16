@@ -12,6 +12,7 @@ import {
   BOARDS,
   GreenhouseBoardsConnector,
   extractState,
+  extractStatedSpecialty,
   isRemote,
   normalizeBoardJobs,
   roundRobin,
@@ -353,5 +354,98 @@ describe('roundRobin', () => {
   it('terminates on empty input rather than spinning', () => {
     expect(roundRobin(new Map(), 10)).toEqual([]);
     expect(roundRobin(new Map([['a', []]]), 10)).toEqual([]);
+  });
+});
+
+describe('extractStatedSpecialty', () => {
+  const job = (metadata: unknown) => ({ metadata } as never);
+
+  it('reads the specialty the employer stated, verbatim', () => {
+    // The age qualifier is part of what the employer said. Trimming it to a
+    // tidy "Family Medicine" would be VitalCV restating their statement.
+    expect(extractStatedSpecialty(job([
+      { name: 'Clinical Specialty', value: 'Family Medicine (14 years and older)' },
+    ]))).toBe('Family Medicine (14 years and older)');
+  });
+
+  it('matches the field name case- and whitespace-insensitively', () => {
+    expect(extractStatedSpecialty(job([
+      { name: '  clinical specialty ', value: 'Urgent Care' },
+    ]))).toBe('Urgent Care');
+  });
+
+  it('reads no other metadata field', () => {
+    // Every one of these sits beside the specialty field on real boards. None
+    // is a specialty, and treating one as such misfiles the role.
+    expect(extractStatedSpecialty(job([
+      { name: 'Clinician Type', value: 'MD or DO' },
+      { name: 'Provider Role', value: 'Casual Provider' },
+      { name: 'Operations Role', value: 'MSS' },
+      { name: 'Market', value: 'Phoenix' },
+      { name: 'Employment Type', value: 'Regular' },
+    ]))).toBeNull();
+  });
+
+  it('is null when the employer left the field empty', () => {
+    // Greenhouse returns unfilled custom fields as null, not as absent keys.
+    expect(extractStatedSpecialty(job([
+      { name: 'Clinical Specialty', value: null },
+    ]))).toBeNull();
+    expect(extractStatedSpecialty(job([
+      { name: 'Clinical Specialty', value: '   ' },
+    ]))).toBeNull();
+  });
+
+  it('refuses a non-string value rather than stringifying it', () => {
+    // A multi-select comes back as an array. Rendering ['A','B'] into a
+    // specialty string would state something the employer did not.
+    expect(extractStatedSpecialty(job([
+      { name: 'Clinical Specialty', value: ['Family Medicine', 'Urgent Care'] },
+    ]))).toBeNull();
+    expect(extractStatedSpecialty(job([
+      { name: 'Clinical Specialty', value: { min_value: '0.0' } },
+    ]))).toBeNull();
+  });
+
+  it('survives boards that publish no metadata at all', () => {
+    expect(extractStatedSpecialty(job(undefined))).toBeNull();
+    expect(extractStatedSpecialty(job(null))).toBeNull();
+    expect(extractStatedSpecialty(job([]))).toBeNull();
+    expect(extractStatedSpecialty(job([{ value: 'orphan' }]))).toBeNull();
+  });
+});
+
+describe('normalizeBoardJobs specialty', () => {
+  const base = {
+    id: 1,
+    title: 'Nurse Practitioner',
+    absolute_url: 'https://job-boards.greenhouse.io/x/jobs/1',
+    location: { name: 'Phoenix, AZ' },
+  };
+
+  it('carries the stated specialty onto the listing', () => {
+    const [listing] = normalizeBoardJobs([{
+      ...base,
+      metadata: [{ name: 'Clinical Specialty', value: 'Virtual Care' }],
+    }] as never, 'onemedical');
+    expect(listing.specialty).toBe('Virtual Care');
+  });
+
+  it('leaves specialty null when the board states none, never guessing the title', () => {
+    // The title says "Nurse Practitioner - Cardiology". That is a title, not
+    // the employer's specialty field, and must not become one.
+    const [listing] = normalizeBoardJobs([{
+      ...base,
+      title: 'Nurse Practitioner - Cardiology',
+    }] as never, 'twochairs');
+    expect(listing.specialty).toBeNull();
+  });
+
+  it('still publishes no pay figure', () => {
+    const [listing] = normalizeBoardJobs([{
+      ...base,
+      metadata: [{ name: 'Clinical Specialty', value: 'Urgent Care' }],
+    }] as never, 'onemedical');
+    expect([listing.payMin, listing.payMax]).toEqual([null, null]);
   });
 });
