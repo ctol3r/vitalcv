@@ -12,12 +12,12 @@ configuration is reconciled against that list with
 for the 2026-08-02 sync that established the 14).
 
 > **Restored (2026-08-16):** the 2026-08-15 protection outage is closed.
-> Protection was re-applied the same night (initially the 7 documented in the
-> table below, then re-synced to the full 14 from the 2026-08-02 controls doc
-> on founder authorization), and `check-workflow-path-filters.js
-> --verify-protection` passes both directions. The 08-15 outage record stays
-> in git history; the fail-loud existence assertion (#1393) now guards
-> against a recurrence.
+> Protection was re-applied the same night (initially the 7 previously
+> documented (see 83812d1a2), then re-synced to the full 14 from the
+> 2026-08-02 controls doc on founder authorization), and
+> `check-workflow-path-filters.js --verify-protection` passes both
+> directions. The 08-15 outage record stays in git history; the fail-loud
+> existence assertion (#1393) now guards against a recurrence.
 
 ## Required status checks (merge-blocking)
 
