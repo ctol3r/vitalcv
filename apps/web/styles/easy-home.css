@@ -61,7 +61,7 @@
   --ezh-card-dim: color-mix(in srgb, var(--vt-home-e-band-text) 72%, var(--vt-home-e-ink));
   --ezh-card-line: color-mix(in srgb, var(--vt-home-e-band-text) 22%, var(--vt-home-e-ink));
   /* Drawn-figure inks (amendment E, Illustration row). The accent swaps to
-     its band variant inside the dark band — see .ezh-mobility. */
+    */
   --ezh-fig-line: var(--vt-home-e-figure-line);
   --ezh-fig-dim: var(--vt-home-e-figure-dim);
   --ezh-fig-bar: var(--vt-home-e-figure-bar);
@@ -729,14 +729,6 @@
   transform: none;
 }
 
-.ezh-opportunity-boundary,
-.ezh-mobility-boundary {
-  margin: 16px 0 0;
-  color: var(--ezh-text2);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
 /* ── the truth boundary, in its own words ──────────────────────────────── */
 
 .ezh-truthline .ezh-wrap {
@@ -749,345 +741,6 @@
   font-size: 12px;
   line-height: 1.5;
   color: var(--ezh-text2);
-}
-
-/* ── the dark band: seven pinned steps, two drawn figures ──────────────── */
-
-.ezh-mobility {
-  --ezh-mobility-rule: color-mix(in srgb, var(--vt-home-e-ground) 18%, var(--vt-home-e-ink));
-  --ezh-mobility-dim: color-mix(in srgb, var(--vt-home-e-ground) 64%, var(--vt-home-e-ink));
-  /* Figure inks swap for the ink ground: the paper accent is illegible
-     here, and blank bars need to sit above the band, not below it. */
-  --ezh-fig-accent: var(--vt-home-e-figure-accent-band);
-  --ezh-fig-bar: color-mix(in srgb, var(--vt-home-e-band-text) 16%, var(--vt-home-e-ink));
-  border-top-color: var(--vt-home-e-ink);
-  background: var(--vt-home-e-ink);
-  color: var(--vt-home-e-band-text);
-}
-
-.ezh-mobility .ezh-wrap {
-  padding-top: clamp(64px, 7vw, 100px);
-  padding-bottom: clamp(64px, 6.5vw, 92px);
-}
-
-.ezh-mobility .ezh-k {
-  color: var(--ezh-mobility-dim);
-}
-
-.ezh-mobility-lead {
-  display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  gap: clamp(32px, 4.5vw, 72px);
-  align-items: center;
-  margin-bottom: clamp(40px, 5vw, 64px);
-}
-
-.ezh-mobility-head h2 {
-  color: var(--vt-home-e-band-text);
-  margin-top: 10px;
-}
-
-.ezh-mobility-head p {
-  margin: 14px 0 0;
-  color: var(--ezh-mobility-dim);
-  font-size: 15px;
-  line-height: 1.6;
-  max-width: 48ch;
-}
-
-.ezh-mobility .ezh-fig-cap {
-  color: var(--ezh-mobility-dim);
-}
-
-.ezh-mobility-track {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  margin: 0;
-  padding: 0;
-  border-top: 1px solid var(--ezh-mobility-rule);
-  border-bottom: 1px solid var(--ezh-mobility-rule);
-  list-style: none;
-}
-
-.ezh-mobility-track > li {
-  min-width: 0;
-  padding: 24px 16px 22px;
-  border-left: 1px solid var(--ezh-mobility-rule);
-}
-
-.ezh-mobility-track > li:first-child {
-  border-left: 0;
-}
-
-.ezh-mobility-index {
-  display: inline-flex;
-  width: max-content;
-  min-height: 24px;
-  align-items: center;
-  margin-bottom: 12px;
-  padding: 2px 8px;
-  border: 1px solid var(--ezh-mobility-rule);
-  border-radius: 999px;
-  color: var(--ezh-mobility-dim);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-
-.ezh-mobility-copy h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 650;
-  line-height: 1.25;
-  color: var(--vt-home-e-band-text);
-}
-
-.ezh-mobility-copy p {
-  margin: 7px 0 0;
-  color: var(--ezh-mobility-dim);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-/* Step 7's expansion: the reuse figure, directly under the track. */
-.ezh-mobility-reuse {
-  margin-top: clamp(32px, 4vw, 48px);
-}
-
-.ezh-mobility-boundary {
-  color: var(--ezh-mobility-dim);
-}
-
-/* ── the standing watch ────────────────────────────────────────────────── */
-
-.ezh-watch .ezh-wrap {
-  padding-bottom: 64px;
-}
-
-.ezh-watch .ezh-fig {
-  margin-top: 10px;
-}
-
-/* ── attribution + questions ──────────────────────────────────────────────
-   The ownership routing (Figure 2) and the attribution states are two halves
-   of one trust story: whose move is it, and how was a line established.
-
-   SHAPE RULE, the narrow reading. A-1's surviving limit is that a pill is
-   never a state marker, which is why `.ezh-attr-chip` takes radius 0. Colour
-   here is redundant in every case: each chip spells its state, so dropping
-   the palette costs nothing (EC-4). */
-
-.ezh-attr .ezh-wrap {
-  padding-bottom: 72px;
-}
-
-.ezh-attr .ezh-fig {
-  margin: 10px 0 40px;
-}
-
-.ezh-attr-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
-  gap: 56px;
-  align-items: start;
-  margin-top: 8px;
-}
-
-.ezh-attr-points {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.ezh-attr-points .ezh-tt {
-  display: block;
-  margin-top: 9px;
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.ezh-attr-points p {
-  margin-top: 6px;
-  max-width: 52ch;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--ezh-text2);
-}
-
-/* The state marker. Radius 0 — see the shape note above. */
-.ezh-attr-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  border: 1px solid var(--ezh-line2);
-  border-radius: 0;
-  padding: 4px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  line-height: 1.3;
-  white-space: nowrap;
-  color: var(--ezh-text2);
-}
-
-.ezh-attr-chip::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  border-radius: 1px;
-  background: currentColor;
-  flex: none;
-}
-
-.ezh-attr-chip[data-tone='work'] {
-  color: var(--ezh-work);
-}
-
-.ezh-attr-chip[data-tone='hold'] {
-  color: var(--ezh-hold);
-}
-
-.ezh-attr-chip[data-tone='wait'] {
-  color: var(--ezh-wait);
-}
-
-.ezh-attr-chip[data-tone='ink'] {
-  /* No hue: the fourth state colour is a DEFERRED EC-20 row owned by UX-02,
-     and EC-22 forbids resolving a deferred row by inventing a value. */
-  color: var(--ezh-text);
-}
-
-.ezh-attr-panel {
-  border: 1px solid var(--ezh-line);
-  border-radius: var(--vt-shape-card);
-  background: var(--ezh-panel);
-  padding: 24px 22px 20px;
-}
-
-.ezh-attr-rows {
-  list-style: none;
-  margin: 14px 0 0;
-  padding: 0;
-}
-
-.ezh-attr-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--ezh-line);
-}
-
-.ezh-attr-row:last-child {
-  border-bottom: 0;
-}
-
-.ezh-attr-row-label {
-  min-width: 0;
-  font-size: 14px;
-  line-height: 1.4;
-  color: var(--ezh-text);
-}
-
-.ezh-attr-cap {
-  margin-top: 14px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--ezh-text2);
-}
-
-.ezh-attr-scope {
-  margin-top: 34px;
-  max-width: 66ch;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--ezh-text2);
-}
-
-/* ── questions ─────────────────────────────────────────────────────────── */
-
-.ezh-faq-list {
-  margin-top: 30px;
-  max-width: 760px;
-  border-top: 1px solid var(--ezh-line);
-}
-
-.ezh-faq-list:last-child {
-  margin-bottom: 64px;
-}
-
-.ezh-faq-item {
-  border-bottom: 1px solid var(--ezh-line);
-}
-
-/* EC-5: the painted row is tall enough that the 44px target needs no ring. */
-.ezh-faq-q {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  min-height: 44px;
-  padding: 17px 0;
-  cursor: pointer;
-  list-style: none;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--ezh-text);
-}
-
-.ezh-faq-q::-webkit-details-marker {
-  display: none;
-}
-
-/* Plus/minus drawn as two rules, so the open state reads without colour and
-   without a glyph font (EC-4). */
-.ezh-faq-mark {
-  position: relative;
-  width: 13px;
-  height: 13px;
-  flex: none;
-}
-
-.ezh-faq-mark::before,
-.ezh-faq-mark::after {
-  content: '';
-  position: absolute;
-  background: var(--ezh-text2);
-}
-
-.ezh-faq-mark::before {
-  left: 0;
-  top: 6px;
-  width: 13px;
-  height: 1px;
-}
-
-.ezh-faq-mark::after {
-  left: 6px;
-  top: 0;
-  width: 1px;
-  height: 13px;
-}
-
-.ezh-faq-item[open] .ezh-faq-mark::after {
-  display: none;
-}
-
-.ezh-faq-a {
-  margin: 0 0 20px;
-  max-width: 64ch;
-  font-size: 14.5px;
-  line-height: 1.65;
-  color: var(--ezh-text2);
-}
-
-.ezh-faq .ezh-wrap {
-  padding-bottom: 56px;
 }
 
 /* ── recognition moment (UX-05): narration, then the reveal ─────────────── */
@@ -1429,6 +1082,84 @@
   color: var(--ezh-text3);
 }
 
+/* ── three promises — the whole bottom-half story, once each ────────── */
+
+.ezh-promises .ezh-wrap {
+  padding-top: 96px;
+  padding-bottom: 24px;
+}
+
+.ezh-promise-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+  margin-top: 36px;
+}
+
+.ezh-promise {
+  border: 1px solid var(--ezh-line);
+  border-radius: var(--vt-shape-card);
+  background: var(--ezh-panel);
+  padding: 28px 26px 30px;
+}
+
+.ezh-promise-glyph {
+  width: 48px;
+  height: 48px;
+  color: var(--ezh-text);
+}
+
+.ezh-promise h3 {
+  margin-top: 18px;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--ezh-text);
+}
+
+.ezh-promise p {
+  margin-top: 10px;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--ezh-text2);
+  max-width: 40ch;
+}
+
+/* ── quick answers — flat, three lines, no accordions ──────────────── */
+
+.ezh-qa .ezh-wrap {
+  padding-top: 56px;
+  padding-bottom: 72px;
+}
+
+.ezh-qa-list {
+  margin: 18px 0 0;
+  border-top: 1px solid var(--ezh-line);
+}
+
+.ezh-qa-row {
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  gap: 24px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--ezh-line);
+}
+
+.ezh-qa-row dt {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ezh-text);
+}
+
+.ezh-qa-row dd {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--ezh-text2);
+  max-width: 62ch;
+}
+
 /* ── employers — subordinate second audience ───────────────────────────── */
 
 .ezh-emp {
@@ -1450,26 +1181,31 @@
   color: var(--ezh-light-text);
 }
 
-.ezh-emp-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 560px) minmax(0, 1fr);
-  gap: 64px;
-  align-items: start;
-  margin-top: 24px;
+/* one warm row: heading, one line, one door */
+.ezh-emp-row {
+  display: flex;
+  align-items: baseline;
+  gap: 28px;
+  flex-wrap: wrap;
+  padding: 8px 0 0;
 }
 
-.ezh-emp-copy p {
+.ezh-emp-row h2 {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  color: var(--ezh-light-text);
+}
+
+.ezh-emp-row p {
   color: var(--ezh-light-text2);
-  font-size: 15.5px;
-  line-height: 1.65;
-  max-width: 480px;
+  font-size: 14.5px;
+  line-height: 1.5;
 }
 
 .ezh .ezh-emp-cta {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  margin-top: 28px;
   height: 48px;
   padding: 0 22px;
   border: 1px solid var(--ezh-light-text);
@@ -1487,47 +1223,38 @@
   color: var(--ezh-light);
 }
 
-.ezh-emp-points {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  border-top: 1px solid var(--ezh-light-line);
-}
-
-.ezh-emp-points li {
-  display: flex;
-  align-items: baseline;
-  gap: 18px;
-  padding: 18px 0;
-  border-bottom: 1px solid var(--ezh-light-line);
-}
-
-.ezh-emp-points .ezh-tt {
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--ezh-light-text);
-  min-width: 192px;
-}
-
-.ezh-emp-points p {
-  font-size: 13.5px;
-  color: var(--ezh-light-text2);
-  line-height: 1.5;
-}
-
 /* ── final action + footer composition ─────────────────────────────────── */
 
 .ezh-start .ezh-wrap {
   padding-bottom: 110px;
 }
 
-.ezh-start-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
-  gap: 64px;
+.ezh-start-center {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  margin-top: 24px;
+  text-align: center;
+  gap: 14px;
+  padding-top: 40px;
+}
+
+.ezh-start-h {
+  font-size: clamp(30px, 3.6vw, 44px);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+  color: var(--ezh-text);
+}
+
+.ezh-start-line {
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--ezh-text2);
+  max-width: 52ch;
+}
+
+.ezh-start-center .ezh-start-cta {
+  margin-top: 10px;
 }
 
 /* Fraunces survives on this route only as the serif editorial aside
@@ -1617,6 +1344,11 @@
 /* ── tablet fold ───────────────────────────────────────────────────────── */
 
 @media (max-width: 1099px) {
+  .ezh-promise-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
   .ezh-hero .ezh-wrap {
     /* minmax(0, …): a bare 1fr floors at min-content and pushes past narrow
        viewports. */
@@ -1628,41 +1360,24 @@
   .ezh-hero-copy {
     max-width: 640px;
   }
-
-  .ezh-mobility-lead {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 36px;
-  }
-
-  .ezh-mobility-lead .ezh-fig {
-    max-width: 720px;
-  }
-
-  .ezh-attr-grid,
-  .ezh-emp-grid,
-  .ezh-start-grid {
-    grid-template-columns: 1fr;
-    gap: 44px;
-  }
 }
 
 @media (max-width: 1179px) {
-  .ezh-mobility-track {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .ezh-mobility-track > li:nth-child(5) {
-    border-left: 0;
-  }
-
-  .ezh-mobility-track > li:nth-child(n + 5) {
-    border-top: 1px solid var(--ezh-mobility-rule);
-  }
 }
 
 /* ── true mobile ───────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
+  .ezh-qa-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .ezh-emp-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
   .ezh {
     --ezh-gutter: 20px;
     font-size: 15px;
@@ -1696,21 +1411,6 @@
     justify-self: stretch;
   }
 
-  .ezh-mobility-track {
-    grid-template-columns: 1fr;
-  }
-
-  .ezh-mobility-track > li,
-  .ezh-mobility-track > li:nth-child(5) {
-    padding: 18px 0;
-    border-top: 1px solid var(--ezh-mobility-rule);
-    border-left: 0;
-  }
-
-  .ezh-mobility-track > li:first-child {
-    border-top: 0;
-  }
-
   .ezh-emp-points .ezh-tt {
     min-width: 0;
   }
@@ -1737,12 +1437,6 @@
   .ezh-npi-submit {
     width: 100%;
     height: 52px;
-  }
-
-  .ezh-attr-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
   }
 }
 

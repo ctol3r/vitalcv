@@ -28,14 +28,11 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
-import Attribution from '@/components/home/easy/Attribution';
-import CareerMobilitySequence from '@/components/home/easy/CareerMobilitySequence';
 import CyclingWord from '@/components/home/easy/CyclingWord';
 import FigureMarkers from '@/components/home/easy/figures/FigureMarkers';
 import { NpiReveal, ResolvingNarration } from '@/components/home/easy/NpiReveal';
 import OpportunityHorizon from '@/components/home/easy/OpportunityHorizon';
-import Questions from '@/components/home/easy/Questions';
-import StandingWatch from '@/components/home/easy/StandingWatch';
+import ThreePromises from '@/components/home/easy/ThreePromises';
 import WorkSurface from '@/components/home/easy/WorkSurface';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -324,79 +321,72 @@ export default function EasyHome() {
         </div>
       </section>
 
-      {/* ── 4 · the dark band: seven pinned steps, two drawn figures ─────── */}
-      <CareerMobilitySequence />
+      {/* ── 4 · three promises: the whole bottom-half story, once each ───── */}
+      <ThreePromises />
 
-      {/* ── 5 · the standing watch ───────────────────────────────────────── */}
-      <StandingWatch />
+      {/* ── 5 · quick answers: flat, three lines, no accordions ──────────── */}
+      <section className="ezh-qa" data-header-theme="light" aria-labelledby="ezh-qa-h">
+        <div className="ezh-wrap">
+          <h2 id="ezh-qa-h" className="ezh-qa-h">
+            Quick answers
+          </h2>
+          <dl className="ezh-qa-list">
+            <div className="ezh-qa-row">
+              <dt>Is this credentialing?</dt>
+              <dd>
+                No &mdash; those decisions always stay with the employer. VitalCV keeps your
+                record ready to share.
+              </dd>
+            </div>
+            <div className="ezh-qa-row">
+              <dt>What does it cost?</dt>
+              <dd>Nothing. VitalCV is free for clinicians.</dd>
+            </div>
+            <div className="ezh-qa-row">
+              <dt>Do I need an account just to look?</dt>
+              <dd>
+                No. Enter your NPI and see what the public record shows &mdash; an account only
+                matters when you want to keep it.
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </section>
 
-      {/* ── 6 · ownership + attribution: whose move, and how a line got
-          there. Two halves of the same trust story. ──────────────────────── */}
-      <Attribution />
-
-      {/* ── 7 · objections, answered at the end of the clinician run ─────── */}
-      <Questions />
-
-      {/* ── 8 · the employer doorway ─────────────────────────────────────── */}
+      {/* ── 6 · the employer doorway, one warm line ──────────────────────── */}
       <section className="ezh-emp" data-header-theme="light" aria-labelledby="ezh-emp-h">
         <div className="ezh-wrap">
-          <div className="ezh-sec-head">
-            <span className="ezh-k">For employers</span>
+          <div className="ezh-emp-row">
             <h2 id="ezh-emp-h">Hiring clinicians?</h2>
-          </div>
-          <div className="ezh-emp-grid">
-            <div className="ezh-emp-copy">
-              <p>
-                Find people who fit. Know what remains. Keep the hire moving. VitalCV shows your
-                team exactly where each candidate stands &mdash; and who owns the next step.
-              </p>
-              <Link
-                className="ezh-emp-cta"
-                href="/employers"
-                data-home-employer-cta
-                onClick={() => trackFunnelEvent(FUNNEL_EVENTS.EMPLOYER_ENTRY_CLICKED)}
-              >
-                VitalCV for employers <span aria-hidden="true">&#8627;</span>
-              </Link>
-            </div>
-            <ul className="ezh-emp-points">
-              <li>
-                <span className="ezh-tt">Find people who fit</span>
-                <p>Search by what&rsquo;s on record, not what&rsquo;s on a r&eacute;sum&eacute;.</p>
-              </li>
-              <li>
-                <span className="ezh-tt">Know what remains</span>
-                <p>See the open items on any hire &mdash; and who owns each one.</p>
-              </li>
-              <li>
-                <span className="ezh-tt">Keep the hire moving</span>
-                <p>When it&rsquo;s your move, VitalCV makes that obvious too.</p>
-              </li>
-            </ul>
+            <p>Meet candidates whose records arrive ready to review.</p>
+            <Link
+              className="ezh-emp-cta"
+              href="/employers"
+              data-home-employer-cta
+              onClick={() => trackFunnelEvent(FUNNEL_EVENTS.EMPLOYER_ENTRY_CLICKED)}
+            >
+              VitalCV for employers <span aria-hidden="true">&#8627;</span>
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* ── 9 · final action + footer composition ────────────────────────── */}
+      {/* ── 7 · final action ─────────────────────────────────────────────── */}
       <section className="ezh-start" data-header-theme="light" aria-labelledby="ezh-start-h">
-        <div className="ezh-wrap">
-          <div className="ezh-sec-head">
-            <span className="ezh-k">Start</span>
-            <h2 id="ezh-start-h">Start with your NPI</h2>
-          </div>
-          <div className="ezh-start-grid">
-            {/* Fraunces survives on this route only as the serif editorial
-                aside (amendment E, Display row). */}
-            <p className="ezh-serif-aside">
-              Your work travels with you. You do not start over.
-            </p>
-            <div>
-              <a className="ezh-start-cta" href="#npi">
-                Start with your NPI
-              </a>
-              <p className="ezh-start-fine">Free to start.</p>
-            </div>
-          </div>
+        <div className="ezh-wrap ezh-start-center">
+          {/* Fraunces survives on this route only as the serif editorial
+              aside (amendment E, Display row). */}
+          <p className="ezh-serif-aside">Your work travels with you. You never start over.</p>
+          <h2 id="ezh-start-h" className="ezh-start-h">
+            Ready when you are.
+          </h2>
+          <p className="ezh-start-line">
+            It takes one number you already know &mdash; and nothing happens without your say.
+          </p>
+          <a className="ezh-start-cta" href="#npi">
+            Start with your NPI
+          </a>
+          <p className="ezh-start-fine">Free for clinicians.</p>
         </div>
       </section>
 

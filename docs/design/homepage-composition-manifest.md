@@ -26,7 +26,7 @@ unchanged (A-3 geometry, A-1 chrome frost).
 | System | Owner | Motion owner | Fallback | Job |
 | --- | --- | --- | --- | --- |
 | Shared chrome | `components/layout/Eyebrow.tsx` (mounted by `RootChrome`) | Color transitions only — geometry constant | SSR light register matches the first warm-paper section; the takeover menu requires JS | Zero-height floating chrome: wordmark upper-left, one action + lookup + menu upper-right (bottom-pinned on mobile); no bar, no center content |
-| Figure grammar | `components/home/easy/figures/` (+ `WorkSurface` as Figure 1); hoisted arrowhead markers in `figures/FigureMarkers.tsx` | Figure 1's one-shot row reveal; every other figure static | Wide + narrow viewBox pairs are both server-rendered; CSS shows one; effective text ≥ 11px at both evidence viewports (e2e-measured) | Show the mechanism — sources → profile, match, routing, boundary, reuse, watch — without asserting a real clinician, employer, credential, or result |
+| Figure grammar | `components/home/easy/figures/` (+ `WorkSurface` as Figure 1); hoisted arrowhead markers in `figures/FigureMarkers.tsx` | Figure 1's one-shot row reveal; every other figure static | Wide + narrow viewBox pairs are both server-rendered; CSS shows one; effective text ≥ 11px at both evidence viewports (e2e-measured) | Show the mechanism — sources → profile, and how a match reads — without asserting a real clinician, employer, credential, or result. (The routing/boundary/reuse/watch figures retired with their sections, amendment E.1.) |
 | In-page navigation | None | — | DOM order and anchors (`#npi`, `#how-it-works`) | No page-level carousel, rail, or chapter navigator |
 
 ## Sections, in DOM order
@@ -37,12 +37,10 @@ unchanged (A-3 geometry, A-1 chrome frost).
 | 1a | Recognition (UX-05) — resolving narration, then the reveal: the REAL evidence rows (`buildEvidenceCapsule`) grouped returned / attention / unavailable, each with provenance behind a closed disclosure, plus the correction path | `NpiReveal` + `ResolvingNarration` (`data-npi-reveal`) | **Real returned records only** — `state.capsule` from the live bootstrap + trust-state pairing; EC-26 stateful, no fixture path | `useSourceCheckSequence` pacing floor, then a one-shot CSS-transition stagger; no spinner, no percentage, nothing loops | Reduced motion settles instantly (`is-instant`); unavailable/error states render their own honest composition | The magic moment: "VitalCV already did work for me" — unknowns at equal typographic confidence to answers |
 | 2 | Roles — the live feed framed by **Figure 5** (match explanation: two fit lines, one named blocker; no employer, no count, no percentage) | `OpportunityHorizon` | `/api/opportunities?limit=3`; each row uses server-supplied source, URL, observation time, availability, and application mode — the feed truth contract is untouched | None | Server-visible loading/error/empty boundary and `/explore` path; no invented rows | Discover real work; external roles leave via “View original listing”, integrated roles may use “Apply with VitalCV” |
 | 3 | Truth boundary | `EasyHome` (`data-home-truth-boundary`) | Static, enumerated | None | SSR-complete text | Nothing has been sent; institution review decides |
-| 4 | Dark band — the seven pinned steps with **Figure 3** (the approval boundary) as the band's drawn stage and **Figure 4** (reuse) as step 7's expansion | `CareerMobilitySequence` | Static contract explanation; the seven step labels/details and both boundary sentences are pinned and unchanged | None | Every step, all seven counters, both figures, and both boundary sentences are server-rendered on the inverse ink band | Understand the approval boundary and the reuse loop in one visual sequence |
-| 5 | Standing watch — “Most weeks, you do nothing.” + **Figure 6** | `StandingWatch` | Static; stated to the limit of what the product truthfully does (watch, refresh, flag) | None | SSR-complete | The clinician-does-nothing thesis, honestly bounded |
-| 6 | Ownership + attribution — **Figure 2** (owner routing) + the four state cards + the ledger | `Attribution` | Static; the real lane vocabulary only | None | SSR-complete | Whose move is it, and how was a line established — never flattened into one green tick |
-| 7 | Questions | `Questions` | Static truth-contract answers | Native disclosure only | All questions and answers remain semantic and keyboard accessible | Resolve the key trust and privacy objections |
-| 8 | Employer doorway | `EasyHome` employer band | Static | None | SSR-complete | Subordinate second audience → `/employers` |
-| 9 | Final action + footer | `EasyHome` start band + footer | `sourceCadenceSentence()` (derived from `lib/trust/sourceLanes.ts`) | None | SSR-complete | Return to real NPI entry (serif aside is the one Fraunces use); quiet exit links + source-freshness truth line (`data-home-source-cadence`) |
+| 4 | Three promises — "Three things. That's the whole idea." Three benefit cards (record moves with you · you approve every share · VitalCV keeps watch), each with a small decorative glyph | `ThreePromises` | Static; every claim stated once, benefit-led, inside the truth contract | None | SSR-complete; glyphs are aria-hidden pictograms depicting no fact | The whole bottom-half story at a glance — simple, positive, done (amendment E.1) |
+| 5 | Quick answers — three flat Q/A lines (credentialing boundary, cost, no-account look) | `EasyHome` `.ezh-qa` | Static truth-contract answers | None | Flat `<dl>`, no accordions, keyboard-transparent | Resolve the three objections that block the first NPI entry |
+| 6 | Employer doorway — one warm row | `EasyHome` employer band | Static | None | SSR-complete | Subordinate second audience → `/employers` |
+| 7 | Final action + footer | `EasyHome` start band + footer | `sourceCadenceSentence()` (derived from `lib/trust/sourceLanes.ts`) | None | SSR-complete | Return to real NPI entry (serif aside is the one Fraunces use); quiet exit links + source-freshness truth line (`data-home-source-cadence`) |
 
 ## Rollbacks
 
@@ -62,3 +60,10 @@ While the 2026-08-15 homepage visual freeze is active
 (`docs/ops/FOUNDER_VISUAL_GATE.md` §1a), a composition change must also cite the
 freeze clause and be the Direction A recomposition or a PR it explicitly
 sequences.
+
+**Amendment E.1 (2026-08-16).** Founder directive, verbatim: *"simple, practical,
+easy, positivity, and fun. not: boring, text-heavy, confusing, complicated."* The
+seven-step dark band, the standing watch, the attribution ledger, and the
+five-item FAQ were retired from `/` — true things a visitor did not need. Their
+jobs compress into the Three promises band and the Quick answers lines below.
+Hero, Recognition, Roles, and the truth boundary stand unchanged from E.

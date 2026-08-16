@@ -46,7 +46,9 @@ const WALLET_FREE_SURFACES = [
   // via the ratified-compound exception.
   'components/home/easy/EasyHome.tsx',
   'components/home/easy/WorkSurface.tsx',
-  'components/home/easy/Questions.tsx',
+  // Questions.tsx retired 2026-08-16 (amendment E.1); its successors carry
+  // the same wallet-free commitment.
+  'components/home/easy/ThreePromises.tsx',
 ];
 
 /**

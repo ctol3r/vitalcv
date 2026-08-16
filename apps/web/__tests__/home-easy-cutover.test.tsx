@@ -245,11 +245,10 @@ describe('the work surface states record truth without manufacturing an outcome'
     expect(html).toContain('nothing has been sent');
   });
 
-  it('the mobility sequence names clinician choice and institution review honestly', () => {
+  it('the promises keep the consent rule and the credentialing boundary honest', () => {
     const html = renderHomepageHtml();
-    expect(html).toContain('Employer review');
-    expect(html).toContain('You select what the employer may review.');
-    expect(html).toContain('Only after the employer records that decision.');
+    expect(html).toContain('Nothing leaves your record until you say so.');
+    expect(html).toContain('those decisions always stay with the employer');
   });
 });
 

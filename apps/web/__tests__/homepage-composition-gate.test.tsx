@@ -39,15 +39,10 @@ const PAGE_LEVEL_NAV_MARKERS = [
   'data-story-rail-nav', // retired HorizontalStoryRail chapter navigation
 ] as const;
 
-/** The amendment E figure set — six drawn figures, each self-labelling. */
-const FIGURES = [
-  'sources-to-profile',
-  'match-explanation',
-  'owner-routing',
-  'approval-boundary',
-  'reuse',
-  'standing-watch',
-] as const;
+/** The amendment E.1 figure set — the two figures that explain a mechanism
+ * a visitor actually acts on. The other four retired with their sections
+ * (founder directive, 2026-08-16). */
+const FIGURES = ['sources-to-profile', 'match-explanation'] as const;
 
 /**
  * Count the customer-prose text nodes in the server render: text between
@@ -123,24 +118,23 @@ describe('homepage composition gate (W0.2 / amendment E)', () => {
     }
   });
 
-  it('all six amendment E figures render, each labelled illustrative', () => {
+  it('both surviving figures render, each labelled illustrative', () => {
     const html = renderHomepageHtml();
     for (const figure of FIGURES) {
       expect(html, `figure "${figure}" missing`).toContain(`data-home-figure="${figure}"`);
     }
-    // Each figure's caption self-labels; six captions minimum.
+    // Each figure's caption self-labels.
     const captions = html.match(/class="ezh-fig-cap"/g) ?? [];
-    expect(captions.length).toBeGreaterThanOrEqual(6);
+    expect(captions.length).toBeGreaterThanOrEqual(2);
     expect(html).toMatch(/Illustrative/);
   });
 
-  it('the locked copy rows render: payoff settled word, standing watch, Roles', () => {
+  it('the locked copy rows render: payoff settled word, promises, Roles', () => {
     const html = renderHomepageHtml();
     expect(html).toContain('One profile. Every');
     expect(html).toContain('data-home-cycling-word="settled"');
     expect(html).toContain('application');
-    expect(html).toContain('data-home-standing-watch');
-    expect(html).toContain('Most weeks, you do nothing.');
+    expect(html).toContain('Most weeks, nothing does.');
     expect(html).toContain('data-home-opportunity-horizon');
   });
 
@@ -174,28 +168,40 @@ describe('homepage composition gate (W0.2 / amendment E)', () => {
     ).toBeLessThanOrEqual(145);
   });
 
-  it('the dark band keeps its seven pinned steps and boundary sentences', () => {
+  it('amendment E.1: the bottom half is three promises, three answers, two doors', () => {
     const html = renderHomepageHtml();
-    expect(html).toContain('data-home-mobility-sequence');
-    for (const step of [
-      'Your record',
-      'Opportunity',
-      'Your choice',
-      'Exact packet',
-      'Employer review',
-      'Accepted head start',
-      'Reuse',
-    ]) {
-      expect(html, `career-mobility step "${step}" missing`).toContain(step);
-    }
-    expect(html).toContain('Only after the employer records that decision.');
-    expect(html).toContain('Fresh clinician consent is required next time.');
-    expect(html).toContain('01 / 07');
-    expect(html).toContain('07 / 07');
-    expect(html).toMatch(/data-home-mobility-sequence=""[^>]*data-header-theme="dark"/);
-    // The band's drawn material (amendment E): approval boundary as the
-    // stage, reuse as step 7's expansion.
-    expect(html).toMatch(/data-home-figure="approval-boundary"/);
-    expect(html).toMatch(/data-mobility-step-expansion="reuse"/);
+    // The founder's 2026-08-16 directive retired the seven-step band, the
+    // standing-watch timeline, the attribution ledger, and the accordion FAQ:
+    // "the user doesn't even need to know the information presented."
+    expect(html).not.toContain('data-home-mobility-sequence');
+    expect(html).not.toContain('data-home-standing-watch');
+    expect(html).not.toContain('Only what you approved crosses over');
+    expect(html).not.toContain('Every line says how it got there');
+    expect(html).not.toContain('01 / 07');
+    // What replaced it — once each, benefit-led:
+    expect(html).toContain('Three things. That');
+    expect(html).toContain('Build it once. Take it everywhere.');
+    expect(html).toContain('You say what gets shared.');
+    expect(html).toContain('Nothing leaves your record until you say so.');
+    expect(html).toMatch(/We keep watch, so you don/);
+    expect(html).toContain('Most weeks, nothing does.');
+    // Flat answers, not accordions; the credentialing boundary survives.
+    expect(html).toContain('Quick answers');
+    expect(html).toContain('Is this credentialing?');
+    expect(html).toContain('those decisions always stay with the employer');
+    // The two doors close the page.
+    expect(html).toContain('Ready when you are.');
+    expect(html).toContain('Hiring clinicians?');
+  });
+
+  it('the bottom half stays SHORT — the E.1 budget is a hard ceiling', () => {
+    const html = renderHomepageHtml();
+    const count = countTextNodes(html);
+    // The E budget was 145 for the whole page; E.1 cut four sections, so the
+    // whole page must now hold under 110. Fund additions with cuts.
+    expect(
+      count,
+      `the homepage renders ${count} prose text nodes — the amendment E.1 budget is 110`,
+    ).toBeLessThanOrEqual(110);
   });
 });

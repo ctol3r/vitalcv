@@ -280,15 +280,20 @@ test.describe('home — the Direction A hero', () => {
     await expect(horizon).not.toContainText(/ready now|automatically eligible/i);
   });
 
-  test('the dark band holds the E register: ink ground, band text, both figures', async ({ page }) => {
-    const mobility = page.locator('[data-home-mobility-sequence]');
-    await expect(mobility).toHaveCSS('background-color', 'rgb(20, 19, 18)');
-    await expect(mobility.locator('h2').first()).toHaveCSS('color', 'rgb(251, 250, 247)');
-    await expect(mobility.locator('.ezh-mobility-index')).toHaveCount(7);
-    await expect(mobility.getByText('01 / 07', { exact: true })).toBeVisible();
-    await expect(mobility.getByText('07 / 07', { exact: true })).toBeVisible();
-    await expect(mobility.locator('[data-home-figure="approval-boundary"]')).toBeVisible();
-    await expect(mobility.locator('[data-home-figure="reuse"]')).toBeVisible();
+  test('amendment E.1: three promises render, and the retired sections are gone', async ({ page }) => {
+    // The 2026-08-16 founder directive replaced the seven-step band, standing
+    // watch, attribution ledger, and accordion FAQ with three benefit cards
+    // and three flat answers.
+    await expect(page.locator('[data-home-mobility-sequence]')).toHaveCount(0);
+    await expect(page.locator('[data-home-standing-watch]')).toHaveCount(0);
+    const promises = page.locator('.ezh-promise');
+    await expect(promises).toHaveCount(3);
+    await expect(promises.first().locator('svg.ezh-promise-glyph')).toBeVisible();
+    await expect(page.getByText('Build it once. Take it everywhere.')).toBeVisible();
+    await expect(page.getByText('Most weeks, nothing does.')).toBeVisible();
+    // Flat answers: a real <dl>, zero <details> anywhere on the page.
+    await expect(page.locator('.ezh-qa-list')).toBeVisible();
+    await expect(page.locator('main details')).toHaveCount(0);
   });
 
   test('the final action returns to the real entry', async ({ page }) => {
