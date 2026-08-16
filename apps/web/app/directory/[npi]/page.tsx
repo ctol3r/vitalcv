@@ -16,8 +16,19 @@
  * CMS. What indexing changes is the audience, so the page has to be even more
  * careful than the verifier view about not reading as a credential check —
  * a search result is seen with no surrounding context at all. The record
- * component carries that burden; this page adds a plain-language banner up
- * top rather than relying on the reader scrolling.
+ * component carries that burden; this page states what it is — and is not —
+ * before the data, on the record's own chart tab.
+ *
+ * REGISTER (design-only, 2026-08-16)
+ * ----------------------------------
+ * The page frame renders in the Direction A register (constitution amendment
+ * E; composition discipline from E.1): warm paper, the clinician's name as
+ * the display moment, one hot action — the claim CTA — and drawn clinical
+ * pictograms that depict no fact. The record itself stays in the shared Calm
+ * Wave evidence register (ClinicianRecordDetail inside `.mz`), because
+ * evidence keeps its own truthful material; the scene frame around it is what
+ * this register pass recomposes. Every data, metadata, analytics, and honesty
+ * contract on this page is unchanged.
  */
 
 import type { Metadata } from 'next';
@@ -29,8 +40,10 @@ import { buildClinicianRecord, attachMedicareEnrollment } from '@/lib/clinician-
 import { fetchCmsClinicianRows } from '@/lib/clinician-record/cmsClinicians';
 import { DIRECTORY_CONTEXT_NOTE } from '@/lib/clinician-record/copy';
 import { RecordViewTracker, ClaimRecordLink } from '@/components/directory/RecordAnalytics';
+import DirectoryReveal from '@/components/directory/DirectoryReveal';
 import { isExcludedFromDirectory } from '@/lib/directory/sitemapSeed';
 import { DirectoryTiming } from '@/lib/directory/serverTiming';
+import '@/styles/directory-record.css';
 
 /**
  * Cache for the NPPES refresh window. CMS updates weekly, so re-fetching per
@@ -133,6 +146,40 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+/**
+ * The ID-badge pictogram on the claim card. Decorative and aria-hidden, in
+ * the E.1 pictogram discipline: values render as blank bars, and it depicts
+ * no source, count, person, or result — an empty badge, waiting.
+ */
+function BadgeGlyph() {
+  return (
+    <svg className="dra-badge" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <rect className="dra-badge-frame" x="27" y="4" width="10" height="7" rx="2" />
+      <path className="dra-badge-frame" d="M32 11 v4" />
+      <rect className="dra-badge-strong" x="12" y="15" width="40" height="44" rx="5" />
+      <path className="dra-badge-strong" d="M22 27 h10 M27 22 v10" />
+      <rect className="dra-badge-bar" x="20" y="41" width="24" height="4" rx="2" />
+      <rect className="dra-badge-bar" x="20" y="49" width="15" height="4" rx="2" />
+    </svg>
+  );
+}
+
+/**
+ * The clipboard pictogram on the record's chart tab. Same discipline: blank
+ * bars only, no fact depicted.
+ */
+function ClipboardGlyph() {
+  return (
+    <svg className="dra-clip" viewBox="0 0 32 40" aria-hidden="true" focusable="false">
+      <rect className="dra-clip-frame" x="3" y="6" width="26" height="31" rx="3" />
+      <rect className="dra-clip-frame" x="11" y="2" width="10" height="7" rx="2" />
+      <rect className="dra-clip-bar" x="8" y="15" width="16" height="3" rx="1.5" />
+      <rect className="dra-clip-bar" x="8" y="21" width="12" height="3" rx="1.5" />
+      <rect className="dra-clip-bar" x="8" y="27" width="14" height="3" rx="1.5" />
+    </svg>
+  );
+}
+
 export default async function ProviderDirectoryPage({ params }: PageProps) {
   const { npi } = await params;
 
@@ -161,6 +208,7 @@ export default async function ProviderDirectoryPage({ params }: PageProps) {
 
   const primary = record.taxonomies.data[0];
   const address = record.practiceAddress.data;
+  const isIndividual = record.entityType !== 'organization';
 
   /**
    * schema.org markup so a search engine renders this as a provider listing.
@@ -198,7 +246,7 @@ export default async function ProviderDirectoryPage({ params }: PageProps) {
   timing.log();
 
   return (
-    <div className="mz mz-paper min-h-screen">
+    <div className="dra min-h-screen">
       <script
         type="application/ld+json"
         // Server-rendered from values we constructed; no user input reaches it.
@@ -225,13 +273,22 @@ export default async function ProviderDirectoryPage({ params }: PageProps) {
         entityType={record.entityType === 'organization' ? 'organization' : 'individual'}
       />
 
-      <main className="mx-auto w-full max-w-4xl space-y-6 px-4 py-8 sm:py-12">
-        <header className="space-y-2">
-          <p className="mz-eyebrow">Public registry record</p>
-          <h1 className="mz-h1">
+      {/* One-shot entrance enhancement; the server frame above and below is
+          complete without it. */}
+      <DirectoryReveal />
+
+      <main className="dra-wrap">
+        <header className="dra-head" data-dra-reveal>
+          <p className="dra-eyebrow">Public registry record</p>
+          <h1 className="dra-name">
             {record.identity.data.displayName || `NPI ${record.npi}`}
           </h1>
-          <p className="text-sm text-[var(--ink-600)]">
+          {/* A plain hairline rule under the name, drawn in once. The theme
+              ruling of 2026-08-16 picked Option 1 "Chart & Badge" — clinical
+              OBJECTS (badge, chart) — and rejected the EKG/pulse-line motif
+              this rule replaces. Decorative dim ink; complete without JS. */}
+          <div className="dra-rule" aria-hidden="true" />
+          <p className="dra-meta">
             {[
               record.entityTypeLabel,
               primary?.displayName,
@@ -242,103 +299,109 @@ export default async function ProviderDirectoryPage({ params }: PageProps) {
           </p>
         </header>
 
-        {/* A search result arrives with no surrounding context, so what this
-            page is — and is not — has to be stated before the data, not after. */}
-        <div
-          className="rounded-[3px] border px-4 py-3"
-          style={{
-            background: 'var(--unknown-bg)',
-            borderColor: 'var(--unknown-rule)',
-          }}
-        >
-          <p className="text-[13px] leading-relaxed text-[var(--ink-700)]">
-            {DIRECTORY_CONTEXT_NOTE}
-          </p>
-        </div>
-
-        <ClinicianRecordDetail record={record} mode="public" />
-
-        {/* A clinician who searches for themselves lands here and, until now,
-            had no way in: every path into VitalCV started at the homepage. The
-            record is the introduction, so the invitation belongs on it — after
-            the data, where they have already decided whether it is them.
+        {/* The claim entry, first — the emotional beat of the whole page.
+            A clinician who searches for themselves lands here having never
+            heard of VitalCV; the record is the introduction, and their name is
+            already set at the table above. One obvious next action (EC-2 #3,
+            EC-11): the invitation leads, the full record follows for whoever
+            wants to read what the registry holds. "Your VitalCV profile" is
+            one of the four names the category strategy requires customers to
+            remember; this is the first place a clinician ever encounters it.
             Individual records only; an organization NPI has no one to claim it. */}
-        {record.entityType !== 'organization' && (
-          <section
-            className="rounded-[3px] border px-4 py-4"
-            style={{ borderColor: 'var(--rule)' }}
-          >
-            <h2 className="mz-h3">Is this you?</h2>
-            {/* Names the thing being claimed. A stranger arriving from a search
-                result has met the record but not the product, and "claim this"
-                with no noun leaves them claiming nothing in particular. "Your
-                VitalCV profile" is one of the four names the category strategy
-                requires customers to remember; this is the first place a
-                clinician ever encounters it. */}
-            <p className="mt-2 text-[13px] leading-relaxed text-[var(--ink-700)]">
-              Claim this record and it becomes your VitalCV profile — yours to
-              keep, to add what the registry does not hold, and to reuse the next
-              time you apply. Claiming connects this NPI to an account you
-              control. It confirms nothing about your credentials and changes
-              nothing on this page.
-            </p>
-            <ClaimRecordLink
-              npi={record.npi}
-              className="mt-3 inline-flex min-h-[44px] items-center rounded-[3px] border px-4 text-[13px] font-medium text-[var(--ink-800)]"
-              style={{ borderColor: 'var(--ink-300)' }}
-            >
-              Claim this record
-            </ClaimRecordLink>
+        {isIndividual ? (
+          <section id="claim" className="dra-claim" data-dra-reveal aria-labelledby="dra-claim-h">
+            <BadgeGlyph />
+            <div className="dra-claim-copy">
+              <h2 id="dra-claim-h" className="dra-claim-h">
+                Is this you?
+              </h2>
+              <p>
+                Claim it and it becomes your VitalCV profile &mdash; yours to keep, add to, and
+                reuse. Claiming confirms nothing about your credentials and changes nothing on
+                this page.
+              </p>
+            </div>
+            <div className="dra-claim-act">
+              <ClaimRecordLink npi={record.npi} className="dra-cta">
+                Claim this record
+              </ClaimRecordLink>
+              <p className="dra-claim-fine">Free for clinicians.</p>
+            </div>
           </section>
-        )}
+        ) : null}
 
-        {/* The removal path, on the page itself.
-            This page can exist for a clinician who has never heard of VitalCV,
-            and the sitemap asks search engines to come and find it. A person in
-            that position needs a way out that does not depend on them knowing
-            VitalCV exists well enough to go looking for a policy page — so the
-            offer is here, on the record, next to the claim.
-            Deliberately an email address and not a form: a form would be a new
-            place to collect personal data in order to process a request whose
-            entire content is "stop". */}
+        {/* The record, framed as the chart it is. A search result arrives with
+            no surrounding context, so what this page is — and is not — rides
+            on the chart tab, before the data, not after it. */}
         <section
-          className="rounded-[3px] border px-4 py-4"
-          style={{ borderColor: 'var(--rule)' }}
+          className="dra-record"
+          data-dra-reveal
+          aria-label="The public record, as filed with CMS"
         >
-          <h2 className="mz-h3">Why this page exists</h2>
-          <p className="mt-2 text-[13px] leading-relaxed text-[var(--ink-700)]">
-            It republishes a filing this provider made with CMS, which CMS
-            publishes at{' '}
-            <a
-              href="https://npiregistry.cms.hhs.gov/"
-              className="underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              npiregistry.cms.hhs.gov
-            </a>
-            . VitalCV did not create the filing and does not confirm it.
-          </p>
-          <p className="mt-2 text-[13px] leading-relaxed text-[var(--ink-700)]">
-            If this is your record and you would rather VitalCV did not list it,
-            email{' '}
-            <a href="mailto:privacy@vitalcv.com" className="underline">
-              privacy@vitalcv.com
-            </a>{' '}
-            and we will stop pointing search engines at this page and mark it not
-            to be indexed. We cannot change or remove the CMS filing itself —
-            that stays with CMS, and you can correct it with them.
-          </p>
+          <div className="dra-record-tab">
+            <ClipboardGlyph />
+            <p className="dra-note">{DIRECTORY_CONTEXT_NOTE}</p>
+          </div>
+          <div className="mz dra-record-body">
+            <ClinicianRecordDetail record={record} mode="public" />
+          </div>
         </section>
 
-        <footer className="border-t border-[var(--rule)] pt-4">
-          <p className="text-[12px] leading-relaxed text-[var(--ink-600)]">
-            Employers reviewing this clinician can see source coverage and
-            verification history on the{' '}
-            <Link href={`/verify/${record.npi}`} className="underline">
-              verification view
-            </Link>
-            .
+        {/* Why the page exists and the way out, as two flat answers.
+            The removal path stays on the record itself: this page can exist
+            for a clinician who has never heard of VitalCV, and a person in
+            that position needs a way out that does not depend on knowing
+            VitalCV well enough to go looking for a policy page. Deliberately
+            an email address and not a form: a form would be a new place to
+            collect personal data in order to process a request whose entire
+            content is "stop". */}
+        <section className="dra-qa" data-dra-reveal aria-labelledby="dra-qa-h">
+          <h2 id="dra-qa-h" className="dra-h2">
+            Quick answers
+          </h2>
+          <dl className="dra-qa-list">
+            <div className="dra-qa-row">
+              <dt>Why does this page exist?</dt>
+              <dd>
+                It republishes a filing this provider made with CMS, published at{' '}
+                <a
+                  href="https://npiregistry.cms.hhs.gov/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  npiregistry.cms.hhs.gov
+                </a>
+                . VitalCV did not create the filing and does not confirm it.
+              </dd>
+            </div>
+            <div className="dra-qa-row">
+              <dt>Want this page removed?</dt>
+              <dd>
+                Email <a href="mailto:privacy@vitalcv.com">privacy@vitalcv.com</a> and we will
+                stop pointing search engines at this page and mark it not to be indexed. We
+                cannot change or remove the CMS filing itself &mdash; that stays with CMS, and
+                you can correct it with them.
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        {/* For whoever read the whole chart: the quiet way back to the one
+            action. An anchor, not a second funnel-wired CTA — the claim click
+            stays a single, honest funnel event. */}
+        {isIndividual ? (
+          <div className="dra-final" data-dra-reveal>
+            <a className="dra-final-link" href="#claim">
+              Is this you? Claim this record <span aria-hidden="true">↑</span>
+            </a>
+          </div>
+        ) : null}
+
+        <footer className="dra-foot">
+          <p>
+            Employers reviewing this clinician can see source coverage and verification history
+            on the{' '}
+            <Link href={`/verify/${record.npi}`}>verification view</Link>.
           </p>
         </footer>
       </main>
