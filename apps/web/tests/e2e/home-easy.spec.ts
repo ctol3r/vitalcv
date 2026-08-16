@@ -313,6 +313,11 @@ test.describe('home — layout integrity across viewports', () => {
     [1024, 768],
     [768, 1024],
     [390, 844],
+    // 390 was the narrowest declared width, which left the two commonest
+    // small phones untested: 375 (iPhone SE / 12–13 mini / 6–8) and 360 (the
+    // modal Android). The figure floor failed at 375 while passing at 390.
+    [375, 812],
+    [360, 800],
   ] as const) {
     test(`no horizontal overflow at ${width}×${height}`, async ({ page }) => {
       await routeOpportunities(page);
@@ -337,14 +342,27 @@ test.describe('home — layout integrity across viewports', () => {
     });
   }
 
-  test('effective figure text clears the 11px floor at 390', async ({ page }) => {
-    await routeOpportunities(page);
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/');
-    await expect(page.locator('[data-home-hero]')).toBeVisible();
-    const { min, where } = await minEffectiveFigureText(page);
-    expect(min, `smallest effective figure text: ${where}`).toBeGreaterThanOrEqual(11);
-  });
+  /*
+   * The floor is checked at every narrow width we claim to support, not just
+   * the widest of them. It passed at 390 and failed at 375 by 0.51px — the
+   * hero's frame charges its padding against the drawing's rendered width, so
+   * the margin shrinks as the viewport does and the widest narrow viewport is
+   * the least likely to catch it.
+   */
+  for (const [width, height] of [
+    [390, 844],
+    [375, 812],
+    [360, 800],
+  ] as const) {
+    test(`effective figure text clears the 11px floor at ${width}`, async ({ page }) => {
+      await routeOpportunities(page);
+      await page.setViewportSize({ width, height });
+      await page.goto('/');
+      await expect(page.locator('[data-home-hero]')).toBeVisible();
+      const { min, where } = await minEffectiveFigureText(page);
+      expect(min, `smallest effective figure text at ${width}: ${where}`).toBeGreaterThanOrEqual(11);
+    });
+  }
 });
 
 test.describe('home — reduced motion', () => {

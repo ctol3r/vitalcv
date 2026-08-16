@@ -11,12 +11,13 @@ configuration is reconciled against that list with
 (see [github-security-controls-2026-08-02.md](github-security-controls-2026-08-02.md)
 for the 2026-08-02 sync that established the 14).
 
-> **Live-state warning (2026-08-15):** at the time of this update, `main` has
-> **no protection object at all** — the protection endpoint returns 404
-> ("Branch not protected"), `branches/main` reports `protected=false`, and
-> `rules/branches/main` is empty. Until protection is restored, every check
-> below is advisory, not merge-blocking, and the workflow-contract gate fails
-> loud on exactly this state (see the existence assertion below).
+> **Restored (2026-08-16):** the 2026-08-15 protection outage is closed.
+> Protection was re-applied the same night (initially the 7 previously
+> documented (see 83812d1a2), then re-synced to the full 14 from the
+> 2026-08-02 controls doc on founder authorization), and
+> `check-workflow-path-filters.js --verify-protection` passes both
+> directions. The 08-15 outage record stays in git history; the fail-loud
+> existence assertion (#1393) now guards against a recurrence.
 
 ## Required status checks (merge-blocking)
 

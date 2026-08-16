@@ -134,40 +134,40 @@ export default function WorkSurface() {
             <line x1="164" y1="40" x2="164" y2="76" markerEnd="url(#ezh-ar)" />
             <line x1="276" y1="40" x2="238" y2="76" markerEnd="url(#ezh-ar)" />
           </g>
-          <text x="176" y="63" fontSize="11.5" fill="currentColor" fillOpacity=".62">returns what it holds</text>
+          <text x="176" y="63" fontSize="12" fill="currentColor" fillOpacity=".62">returns what it holds</text>
 
           <rect x="2" y="84" width="326" height="342" rx="12" fill="none" stroke="currentColor" strokeOpacity=".22" />
           <text x="18" y="110" fontSize="13" fontWeight="600" fill="currentColor">Your profile</text>
-          <text x="312" y="110" fontSize="11.5" fill="currentColor" fillOpacity=".55" textAnchor="end">&bull;&bull;&bull; &bull;&bull;&bull; &bull;&bull;&bull;&bull;</text>
+          <text x="312" y="110" fontSize="12" fill="currentColor" fillOpacity=".55" textAnchor="end">&bull;&bull;&bull; &bull;&bull;&bull; &bull;&bull;&bull;&bull;</text>
           <line x1="2" y1="124" x2="328" y2="124" stroke="currentColor" strokeOpacity=".14" />
 
           <g className="ezh-rowfx" data-r="1">
             <text x="18" y="150" fontSize="13" fill="currentColor">Name and specialty</text>
-            <text x="18" y="169" fontSize="11.5" fill="currentColor" fillOpacity=".55">NPPES registry</text>
+            <text x="18" y="169" fontSize="12" fill="currentColor" fillOpacity=".55">NPPES registry</text>
             <rect className="ezh-fb" x="200" y="142" width="112" height="9" rx="4" />
             <line x1="18" y1="182" x2="312" y2="182" stroke="currentColor" strokeOpacity=".1" />
           </g>
           <g className="ezh-rowfx" data-r="2">
             <text x="18" y="208" fontSize="13" fill="currentColor">Practice location</text>
-            <text x="18" y="227" fontSize="11.5" fill="currentColor" fillOpacity=".55">NPPES registry</text>
+            <text x="18" y="227" fontSize="12" fill="currentColor" fillOpacity=".55">NPPES registry</text>
             <rect className="ezh-fb" x="200" y="200" width="112" height="9" rx="4" />
             <line x1="18" y1="240" x2="312" y2="240" stroke="currentColor" strokeOpacity=".1" />
           </g>
           <g className="ezh-rowfx" data-r="3">
             <text x="18" y="266" fontSize="13" fill="currentColor">State license record</text>
-            <text x="18" y="285" fontSize="11.5" fill="currentColor" fillOpacity=".55">State board record</text>
+            <text x="18" y="285" fontSize="12" fill="currentColor" fillOpacity=".55">State board record</text>
             <rect className="ezh-fb" x="200" y="258" width="112" height="9" rx="4" />
             <line x1="18" y1="298" x2="312" y2="298" stroke="currentColor" strokeOpacity=".1" />
           </g>
           <g className="ezh-rowfx" data-r="4">
             <text x="18" y="324" fontSize="13" fill="currentColor">Federal exclusion list</text>
-            <text x="18" y="343" fontSize="11.5" fill="currentColor" fillOpacity=".55">Checked</text>
+            <text x="18" y="343" fontSize="12" fill="currentColor" fillOpacity=".55">Checked</text>
             <line x1="18" y1="356" x2="312" y2="356" stroke="currentColor" strokeOpacity=".1" />
           </g>
           <g className="ezh-rowfx" data-r="5">
             <rect x="12" y="368" width="306" height="46" rx="6" fill="none" className="ezh-sh" strokeDasharray="4 3" />
             <text x="24" y="390" fontSize="13" className="ezh-fh">Preferred location</text>
-            <text x="24" y="407" fontSize="11.5" className="ezh-fh">no source answered &mdash; only you can</text>
+            <text x="24" y="407" fontSize="12" className="ezh-fh">no source answered &mdash; only you can</text>
           </g>
         </svg>
       </div>
