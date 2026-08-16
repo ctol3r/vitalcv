@@ -192,7 +192,7 @@ stop (DESIGN-ONLY BOUNDARY).
    (rich). Extend; do not add. (SECURITY §2.1)
 3. **How does candidate state stay separate from source-backed truth?** Already structurally
    separate (candidate writes never touch `PersonProfile`); the leak is *downstream reads*
-   (`opportunityTruth.ts:1428`). (SECURITY §2.0)
+   (candidate-credential promotion lane; specifics in the local security note). (SECURITY §2)
 4. **How does confirmation change provenance without becoming verification?** `INFERRED` →
    `USER_ENTERED`/attested — a distinct state, never `VERIFIED`. (USER_JOURNEY §2)
 5. **Career Graph backlinks without another graph?** Yes for provenance/what-was-shared; `satisfies`
@@ -214,8 +214,8 @@ stop (DESIGN-ONLY BOUNDARY).
 12. **Can current consent/share/packet models implement purpose-bound authorization?** Representable
     on the sealed path (~7½/10); not *enforced* (revocation/expiry dead); the live path is weaker.
     Converge + wire, don't add. (SECURITY §5)
-13. **SSRF / signing-secret risk in Apply-with-VitalCV?** Yes — traced. Authenticated, admin-gated,
-    blind SSRF via client `callback_url`; predictable `'vcv-default-secret'` fallback; HTTP accepted;
+13. **SSRF / signing-secret risk in Apply-with-VitalCV?** Yes — a weakness class was traced end to end (authenticated, admin-gated today). Mechanism held in the local security note; remediation authorised 2026-08-16 and tracked in its own PR.
+    the outbound-webhook weakness class documented in the local security note (server-side request reachable from caller config; weak signing default; transport);
     the "safe" `EmployerWebhookConfig` path is dead code (field mismatch under `@ts-nocheck`). P1
     with a P0 trajectory once self-serve verification ships. (SECURITY §1 — flagged for separate
     remediation)

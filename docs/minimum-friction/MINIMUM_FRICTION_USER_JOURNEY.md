@@ -89,7 +89,7 @@ it?"*.
 ## 2. CV import — candidate, never truth
 
 **Today (PARTIAL):** `/holder` → "Add evidence" → `POST /api/documents/parse` (OCR default is a
-**stub**; `gpt-4o` only when `OCR_PROVIDER=openai`, silently falling back to stub on error) →
+**stub**; a hosted OCR model only when the OCR provider env is set, silently falling back to stub on error) →
 `CandidateCredential` (status `UNVERIFIED`) → confirm → `PENDING_VERIFICATION`. Extraction does
 **not** write `PersonProfile` — the boundary holds. (The full `packages/ingest` resume parser is
 DEAD/routeless.)

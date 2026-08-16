@@ -91,7 +91,7 @@ in repo) · **DO_NOT_BUILD**.
 | Primitive | Class | Anchor |
 |---|---|---|
 | `ApplyWithVitalCV` widget | **EXISTS (live on `/`)** | `components/apply/ApplyWithVitalCV.tsx` → legacy `BundleShareEvent` path |
-| Legacy share (`shareBundle`) | **EXISTS (weaker consent)** | `services/distribution/applyShareService.ts` — `@ts-nocheck`, SSRF/signing issues (SECURITY §1) |
+| Legacy share (`shareBundle`) | **EXISTS (weaker consent)** | the legacy outbound-share service — carries the security weakness class tracked in the local note + remediation PR (SECURITY §1, redacted) |
 | Sealed packet + consent | **EXISTS, enforcement DEAD** | `ApplicationPacket` + `ConsentGrant` + durable `AuditEvent` (Apply Intent path only) |
 | `ConsentReceipt` model | **NEW (does not exist)** | name survives only as `ApplicationPacket.consentReceiptId → AuditEvent.id` (no FK) |
 | `ReadinessSnapshot` (persisted) | **EXISTS** | `schema.prisma:959`; `readinessSnapshotService.issueReadinessSnapshot()` |
@@ -107,7 +107,7 @@ in repo) · **DO_NOT_BUILD**.
 | Data classification foundation | **DEAD (declarative, self-documents as not live)** | `apps/web/lib/security/dataClassificationFoundation.ts` |
 | Retention foundation | **DEAD (declarative)** | `apps/web/lib/security/retentionFoundation.ts` |
 | Redaction | **EXISTS (Sentry only)** | `packages/shared/observability/` `scrubEvent()` |
-| stdout log hygiene on share path | **PARTIAL/gap** | `applyShareService.ts` logs raw NPI + Clerk id; convention exists but unapplied |
+| stdout log hygiene on share path | **PARTIAL/gap** | the legacy share path logs identifiers that log-hygiene convention would mask; convention exists but unapplied |
 | Analytics (funnel) | **EXISTS, disciplined (no PII)** | `apps/web/lib/analytics/funnel.ts` |
 | LLM boundary | **EXISTS, gated (one live path)** | `api/matcha/cover-letter` — stated prefs only, no NPI/credential |
 | Account/PII deletion | **NEW (none)** | no account deletion, no DSAR path |

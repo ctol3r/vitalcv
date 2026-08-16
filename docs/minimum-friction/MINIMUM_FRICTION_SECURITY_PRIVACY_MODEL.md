@@ -17,189 +17,28 @@ findings; it does **not** implement enforcement. The one exception in urgency is
 
 ---
 
-## 1. CURRENT SHARE-PATH SECURITY AUDIT — findings (flagged for separate remediation)
+## 1. CURRENT SHARE-PATH SECURITY AUDIT — findings (REDACTED)
 
-This section verifies or falsifies the seven claims in the founder brief (§11) against the
-actual code, traced end to end. **Severity is stated conservatively.** Exploitability today is
-bounded by an authorization gate the brief did not mention; that gate, and its trajectory, are
-called out explicitly.
+The full share-path audit (files, line references, the SSRF characterisation, the signing-secret
+fallback, the dead webhook-config path, and the email-fallback finding) was moved OUT of this
+committed document by founder ruling (2026-08-16): exploit specifics do not belong in a PR or a
+committed doc. The repository was public until 2026-08-11 and the standing rule survives the switch
+to private.
 
-### 1.0 Files traced
+**Summary that is safe to state here:** the Apply-with-VitalCV outbound share/webhook path has a
+confirmed security weakness class (server-side request reachable from caller-influenced
+configuration, plus a weak-default signing fallback and an unclosed revocation link). It is
+**admin-gated today** — it requires an admin-only VERIFIED/DELEGATED NPI binding — so it is not an
+outsider-reachable hole in the current product. It becomes materially worse the moment self-serve
+NPI verification ships (Minimum Friction assurance rung A3), so it must be remediated **before**
+that work.
 
-- `apps/api/backend/src/services/distribution/applyShareService.ts` — the share service.
-- `apps/api/backend/src/routes/apply.ts` — the sole production caller (`POST /api/apply/share`).
-- `apps/api/backend/src/middleware/verifiedActor.ts` — `requireVerifiedClerkUserId`, `requireNpiAuthorization`.
-- `apps/api/backend/src/services/ownership/npiOwnershipState.ts` — what "authorized for an NPI" means.
-- `apps/api/backend/src/services/distribution/recipientResolution.ts` — server-side recipient resolution (C3).
-- `apps/api/backend/src/routes/ownership.ts` — how a binding becomes VERIFIED/DELEGATED.
-- `apps/api/backend/prisma/schema.prisma` — `EmployerWebhookConfig` model.
+**Where the detail lives:** a local-only, uncommitted note held by the coordinating session
+(`SHARE_PATH_SECURITY_FINDINGS_LOCAL_ONLY.md`). Remediation is tracked in its own security PR (see
+the PR that supersedes this stub); that PR references the local note, not this doc.
 
-### 1.1 The authorization gate that bounds everything below
-
-`POST /api/apply/share` (`apply.ts:89`) is **not** anonymous. Before any dispatch:
-
-1. `requireVerifiedClerkUserId(req)` — identity comes from the JWKS-verified Clerk session JWT,
-   never the `x-clerk-user-id` header; fails closed even while `CLERK_JWT_VERIFICATION` is
-   `off`/`shadow` (`verifiedActor.ts:72`).
-2. `requireNpiAuthorization(clerkUserId, npi, req)` — the caller must hold a **VERIFIED or
-   DELEGATED** `NpiOwnership` binding for the NPI being shared. A self-asserted `CLAIMED`
-   (pending) row does **not** authorize (`npiOwnershipState.ts:59`, `authorizesPrivateAccess`).
-
-**How a binding becomes VERIFIED/DELEGATED today:** only through `POST /api/ownership/verify`,
-which requires `requireVerifierRole(req)` — an **admin/verifier** action (`ownership.ts:258-284`).
-`VERIFIED_METHODS` also lists `NPPES_IDENTITY_MATCH` and `ISSUER_ATTESTED`, but **no code path
-writes either** (grep across `apps/api/backend/src` returns nothing outside the enum
-definition). There is no self-serve verification. The route comment says so outright:
-"no secure automated proof path exists yet."
-
-**Consequence for exploitability:** every finding below requires the actor to be a clinician
-whose NPI binding an admin has already verified. That is a small, vetted, pre-pilot population
-(the volunteer cohort), not the anonymous internet. This is **authenticated, admin-gated**
-abuse — real, but not a P0 mass-exposure today.
-
-**Trajectory (the reason this still matters now):** MF's own Progressive Identity Assurance
-ladder (§3 of this doc) proposes exactly the self-serve `NPPES_IDENTITY_MATCH` corroboration
-(assurance level A3) that the enum is already waiting for. **The moment self-serve verification
-ships, the gate opens and the SSRF below jumps from admin-gated to any-clinician.** Remediate
-the share path *before* building A3.
-
-### 1.2 Claim-by-claim verdict
-
-| # | Claim (brief §11) | Verdict | Evidence |
-|---|---|---|---|
-| A | `applyShareService.ts` is `@ts-nocheck` | **TRUE** | Line 1: `// @ts-nocheck`. The whole consequential share/webhook path is exempt from type checking. |
-| B | Webhook signing can fall back to a predictable default secret | **TRUE — and worse than stated** | Line 140: `config?.signingSecret ?? process.env.APPLY_WEBHOOK_DEFAULT_SECRET ?? 'vcv-default-secret'`. The literal `'vcv-default-secret'` is a public constant (repo was public until 2026-08-11). See §1.3 for why the per-org secret path never runs. |
-| C | Callback validation claims HTTPS but accepts HTTP | **TRUE** | `URL_RE = /^https?:\/\/.+/` (line 76) accepts `http://`; the rejection message (line 96) says "must be a valid https:// URL". The check and its own error message disagree. |
-| D | Caller-controlled callback URL may reach server-side `fetch()` | **TRUE** | `organization_context.callback_url` → `orgContext.callback_url` → `dispatchToOrganization` → `webhookUrl` → `fetch(webhookUrl, …)` (line 171). Only shape/length validation stands between client input and the socket. |
-| E | This is SSRF after tracing caller/auth/recipient | **TRUE (authenticated, admin-gated, blind)** | See §1.4. |
-| F | Redirects / private IPs / loopback / link-local / metadata / DNS rebinding / employer endpoints | **NO DEFENCES** | No allowlist, no IP filtering, no redirect control anywhere in `distribution/` (grep for `169.254`/`isPrivate`/`allowlist`/`redirect:` is empty). `fetch` uses undici's default `redirect: 'follow'` (up to 20 hops). |
-| G | Email fallback can send bundle info to a generic/global recipient | **TRUE** | `sendEmailFallback` sends to a single `process.env.APPLY_EMAIL_FALLBACK_TO` address (line 212), never the chosen organization. See §1.5. |
-
-### 1.3 Root cause amplifier — the "safe" webhook path is dead code
-
-`dispatchToOrganization` (line 128) looks up the enterprise webhook config:
-
-```ts
-const config = await prisma.employerWebhookConfig.findUnique({
-  where: { employerId: organizationId },
-  select: { webhookUrl: true, signingSecret: true, active: true },   // ← fields that do not exist
-}).catch(() => null);
-```
-
-The `EmployerWebhookConfig` model (`schema.prisma:2326`) actually has `secret` and `isActive`,
-**not** `signingSecret` and `active`. Selecting unknown fields makes Prisma reject the query;
-`.catch(() => null)` swallows the rejection, so **`config` is always `null`**. Therefore:
-
-- `webhookUrl = (config?.active ? config.webhookUrl : null) ?? orgContext.callback_url` **always
-  resolves to the client-supplied `callback_url`**. The registered, server-verified employer
-  webhook target is never consulted.
-- `signingSecret` is **never** the per-org secret — always the env default or `'vcv-default-secret'`.
-
-This is the `@ts-nocheck` (Claim A) directly causing Claims B–F: type checking would have caught
-`signingSecret`/`active`. The brief's preferred posture ("webhook targets come from verified
-organization configuration") is not merely absent — the code that *tries* to implement it is
-silently disabled. This matches the repo's own memory note *`ts_nocheck_hides_prisma_crashes`*
-and *untestable = defect*.
-
-> Runtime caveat: I did not execute this against a live database (documentation-only wave). The
-> field mismatch is confirmed against schema + code; the runtime "always null" conclusion follows
-> from Prisma's unknown-field validation behaviour and should be confirmed with one integration
-> test during remediation.
-
-### 1.4 SSRF characterization (do not overstate)
-
-**What it is:** a verified clinician calls `POST /api/apply/share` with
-`organization_context.callback_url` set to an internal target. The server issues a `POST` with a
-JSON body (the bundle summary — the caller's own NPI, name, readiness) to that URL. Reachable
-targets include `127.0.0.1`, `169.254.169.254` (cloud metadata), link-local, RFC-1918 hosts, and
-internal service names. Redirects are followed, enabling naive-allowlist bypass and DNS
-rebinding (there is no allowlist to bypass today, but this matters for any future fix).
-
-**Even the C3 "resolved recipient" path does not close it.** When `opportunityId` is supplied,
-`apply.ts:128-140` overwrites `organization_id`, `name`, and `purpose_of_use` from the verified
-opportunity — but **not `callback_url`**. The client-chosen callback survives server-side
-recipient resolution.
-
-**Why impact is bounded (blind, POST-only):**
-- The response **body is not returned** to the caller. Only `res.ok` (a boolean), the HTTP
-  status text on failure, connection-error messages, and timing are observable — persisted to
-  `BundleShareEvent.webhookStatus`/`webhookError` and surfaced in `ShareResult.webhookDelivered`.
-  So this is a **blind SSRF with a coarse oracle** (up/down, status class, latency), useful for
-  internal port/host enumeration, not a read primitive.
-- It is `POST`-only with a partly-attacker-controlled JSON body. Classic GET-based metadata
-  exf(IMDSv1) does not apply cleanly; GCP metadata needs a header the code does not send.
-- Population is admin-verified clinicians (§1.1).
-
-**Severity:** **P1** today (authenticated + admin-gated + blind), with a **P0 trajectory** once
-self-serve NPI verification ships. Recommend remediation *before* MF-WAVE progressive-assurance
-work, not after.
-
-### 1.5 Recipient-mismatch on the email fallback
-
-`sendEmailFallback` (line 206) sends to `process.env.APPLY_EMAIL_FALLBACK_TO` — one global
-mailbox — whenever the webhook is skipped or fails. It does **not** send to the organization the
-clinician authorized. The email contains the clinician's name, NPI, readiness, credential count,
-and a link to `/apply/{bundleId}`. Because `GET /api/apply/bundle/:bundleId` (`apply.ts:60`) has
-**no authentication** (capability-URL by unguessable UUID, returns full credentials until
-expiry), that link is a working, unauthenticated view of the bundle delivered to a party the
-clinician never chose. `APPLY_EMAIL_FALLBACK_TO` is ops-controlled (not attacker-controlled), so
-this is a **disclosure-to-wrong-recipient / consent-mismatch** issue, not arbitrary exfiltration.
-Neither `APPLY_EMAIL_FALLBACK_TO` nor `APPLY_WEBHOOK_DEFAULT_SECRET` appears in any committed env
-template, so their production values are unknown from the repo (no prod probe performed).
-
-### 1.5b Consent-integrity defects on the same live path (found while mapping the data model)
-
-Two further issues, both on the **legacy `BundleShareEvent` path that backs the live homepage
-Apply** (the sealed `ApplicationPacket`/`ConsentGrant` path is better but is only reachable via
-`/apply/[requestUri]` Apply Intents):
-
-- **Revocation does not close the public bundle link.** `revokeShare` sets
-  `BundleShareEvent.revokedAt`, and the UI copy promises "Revocation is immediate and permanent
-  for this share." But `GET /api/apply/bundle/:bundleId` (`apply.ts:60`, anonymous, backing the
-  public `/apply/<bundleId>` page) checks **only `expiresAt`, never `revokedAt`**. A revoked
-  bundle link keeps serving the full bundle until its 24h expiry. The revocation is enforced in
-  the employer review queue and the snapshot route, but not on the one surface the clinician was
-  handed. **This is a consent-integrity defect: the product tells the clinician a capability was
-  withdrawn while it still works.** Severity: **P1** (promise vs behaviour on a consent control).
-- **The apply-share audit is process-local.** `shareBundle` and `revokeShare` record only through
-  the in-memory `auditLedger.ts` (a module-level array). `POST /api/apply/share` and
-  `DELETE /api/apply/share/:shareId` write **zero** durable `prisma.auditEvent` rows — every
-  `BUNDLE_EXPORT`/`REVOCATION` entry vanishes on restart. The durable pattern exists two files
-  away (`passportEntity.ts`, `readinessSnapshot.ts`). For a disclosure/revocation event this is a
-  compliance-evidence gap, not an exploit. Severity: **P2**.
-- **`selectiveClaims` subset-sharing cannot do what its UI promises.** The Apply widget sends
-  `VcvCredential.credentialType` values (`NPI_IDENTITY`, `OIG_LEIE`, …) but the server filters on
-  `VcvCredentialDomain` enum members (`LICENSURE`, `IDENTITY`, …); only `MEDICARE_ENROLLMENT`
-  overlaps. A partial selection is expected to *fail* (Prisma rejects invalid enum members) rather
-  than over-disclose — so the fail-direction is safe — but the "share a subset" control is
-  effectively non-functional, and no test exercises `selectiveClaims` on the share path. This is a
-  **correctness/minimization gap**, not an exposure. Severity: **P3** (safe-fail, but the
-  minimization feature does not work).
-
-### 1.6 Recommended remediation (separate hardening PR, not MF-WAVE-01)
-
-Ordered, minimal, each independently shippable:
-
-1. **Remove `@ts-nocheck`** from `applyShareService.ts` and fix the resulting errors — this alone
-   surfaces the `signingSecret`/`active` mismatch (§1.3). *Highest leverage; do first.*
-2. **No predictable signing fallback.** If no configured secret exists, either sign with a real
-   per-org secret or **do not claim authenticated delivery** (omit the signature and mark the
-   delivery unauthenticated). Never sign with a literal constant.
-3. **Callback target policy.** Prefer verified `EmployerWebhookConfig` (once §1.3 is fixed) as the
-   only source of webhook URLs. If a client `callback_url` is retained at all: HTTPS-only (fix the
-   regex to match the message), block loopback/RFC-1918/link-local/metadata, resolve-then-pin the
-   IP, set `redirect: 'manual'` (or re-validate each hop), and enforce an egress allowlist.
-4. **Fix the HTTP/HTTPS regex** (`URL_RE`) to `^https:\/\/` so code and message agree.
-5. **Email fallback** must target the resolved organization, or be disabled until a per-org
-   contact exists; never a single global mailbox for consequential bundle links.
-6. **Reconsider unauthenticated `GET /api/apply/bundle/:bundleId`** — capability-URL is acceptable
-   for a recipient with no account, but pair it with expiry (already present) and revocation
-   enforcement at read time (verify `revokedAt` is checked on this path).
-
-These are hardening items. They are recorded here and in the final report; **MF-WAVE-00 does not
-implement them.**
-
----
+**Status:** flagged; remediation authorised by the founder 2026-08-16; not fixed in MF-WAVE-00
+(research-only wave).
 
 ## 2. AI truth-promotion boundary (candidate quarantine)
 
@@ -207,23 +46,16 @@ implement them.**
 
 ### 2.0 One live boundary violation to flag (P1, truth-promotion)
 
-The archaeology found a concrete place where unverified, AI-adjacent output already influences a
-decision surface — the exact defect this section exists to prevent:
+The archaeology found a concrete truth-boundary regression on the opportunity-matching surface:
+an unverified, AI-adjacent document upload the clinician has merely confirmed can reach the highest
+requirement level without source corroboration, and a nearby lane stores a *creation* timestamp in
+a field named `verifiedAt`. This is a `FALSE_TRUTH_PROMOTION`-class issue (zero-invariant #1) and is
+the clearest argument for the promotion contract below.
 
-> `apps/api/backend/src/services/opportunities/opportunityTruth.ts:1428` promotes a
-> `CandidateCredential` (status `PENDING_VERIFICATION`, an *unverified user upload*) to requirement
-> level **L3** when `overallConfidence >= 0.9`. That `overallConfidence` is **not a model output** —
-> it is a hardcoded per-regex-pattern constant (0.82–0.90) assigned in
-> `services/ai/documentPipeline.ts`. So a document the OCR/regex path parsed, which the clinician
-> has merely confirmed, can reach the highest requirement level on the opportunity-matching surface
-> without any source corroboration.
-
-This is a `FALSE_TRUTH_PROMOTION`-class issue (zero-invariant #1). It is not a share-path exploit;
-it is a truth-boundary regression on the matching surface, and it is the single clearest argument
-for the promotion contract below. Also note `services/trust/trustStateEngine.ts:1431` mints facts
-from the same lane with `source: 'DocumentIntelligence'` and `verifiedAt: cred.createdAt` — a
-*creation* timestamp stored in a field named `verifiedAt`. **Recommend: cap `CandidateCredential`
-at L2 (or gate L3 on real source corroboration) as a fast, isolated fix.** Flag, do not fix here.
+**File references, the exact promotion threshold, and the fix location are held in the local-only
+note** (`SHARE_PATH_SECURITY_FINDINGS_LOCAL_ONLY.md`), not committed here, per the same
+2026-08-16 redaction ruling. Recommended fast fix: cap the candidate lane at L2 or gate the top
+level on real source corroboration. Flag, do not fix here.
 
 ### 2.1 What exists to build the contract on (Q2/Q3, settled from code)
 
@@ -266,7 +98,7 @@ holds. The leak is *downstream reads* (§2.0), not the store.
 **Q6 — what metadata is genuinely missing?** Two things: (a) **source passage / provenance of
 inference** — nothing records "this claim came from chars 412–460 of page 2"; the closest is a
 whole-artifact `rawArtifactRef` + checksum. (b) **model identity** — the OCR path stores
-`overallConfidence`/`processingTimeMs` but never records that `gpt-4o` produced the text.
+the pipeline's confidence/timing fields but never records which model produced the text.
 `parserVersion` names the *parser*, not the *model*. These two fields are the real gap the promotion
 contract needs; everything else (confidence, artifact ref, timestamps, supersession) exists.
 
