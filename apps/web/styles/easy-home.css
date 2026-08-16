@@ -265,11 +265,29 @@
   max-width: 560px;
 }
 
+/* Mobile-first: the field is a COLUMN — input over button, each full width.
+   Relying on flex-wrap made the layout depend on the button's rendered text
+   width, which differs by a few px between font stacks/platforms; on CI the
+   row failed to wrap and the input's 240px min-width pushed it past a 390px
+   viewport. A column cannot overflow regardless of metrics. The row returns
+   at >=700px where there is room for it. */
 .ezh .ezh-field {
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  align-items: stretch;
   gap: 16px;
-  flex-wrap: wrap;
+}
+
+@media (min-width: 700px) {
+  .ezh .ezh-field {
+    flex-direction: row;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .ezh .ezh-npi-in {
+    min-width: 240px;
+  }
 }
 
 .ezh .ezh-npi-k {
@@ -278,7 +296,11 @@
 
 .ezh .ezh-npi-in {
   flex: 1;
-  min-width: 240px;
+  /* min-width:0 lets the flex item shrink below its intrinsic width; the
+     240px floor only applies once the row layout returns. max-width caps it
+     against any container. Both together make overflow impossible. */
+  min-width: 0;
+  max-width: 100%;
   background: transparent;
   border: 0;
   border-bottom: 1.5px solid var(--vt-home-f-ink);
