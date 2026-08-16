@@ -225,6 +225,29 @@ html[data-theme='dark'] {
   --vt-home-d-tactile-line: #AAA397;
   --vt-home-d-tactile-back: #D8D2C7;
   --vt-home-d-tactile-front: #FDFCF9;
+  /* ── Direction A — homepage route register, amendment E (2026-08-15) ──
+     Declared ahead of the recomposition per the A-1 lesson: the law and its
+     values land together; the consuming surface follows under the founder
+     visual gate. The D family above stays untouched as the historical record
+     until the recomposition PR removes its consumers.
+     `--vt-home-e-action` is an ACTION-INSTRUMENT colour, never a state. It is
+     deliberately outside the `--vt-accent*` namespace (the CD-3 indigo
+     contract governs that name), and `--vt-severity-critical` never renders
+     on the `/` scene register — the E row in the constitution carries the
+     rule; scene-token-contract.test.ts asserts the values stay distinct. */
+  --vt-home-e-ground: #FBFAF7;
+  --vt-home-e-ink: #141312;
+  --vt-home-e-dim: #5C5852;
+  --vt-home-e-rule: #E0DDD6;
+  --vt-home-e-panel: #FFFFFF;
+  --vt-home-e-action: #D92800; /* white label 4.94:1 */
+  --vt-home-e-action-label: #FFFFFF;
+  --vt-home-e-action-hover: #C42400; /* white label 5.83:1 */
+  --vt-home-e-action-press: #B22000; /* white label 6.78:1 */
+  --vt-home-e-band-text: #FBFAF7; /* on --vt-home-e-ink: 16.6:1 */
+  --vt-home-e-figure-line: #141312;
+  --vt-home-e-figure-dim: #5C5852;
+  --vt-home-e-figure-bar: #E6E2DA; /* blank value bars in drawn figures */
   /* Established DG-18.4 material-above-flow stop, made available to the live
      register; it is not a new layer in the seven-stop z scale. */
   --vt-z-raised: 10;
@@ -313,6 +336,11 @@ html[data-theme='dark'] {
   --vt-shape-control: 10px;
   --vt-shape-card:    20px;
   --vt-shape-panel:   24px;
+  /* Amendment E (2026-08-15): the scene-register page-action radius. Resolves
+     the A-2 (radius 0) vs Direction D (8px on `/`) seam: page actions on the
+     public scene register take THIS value; chrome instruments stay radius 0
+     per A-3. The EC-20 row cites this token, not a literal. */
+  --vt-shape-action-page: 8px;
 }
 
 /* Base Aliases */
