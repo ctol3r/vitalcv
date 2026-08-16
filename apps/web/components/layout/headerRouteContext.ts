@@ -17,6 +17,12 @@ export type HeaderAudience = 'clinician' | 'employer' | 'neutral';
 export interface HeaderCta {
   href: string;
   label: string;
+  /**
+   * A compact label for the glass rail on mobile, where the full contextual
+   * label would crowd the bar. Preserves the label-swap-by-route contract
+   * (EC-10 A-4) rather than collapsing every action to one generic word.
+   */
+  shortLabel?: string;
 }
 
 export interface HeaderRouteContext {
@@ -42,7 +48,11 @@ export interface HeaderRouteContext {
 }
 
 /** The clinician action — same destination and name the mobile CTA shipped with. */
-const CLINICIAN_CTA: HeaderCta = { href: '/onboarding', label: 'Build my profile' };
+const CLINICIAN_CTA: HeaderCta = {
+  href: '/onboarding',
+  label: 'Build my profile',
+  shortLabel: 'Build',
+};
 
 /**
  * The employer action mirrors the one honest action `/employers` itself
@@ -51,6 +61,7 @@ const CLINICIAN_CTA: HeaderCta = { href: '/onboarding', label: 'Build my profile
 const EMPLOYER_CTA: HeaderCta = {
   href: '/employers/request-access',
   label: 'Request organization access',
+  shortLabel: 'Request',
 };
 
 const matches = (pathname: string, prefix: string) =>

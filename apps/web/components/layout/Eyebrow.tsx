@@ -1,31 +1,35 @@
 'use client';
 
 /**
- * Eyebrow — the shared public chrome, rebuilt to the palantir.com header
- * grammar (founder directive 2026-08-09: "exact to palantir").
+ * Eyebrow — the shared public chrome, rebuilt as the v4 FLOATING GLASS RAIL
+ * (founder directive 2026-08-16: "build the glass rail"; EC-10 amendment A-4).
  *
- * There is no bar. The chrome is a zero-height sticky group whose instruments
- * float over the page: wordmark upper-left at the gutter, and a right cluster —
- * quiet sign-in, ONE dominant rectangular action (from headerRouteContext,
- * unchanged policy), and a fused pair of 40px square instruments (NPI lookup,
- * menu). The menu opens a full-viewport ink takeover that paints BELOW the
- * chrome — the same instruments stay live over it and the menu glyph becomes
- * the close control.
+ * The chrome is a single detached glass bar floating over the page: a fixed,
+ * centred, max-width frosted rectangle held 14px from the top. LEFT: the
+ * wordmark. MIDDLE: the durable primary link row (PRIMARY_NAV — Jobs, For
+ * employers, How it works, honest from any public route). RIGHT: quiet
+ * sign-in, the shield-check "Verify a shared record" affordance, the one
+ * contextual dominant action (Start with your NPI / Build my profile / Request
+ * organization access, swapped by route via headerRouteContext), and the menu
+ * trigger that opens the full index.
  *
- * Geometry is constant: scrolling and theme inversion change color only,
- * never position or size. Sections keep declaring their register through the
- * existing `data-header-theme` contract (useHeaderScene is unchanged); the
- * instruments invert over light bands and return over dark ones. While the
- * takeover is open the chrome holds the dark register — it sits on ink.
+ * Geometry is architecturally stable on scroll — content moves under the glass,
+ * the bar never moves; register/colour changes, position never. Sections keep
+ * declaring their treatment through the existing `data-header-theme` contract
+ * (useHeaderScene unchanged); the frost and instruments invert over dark bands
+ * and return over light ones. While the takeover is open the rail holds the
+ * dark register — it sits on ink.
  *
- * On mobile the wordmark stays upper-left and the control cluster pins to the
- * BOTTOM of the viewport (menu, lookup left; action right), matching the
- * reference exactly.
+ * The takeover is a full-viewport ink canvas painted BELOW the still-live rail
+ * (DOM order, no z-index). Its state machine is a single boolean: the trigger
+ * toggles it, Escape and a route change close it, the trigger glyph syncs
+ * ≡ → ×, and the overlay carries its own visible ✕ close (audit #56). Focus is
+ * trapped across the whole header — the rail instruments stay live over the
+ * takeover.
  *
- * Route membership is still owned by publicSurfaceRoutes.ts — this component
- * decides nothing about which routes carry chrome. Off the homepage a spacer
- * keeps page tops clear of the floating instruments; the homepage hero owns
- * its own clearance (easy-home.css).
+ * Route membership is still owned by publicSurfaceRoutes.ts. Off the homepage a
+ * spacer keeps page tops clear of the floating bar; the homepage hero owns its
+ * own clearance (easy-home.css).
  */
 
 import Link from 'next/link';
@@ -33,18 +37,10 @@ import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { getHeaderRouteContext } from '@/components/layout/headerRouteContext';
-import { NAV_GROUPS } from '@/components/layout/navDestinations';
+import { NAV_GROUPS, PRIMARY_NAV } from '@/components/layout/navDestinations';
 import { isPublicSurfacePath } from '@/components/layout/publicSurfaceRoutes';
 import { useOptionalRoleContext } from '@/components/auth/RoleContext';
 import { useHeaderScene } from '@/components/layout/useHeaderScene';
-
-/**
- * The home work surface announces its current beat through this event.
- * The chrome no longer narrates (the reference carries no center content);
- * the constant stays exported because the surface still dispatches it and
- * the composition manifest records the relationship.
- */
-export const HOME_BEAT_EVENT = 'vcv:home-beat';
 
 export default function Eyebrow() {
   const pathname = usePathname() ?? '/';
@@ -66,9 +62,9 @@ export default function Eyebrow() {
     menuButtonRef.current?.focus();
   }, []);
 
-  // Takeover behavior: scroll lock, Escape, focus containment. The trap spans
-  // the whole header — the floating instruments stay interactive over the
-  // takeover, exactly like the reference chrome.
+  // Takeover behaviour: scroll lock, Escape, focus containment. The trap spans
+  // the whole header — the floating rail instruments stay interactive over the
+  // takeover, so Tab cycles the menu destinations AND the live rail.
   useEffect(() => {
     if (!menuOpen) return;
     const previousOverflow = document.body.style.overflow;
@@ -80,7 +76,7 @@ export default function Eyebrow() {
         return;
       }
       if (event.key !== 'Tab' || !headerRef.current) return;
-      const focusables = headerRef.current.querySelectorAll<HTMLElement>('a, button');
+      const focusables = headerRef.current.querySelectorAll<HTMLElement>('a[href], button');
       if (focusables.length === 0) return;
       const first = focusables[0];
       const last = focusables[focusables.length - 1];
@@ -99,7 +95,7 @@ export default function Eyebrow() {
     };
   }, [menuOpen, closeMenu]);
 
-  // Route changes close the takeover.
+  // A route change closes the takeover.
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
@@ -111,7 +107,7 @@ export default function Eyebrow() {
   if (!isPublicSurfacePath(pathname)) return null;
 
   const cta = isHome
-    ? { href: '/#npi', label: 'Start with your NPI' }
+    ? { href: '/#npi', label: 'Start with your NPI', shortLabel: 'Start' }
     : route.cta;
 
   return (
@@ -123,14 +119,8 @@ export default function Eyebrow() {
         data-eb-stage={scene.stage}
         data-menu-open={menuOpen ? 'true' : 'false'}
       >
-        {/* The wide frosted rectangle the instruments sit inside. First child,
-            so everything after it paints on top — stacking is DOM order.
-            Decorative and inert: it must never intercept a click aimed at the
-            page beneath it. */}
-        <div className="vcv-eb__shape" aria-hidden="true" />
-
-        {/* The takeover paints next so the chrome instruments that follow it
-            in DOM order sit above it — again, no z-index. */}
+        {/* The takeover paints FIRST so the rail that follows it in DOM order
+            sits above it — no z-index. */}
         {menuOpen ? (
           <div
             id="vcv-eb-menu"
@@ -139,6 +129,24 @@ export default function Eyebrow() {
             aria-modal="true"
             aria-label="Index"
           >
+            <button
+              type="button"
+              className="vcv-eb-menu__close"
+              onClick={closeMenu}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                aria-hidden="true"
+              >
+                <path d="M3 3l10 10M13 3L3 13" />
+              </svg>
+              Close
+            </button>
             <nav className="vcv-eb-menu__grid" aria-label="Site index">
               {NAV_GROUPS.map((group) => (
                 <section key={group.id} className="vcv-eb-menu__col">
@@ -163,72 +171,80 @@ export default function Eyebrow() {
               ))}
             </nav>
             <p className="vcv-eb-menu__foot">
-              VitalCV &middot; Enter your NPI. VitalCV does the rest.
+              {/* Sign-in folds off the resting rail on mobile; the takeover keeps
+                  it reachable there. */}
+              <Link
+                href={isSignedIn ? workspaceHref : '/sign-in'}
+                className="vcv-eb-menu__foot-link"
+                onClick={closeMenu}
+              >
+                {isSignedIn ? 'Go to your workspace' : 'Sign in'}
+              </Link>
+              {' · '}Enter your NPI. VitalCV does the rest.
             </p>
           </div>
         ) : null}
 
-        <div className="vcv-eb__brand">
+        <nav className="vcv-eb__rail" aria-label="Primary">
           <Link href="/" className="vcv-eb__wordmark" aria-label="VitalCV home">
             VitalCV
           </Link>
-        </div>
 
-        <div className="vcv-eb__controls">
-          {/* Signed-in visitors get their workspace, not a sign-in prompt.
-              Resolves client-side only — the root layout must stay static
-              (static-marketing-cache-contract), so no auth() on the server. */}
-          {isSignedIn ? (
-            <Link href={workspaceHref} className="vcv-eb__signin">
-              Workspace
-            </Link>
-          ) : (
-            <Link href="/sign-in" className="vcv-eb__signin">
-              Sign in
-            </Link>
-          )}
-          {/* Every instrument draws its visible box in an inner span. The
-              reference's boxes are 40px; EC-5's floor is 44px. Rather than
-              choose, the interactive element is 44px and the painted box
-              stays 40px inside it — the geometry matches the reference and
-              the target clears the floor. eyebrow.css compensates the 2px of
-              transparent padding so the VISIBLE edges land on the gutter. */}
-          {cta ? (
-            <Link href={cta.href} className="vcv-eb__cta">
-              <span className="vcv-eb__cta-box">
-                <span className="vcv-eb__cta-long">{cta.label}</span>
-                <span className="vcv-eb__cta-short">Start</span>
-              </span>
-            </Link>
-          ) : null}
-          <div className="vcv-eb__cluster">
-            {/* The reference's search slot, mapped to VitalCV's real reviewer
-                tool: /verify (check a shared record's signature and claims). A
-                magnifier here read as "search" and opened a JWT verifier, so
-                the glyph now matches the destination. Geometry is unchanged
-                (EC-10) — only the glyph and label. */}
+          <div className="vcv-eb__links">
+            {PRIMARY_NAV.map((link) => (
+              <Link key={link.href} href={link.href} className="vcv-eb__link">
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="vcv-eb__end">
+            {/* Signed-in visitors get their workspace, not a sign-in prompt.
+                Resolves client-side only — the root layout stays static
+                (static-marketing-cache-contract), so no auth() on the server. */}
+            {isSignedIn ? (
+              <Link href={workspaceHref} className="vcv-eb__signin">
+                Workspace
+              </Link>
+            ) : (
+              <Link href="/sign-in" className="vcv-eb__signin">
+                Sign in
+              </Link>
+            )}
+
+            {/* The verify affordance: a shield-check, not a magnifier (#1430).
+                The public NPI check is VitalCV's one real lookup — a reviewer
+                confirming a shared record, never decorative. */}
             <Link
               href="/verify"
-              className="vcv-eb__icon-btn vcv-eb__lookup"
+              className="vcv-eb__icon-btn vcv-eb__verify"
               aria-label="Verify a shared record"
             >
-              <span className="vcv-eb__instr">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M8 1.5 2.75 3.4v3.9c0 3.05 2.15 5.4 5.25 6.7 3.1-1.3 5.25-3.65 5.25-6.7V3.4L8 1.5Z" />
-                  <path d="M5.9 7.9 7.4 9.4l2.9-3.1" />
-                </svg>
-              </span>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M10 2.5 4 5v4.2c0 3.5 2.5 6.3 6 8.3 3.5-2 6-4.8 6-8.3V5l-6-2.5Z" />
+                <path d="m7.3 9.7 1.9 1.9 3.5-3.7" />
+              </svg>
             </Link>
+
+            {cta ? (
+              <Link href={cta.href} className="vcv-eb__cta">
+                <span className="vcv-eb__cta-long">{cta.label}</span>
+                <span className="vcv-eb__cta-short">
+                  {cta.shortLabel ?? cta.label}
+                </span>
+              </Link>
+            ) : null}
+
             <button
               ref={menuButtonRef}
               type="button"
@@ -238,21 +254,18 @@ export default function Eyebrow() {
               aria-controls="vcv-eb-menu"
               onClick={toggleMenu}
             >
-              <span className="vcv-eb__instr">
-                <span className="vcv-eb__menu-glyph" aria-hidden="true">
-                  <i />
-                  <i />
-                  <i />
-                </span>
+              <span className="vcv-eb__menu-glyph" aria-hidden="true">
+                <i />
+                <i />
+                <i />
               </span>
             </button>
           </div>
-        </div>
+        </nav>
       </header>
-      {/* Off the homepage, page tops were composed under a 64px solid bar.
-          The floating chrome has zero footprint, so a spacer keeps those
-          compositions clear of the instruments. The homepage hero is a
-          full-bleed scene and owns its own clearance. */}
+      {/* Off the homepage, page tops were composed under a solid bar. The
+          floating rail has zero layout footprint, so a spacer keeps those
+          compositions clear of it. The homepage hero owns its own clearance. */}
       {!isHome ? <div className="vcv-eb__space" aria-hidden="true" /> : null}
     </>
   );

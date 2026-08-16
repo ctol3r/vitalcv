@@ -1,17 +1,17 @@
 // @vitest-environment jsdom
 
 /**
- * The floating-chrome eyebrow's contracts: public-route gating, the
- * dark/light register defaults, the single dominant action and its per-route
- * suppression, exactly one quiet sign-in, the fused instrument cluster (real
- * NPI lookup + menu toggle), the full-takeover index menu (toggle / Escape /
- * focus return / scroll lock / complete nav registry / forced dark register
- * while open), the off-home spacer, and the absence of any center content —
- * the reference chrome carries none.
+ * The floating GLASS RAIL's contracts (shared public chrome, v4 rebuild —
+ * EC-10 amendment A-4): public-route gating, the dark/light register defaults,
+ * the durable primary link row, the single dominant action and its per-route
+ * suppression, exactly one quiet sign-in, the shield-check verify affordance,
+ * and the full-takeover index menu (toggle / Escape / re-click / route change /
+ * focus return / scroll lock / visible ✕ close / complete nav registry / forced
+ * dark register while open).
  *
- * Geometry (zero-height sticky group, floating instrument positions constant
- * across scroll, mobile bottom cluster) is a browser measurement — pinned in
- * tests/e2e/eyebrow.spec.ts, not here.
+ * Geometry (the fixed centred glass bar, its 44px targets, its constant
+ * position across scroll, the mobile recomposition) is a browser measurement —
+ * pinned in tests/e2e/eyebrow.spec.ts, not here.
  */
 
 import React from 'react';
@@ -26,7 +26,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 import Eyebrow from '@/components/layout/Eyebrow';
-import { NAV_GROUPS } from '@/components/layout/navDestinations';
+import { NAV_GROUPS, PRIMARY_NAV } from '@/components/layout/navDestinations';
 
 let root: Root | null = null;
 let container: HTMLElement;
@@ -35,6 +35,12 @@ async function mount(node: React.ReactNode) {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
+  await act(async () => {
+    root!.render(node);
+  });
+}
+
+async function rerender(node: React.ReactNode) {
   await act(async () => {
     root!.render(node);
   });
@@ -67,12 +73,15 @@ const pressEscape = () =>
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   });
 
-describe('eyebrow gating and registers', () => {
-  it('renders the chrome on the homepage in the light register before section observation', async () => {
+describe('glass rail — gating and registers', () => {
+  it('renders the rail on the homepage in the light register before section observation', async () => {
     await mount(<Eyebrow />);
     const header = container.querySelector('header.vcv-eb');
     expect(header).not.toBeNull();
     expect(header!.getAttribute('data-eb-theme')).toBe('light');
+    const rail = container.querySelector('nav.vcv-eb__rail');
+    expect(rail).not.toBeNull();
+    expect(rail!.getAttribute('aria-label')).toBe('Primary');
   });
 
   it('renders nothing on ops surfaces', async () => {
@@ -88,19 +97,6 @@ describe('eyebrow gating and registers', () => {
     expect(header!.getAttribute('data-eb-theme')).toBe('light');
   });
 
-  it('renders the wide rectangle as inert decoration, on every public route', async () => {
-    for (const path of ['/', '/trust']) {
-      pathnameRef.current = path;
-      await mount(<Eyebrow />);
-      const shape = container.querySelector('.vcv-eb__shape');
-      expect(shape).not.toBeNull();
-      expect(shape!.getAttribute('aria-hidden')).toBe('true');
-      expect(shape!.textContent).toBe('');
-      expect(shape!.querySelector('a, button')).toBeNull();
-      await unmount();
-    }
-  });
-
   it('the homepage is full-bleed; every other public route gets the spacer', async () => {
     await mount(<Eyebrow />);
     expect(container.querySelector('.vcv-eb__space')).toBeNull();
@@ -112,10 +108,20 @@ describe('eyebrow gating and registers', () => {
   });
 });
 
-describe('the right cluster: one quiet sign-in, one action, fused instruments', () => {
+describe('the rail: wordmark, the durable link row, the right cluster', () => {
+  it('carries the primary link row — every PRIMARY_NAV destination, honestly reachable', async () => {
+    await mount(<Eyebrow />);
+    const links = container.querySelector('.vcv-eb__links');
+    expect(links).not.toBeNull();
+    for (const link of PRIMARY_NAV) {
+      expect(links!.querySelector(`a[href="${link.href}"]`)).not.toBeNull();
+    }
+  });
+
   it('carries exactly one sign-in link', async () => {
     await mount(<Eyebrow />);
-    expect(container.querySelectorAll('a[href="/sign-in"]').length).toBe(1);
+    // One in the resting rail; the takeover foot adds another only while open.
+    expect(container.querySelectorAll('.vcv-eb__rail a[href="/sign-in"]').length).toBe(1);
   });
 
   it('the homepage action is Start with your NPI, pointing at the real entry', async () => {
@@ -126,13 +132,17 @@ describe('the right cluster: one quiet sign-in, one action, fused instruments', 
     expect(cta!.textContent).toContain('Start with your NPI');
   });
 
-  it('never renders two dominant actions', async () => {
+  it('swaps the action label by route and never renders two dominant actions', async () => {
     for (const path of ['/', '/trust', '/pricing', '/verify/1234567893']) {
       pathnameRef.current = path;
       await mount(<Eyebrow />);
       expect(container.querySelectorAll('.vcv-eb__cta').length).toBeLessThanOrEqual(1);
       await unmount();
     }
+
+    pathnameRef.current = '/pricing';
+    await mount(<Eyebrow />);
+    expect(container.querySelector('.vcv-eb__cta')!.textContent).toContain('Build my profile');
   });
 
   it("suppresses the action on the action's own destination", async () => {
@@ -144,26 +154,22 @@ describe('the right cluster: one quiet sign-in, one action, fused instruments', 
     }
   });
 
-  it('the verify instrument points at /verify and is labelled for what it does', async () => {
+  it('the verify affordance is the shield-check, not a magnifier (#1430)', async () => {
     await mount(<Eyebrow />);
-    const lookup = container.querySelector('.vcv-eb__lookup');
-    expect(lookup).not.toBeNull();
-    expect(lookup!.getAttribute('href')).toBe('/verify');
-    // The glyph and label describe /verify (check a shared record), not an NPI
-    // search — a magnifier that opened the JWT verifier was a broken affordance.
-    expect(lookup!.getAttribute('aria-label')).toBe('Verify a shared record');
-    expect(lookup!.getAttribute('aria-label')).not.toMatch(/search|look up/i);
+    const verify = container.querySelector('.vcv-eb__verify');
+    expect(verify).not.toBeNull();
+    expect(verify!.getAttribute('href')).toBe('/verify');
+    expect(verify!.getAttribute('aria-label')).toBe('Verify a shared record');
+    // A magnifier that opened the JWT verifier was a broken affordance (#1430).
+    expect(verify!.getAttribute('aria-label')).not.toMatch(/search|look up/i);
   });
 
-  it('carries no center content: no ticker, no route cue, no link row', async () => {
+  it('carries no legacy center content — no ticker, no route cue', async () => {
     for (const path of ['/', '/pricing']) {
       pathnameRef.current = path;
       await mount(<Eyebrow />);
       expect(container.querySelector('.vcv-eb__ticker')).toBeNull();
       expect(container.querySelector('.vcv-eb__context')).toBeNull();
-      expect(container.querySelector('.vcv-eb__center')).toBeNull();
-      expect(container.querySelectorAll('.vcv-eb__navlink')).toHaveLength(0);
-      expect(container.querySelector('nav[aria-label="Primary"]')).toBeNull();
       await unmount();
     }
   });
@@ -188,6 +194,18 @@ describe('the full-takeover index menu', () => {
         expect(menu!.querySelector(`a[href="${link.href}"]`)).not.toBeNull();
       }
     }
+  });
+
+  it('carries a visible close control (audit #56)', async () => {
+    await mount(<Eyebrow />);
+    await click(trigger());
+    const close = container.querySelector('.vcv-eb-menu__close');
+    expect(close).not.toBeNull();
+    expect(close!.tagName).toBe('BUTTON');
+    expect(close!.textContent).toContain('Close');
+    await click(close!);
+    expect(container.querySelector('#vcv-eb-menu')).toBeNull();
+    expect(document.body.style.overflow).toBe('');
   });
 
   it('forces the dark register while open — the chrome sits on ink', async () => {
@@ -221,16 +239,24 @@ describe('the full-takeover index menu', () => {
     expect(document.body.style.overflow).toBe('');
   });
 
-  it('paints shape → takeover → instruments in DOM order — no z-index war', async () => {
+  it('a route change closes the takeover and restores scroll', async () => {
+    await mount(<Eyebrow />);
+    await click(trigger());
+    expect(container.querySelector('#vcv-eb-menu')).not.toBeNull();
+    pathnameRef.current = '/trust';
+    await rerender(<Eyebrow />);
+    expect(container.querySelector('#vcv-eb-menu')).toBeNull();
+    expect(document.body.style.overflow).toBe('');
+  });
+
+  it('paints takeover → rail in DOM order — no z-index war', async () => {
     await mount(<Eyebrow />);
     await click(trigger());
     const header = container.querySelector('header.vcv-eb')!;
     const children = Array.from(header.children).map((el) => el.className || el.id);
-    const shapeIndex = children.findIndex((c) => String(c).includes('vcv-eb__shape'));
     const menuIndex = children.findIndex((c) => String(c).includes('vcv-eb-menu'));
-    const brandIndex = children.findIndex((c) => String(c).includes('vcv-eb__brand'));
-    expect(shapeIndex).toBe(0);
-    expect(menuIndex).toBeGreaterThan(shapeIndex);
-    expect(brandIndex).toBeGreaterThan(menuIndex);
+    const railIndex = children.findIndex((c) => String(c).includes('vcv-eb__rail'));
+    expect(menuIndex).toBeGreaterThanOrEqual(0);
+    expect(railIndex).toBeGreaterThan(menuIndex);
   });
 });

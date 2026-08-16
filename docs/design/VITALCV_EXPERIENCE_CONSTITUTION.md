@@ -69,7 +69,7 @@ AA minimum everywhere. Every state legible in grayscale and to a screen reader w
 
 ### EC-6. Mobile is designed independently
 
-Every priority flow is composed for a 390px device deliberately — never stacked desktop. No horizontal scroll from 360px up. The chrome recomposes deliberately: identity stays at the top gutter and the control cluster pins above the viewport bottom, with the page reserving clearance so no control is ever covered (EC-10, A-2).
+Every priority flow is composed for a 390px device deliberately — never stacked desktop. No horizontal scroll from 360px up. The chrome recomposes deliberately: the glass rail stays ONE detached bar at the top, narrower, with the link row and standalone sign-in folded into the takeover and the action shortened, and the page reserving clearance so no control is ever covered (EC-10, A-4).
 
 ### EC-7. Ownership and control — presentation preserves the controller
 
@@ -106,22 +106,30 @@ The machine-checkable subset is planned as `scripts/copy-rules.json` (UX-16) —
 
 ### EC-10. The eyebrow — structural form is invariant
 
-**Amended 2026-08-09 (A-2), superseding the continuous-bar clause on the founder's direct
-directive ("exact to palantir.com", and "the top bar in a wide rectangle shape").** The site
-chrome is a **wide rounded rectangle floating over the page**: a zero-height sticky layer, no
-full-bleed bar and no bottom rule, carrying one inset rounded rectangle — the chrome's single
-surface — with the instruments floating inside it. LEFT: restrained identity (wordmark at the
-gutter). MIDDLE: nothing — the chrome carries no center content. RIGHT: quiet sign-in + at most
-one dominant rectangular action and a fused pair of square instruments (real lookup, menu). The
-rectangle is frosted, decorative, and inert: it never carries text, never intercepts a click, and
-its geometry is architecturally stable on scroll (register/colour may change, position never).
-Menu opens as a full-takeover canvas that paints BELOW the still-live chrome and over the
-rectangle. Mobile recomposes deliberately: the rectangle goes full-bleed and square, identity
-stays inside it up top, and the control cluster pins to the viewport bottom.
+**Amended 2026-08-16 (A-4), superseding A-2/A-3's zero-height "palantir" group on the founder's
+direct directive ("build the glass rail", 2026-08-16).** The site chrome is a **single detached
+glass bar floating over the page**: one fixed, centred, max-width frosted rectangle held a short
+offset from the top, carrying its instruments INSIDE it in flow — not floating over an inert
+rectangle, as A-2 had it. LEFT: restrained identity (the wordmark). MIDDLE: a short, durable
+primary link row, subordinate to identity and action — never the main event. RIGHT: quiet
+sign-in, the real verify affordance, at most one dominant action, and the menu trigger. The bar
+is frosted chrome (A-1) that degrades to a solid panel; its geometry is architecturally stable on
+scroll — content moves beneath the glass, the bar never moves (register/colour may change,
+position never). Menu opens as a full-takeover canvas that paints BELOW the still-live rail, with
+a visible close control. Mobile recomposes deliberately: the rail stays ONE object at the top,
+narrower, with the link row and standalone sign-in folded into the takeover.
 
-**Banned forms (unchanged):** floating rounded container, SaaS pills, centered-link-row-as-main-event, backdrop-blur-navbar-with-thin-line, ordinary hamburger sheet.
+**Banned forms:** a horizontal link row *as the main event*, SaaS status pills, a decorative
+navbar carrying no product action, an ordinary slide-out hamburger sheet (the takeover is the full
+index, not a partial drawer). **A-4 retires the ban A-2 wrote against exactly this shape:** a
+floating rounded glass container and a backdrop-blurred bar are now the REQUIRED chrome form, on
+the founder's directive — enforcing the old line against the founder-ordered rail is the
+"guard enforcing retired doctrine" failure this document exists to prevent.
 
-Exact geometry inside this form — offset values, gutter value, instrument sizes, corner language, inversion behavior — is Class B and locks in EC-20. Shared chrome remains founder-gated: this amendment implements the founder's 2026-08-09 directive and itself lands only through the founder visual gate.
+Exact geometry inside this form — offset, width cap, gutter, control sizes, corner language,
+inversion behaviour — is Class B and locks in EC-20 (amended A-4). Shared chrome remains
+founder-gated: this amendment implements the founder's 2026-08-16 directive and itself lands only
+through the founder visual gate — the rendered rail still owes a FOUNDER VISUAL DECISION on its PR.
 
 ### EC-11. Value before commitment, and the four asymmetries
 
@@ -193,7 +201,7 @@ The **structure** is locked now. The **values** are filled from the UX-01 verdic
 | Typography — display / body / mono faces | **Geist** (400/500/600) for display and body; **Geist Mono** (400/500) for machine facts and micro-labels | LOCKED |
 | Type scale | Anchors from the verdict reference: hero h1 44–52px desktop / 30–34px mobile; micro-labels 11px mono uppercase `+0.08em`. Full ramp finalized in UX-02 within these anchors | LOCKED ANCHORS · ramp in UX-02 |
 | Grid + page width | Full-width hairline-ruled band composition; content max ~1400px. Precise grid in UX-02 | LOCKED · grid in UX-02 |
-| Eyebrow exact geometry (within EC-10's form) | **Amended 2026-08-09 (A-2, then A-3)**, superseding "64px desktop / 56px mobile, contextual product-state middle zone". Zero-height floating group. **The rectangle:** inset 10px left and right **but capped at 1480px wide and centred above that cap (A-3)**, held 16px from the top, 70px tall, 10px radius (`--vt-shape-control`), frosted (`backdrop-filter: blur(10px)` over a ~10% neutral scene mix), `pointer-events: none`. **Inside it:** instruments centred (painted boxes at y 31), and **every instrument measures from the RECTANGLE's edge, not the viewport's — 20px inside it on both sides (A-3)**, which still reads as the familiar 30px gutter at any width below the cap. Dominant action 40px tall × 205px minimum with a 16px/400 label, square instruments 40 × 40px with fused 1px borders, 30px between the action and the cluster; radius 0 on every instrument; no bottom rule, no centre content. **The takeover's columns ride the same band (A-3).** **Mobile:** rectangle full-bleed, square, 65px tall at the top — the band collapses there, so identity sits at the 20px gutter from the viewport edge; control cluster fixed 20px above the viewport bottom with the page reserving clearance. **All dimensions here are the PAINTED box**; interactive elements carry a 2px transparent ring so the target measures 44px (EC-5) while the painted box measures the reference value | LOCKED (amended A-3) |
+| Eyebrow exact geometry (within EC-10's form) | **Amended 2026-08-16 (A-4)**, superseding A-2/A-3's zero-height floating group and every dimension it recorded (1480 cap, 70px inert rectangle, 205px action, radius-0 square instruments, bottom-pinned mobile cluster). **The glass rail:** a single `position: fixed` bar — `top: 14px`, `left: 50%` + `translateX(-50%)`, `width: calc(100% - 40px)` (20px inset each side), **capped at 1400px** (the content column, EC-20 grid row) and centred above the cap; rounded `--vt-shape-card` (20px), frosted (`backdrop-filter: blur(14px)` over a register-aware `color-mix`, degrading to a solid panel via `@supports`), soft `--vt-shadow-card` lift. **Inside it, in flex flow:** the wordmark (18px/600 Geist); the durable PRIMARY_NAV link row (`--vt-shape-action-page` 8px word-labels); then a right cluster — quiet sign-in, the shield-check verify affordance (44×44), the ONE dominant action (filled, `--vt-shape-control` 10px: paper-inverse over dark, ink over paper, never green/indigo), and the menu trigger (44×44). **Every control measures ≥44px (EC-5) as its real box** — no transparent-ring trick; the bar is ~60px tall. **Tablet (≤900px):** the inline link row folds into the takeover. **Mobile (≤767px):** the rail stays ONE bar at `top: 10px`, `calc(100% - 20px)` wide, `--vt-shape-control` radius; the link row and standalone sign-in fold into the takeover; the action shortens to its `shortLabel`. **The takeover rides the same centred, capped band** and carries a visible ✕ close (audit #56) | LOCKED (amended A-4) |
 | Button grammar (primary/secondary/quiet/destructive; ≥44px targets locked via EC-5) | Primary = solid work-green square-cornered instrument with AA-corrected near-black ink (reference `#4ADE97`; solid `#2E9E6B` + off-white recorded as the alternative); secondary = hairline outline; quiet = text. Exact styles in UX-02 | LOCKED STRUCTURE · styles in UX-02 |
 | Rule/border treatment | 1px hairlines structure panels and bands (`#2E2F33` on the graphite register) | LOCKED |
 | Icon family | **Consolidate to one family in UX-02.** Two are installed today: `lucide-react` (imported by 330 `apps/web` files) and `@blueprintjs/icons`; 47 components also carry inline `<svg>`. Whichever wins must satisfy the locked grammar — 1px hairline weight, near-sharp 0–3px, no glass, no gradient, no glow — and the loser is removed, not left resident. Design review picks; this row records the constraint and the count | DEFERRED · UX-02 owns · constraint locked |
@@ -669,7 +677,7 @@ by amending the law it cites:**
 | 4 | Illustrative reads from **ABIM/ABMS** (not integrated), **NPDB** (banned noun), California `A-96421` / Oregon `MD187254` licences with expiry dates, **UCSF Health** privileges, **Meridian Health** recipient, `PKT-…` ids, `sha256` hashes, `vitalcv.com/verify/…` URLs, fixture clocks, OIG "no match returned" | The REAL registry lanes only (NPPES read live · OIG/LEIE monthly snapshot · PECOS quarterly snapshot · state licensure access-gated · employment/board-cert not read), blank bars for every value, no ids/hashes/URLs/clocks, no employer names, no depicted OIG response | EC-3, EC-25.2/3; NPDB ban; the no-fixture-clock rule |
 | 5 | A six-state legend including **"Adverse · under dispute"**; heading "Six states, no others" | Five states; heading **"Five states, no others"**; Confirmed→**Source-confirmed**, Needs attention→**Needs you**, Snapshot keeps its cadence inside the value | Never teach a state the product cannot produce; EC-3 state-vocabulary freeze |
 | 6 | Motion default **ambient** (infinite ECG draw, packet-travel, link-dash, beat-tick loops) | **Ambient loops IMPLEMENTED** (founder ruled "Allow ambient loops", 2026-08-16, after the initial single-shot port): the four `body.mo-amb` behaviours run inside `.ezh-fig-art` illustration art; reduced motion stops all of them | Initially shipped single-shot under EC-29's no-loop rule; the founder ruled to allow ambient, and **EC-29 was amended in the same PR (F.1)** to permit bounded ambient illustration loops on the `/` scene register — scoped to figures only (EC-4), reduced-motion-killed |
-| 7 | A **floating glass nav rail** (fixed, rounded, frosted) | **Not ported** — the existing shared eyebrow chrome stays. The rail is recorded as a gap: it needs a separate founder chrome ruling (EC-10 bans the floating rounded container form, and shared chrome is founder-gated) | EC-10, A-2/A-3; `FOUNDER_VISUAL_GATE.md` |
+| 7 | A **floating glass nav rail** (fixed, rounded, frosted) | **PORTED — gap closed by amendment A-4 (2026-08-16).** F correctly recorded this as needing a separate founder chrome ruling; the founder then gave it ("build the glass rail"), so the rail is now VitalCV's shared public chrome and EC-10's ban on the floating rounded container is retired. The rail is chrome-only — it does not touch this route's register, which stays F's warm paper | EC-10 + EC-20 eyebrow-geometry row, **amended A-4**; `FOUNDER_VISUAL_GATE.md` (the rendered rail still owes a founder visual decision) |
 | 8 | Intro claims "a real proof packet"; button **"Open a real public packet"** | The section is explicitly illustrative ("This is not a real submission"), values are blank bars, and the quiet link points at the real public surface, `/verify` | Packet receipts ship dark; `decisionGrade: false` is untouchable; EC-25.4 |
 | 9 | Google Fonts `<link>`s; React/Babel tweaks scaffolding | Self-hosted `next/font/local` faces already in `app/fonts/`; no scaffolding | EC-20 font-delivery row |
 | 10 | Section H2 vocabulary: "A job board that reads your credentials…" (carried from E) | **"Roles, read against your record — not your keywords."** — the noun "job board" is banned from the route | Founder UX audit 2026-08-16: VitalCV is not a job board; the noun hands the category away |
@@ -677,7 +685,9 @@ by amending the law it cites:**
 | 12 | NPI input placeholder `0000000000` | Placeholder `··· ··· ····` (the 3-3-4 mask) | The homepage renders no ten-digit sequence (masked-NPI rule) |
 | 13 | Idle resolution fixture: 8 invented reads with timestamps ("read 14:02 today", "Local time 14:02 · 2026-08-10") | The idle ledger is the real registry with **nothing read yet**: seven ○ Not checked rows + one ⊘ Access required (licensure), tally 7/1/0, log "Idle. No source has been queried."; no clock anywhere | EC-3 (numbers/times only from real returns); the request-clock trap |
 
-**Deliberately not changed:** EC-10/A-3 shared-chrome geometry and its frost;
+**Deliberately not changed:** EC-10/A-3 shared-chrome geometry and its frost
+(true as of F — **subsequently superseded by A-4**, which ported the rail on the
+founder's chrome ruling; F's own row 7 above records the closure);
 A-1's indigo-carries-focus rule; LINT-15's green-action ban; the film and
 career-loop rollback variants and their stylesheets; the opportunity-feed
 truth contract (honest SSR pending state, source labels, observation times,
@@ -884,6 +894,48 @@ Class A clauses and locked EC-20 rows change only by editing this file with a da
 Subjective July-era taste is not encoded as CI law before the reset direction is chosen. The `check-design-lint.ts` port from `.worktrees/retire-speed-claim` is scoped to the objective list above; taste rules from wave-1505's set (pill radii, shadow discipline, dark-on-public) join CI only if and when the verdict locks the matching EC-20 row. Proof obligation stands: a deliberately-violating PR must fail CI on every objective count before the gate is considered live.
 
 ### EC-24. Records
+
+- **A-4 — the floating glass rail, on founder directive (2026-08-16).** EC-10's structural form
+  and EC-20's eyebrow-geometry row move from `amended A-3` to `amended A-4`, and EC-10's
+  banned-forms list is rewritten. The founder's directive was plain: **"build the glass rail"**
+  (2026-08-16) — the v4 homepage's `.vt-rail` chrome, adopted as VitalCV's shared public chrome.
+
+  **What it supersedes.** A-2 built the chrome as a *zero-height sticky group* of absolutely-
+  positioned instruments floating over an inert frosted rectangle, exact to palantir.com; A-3
+  capped that rectangle at 1480 and made the instruments band-relative. A-4 replaces the FORM: the
+  chrome is now a single detached glass BAR — one `position: fixed` element carrying its
+  instruments in flow — not a group over a decorative rectangle. Every A-2/A-3 dimension retires
+  with it (1480 cap → the 1400 content column; 70px inert rectangle → ~60px live bar; radius-0
+  square instruments → soft-cornered rail controls; the bottom-pinned mobile cluster → a single
+  top bar). The retired treatment is parked, not deleted (`PARKED_VISUAL_ERAS.md`); revert restores
+  the eyebrow.
+
+  **The banned-forms reversal is the load-bearing change.** A-2's EC-10 list banned exactly this
+  shape — "floating rounded container" and "backdrop-blur-navbar-with-thin-line" — a line written
+  when the palantir grammar was the target. The founder's directive supersedes it, so the same PR
+  that ships the rail amends the list (EC-22 same-PR rule): those two forms are now the REQUIRED
+  chrome, and the ban is retired. Shipping the rail while EC-10 still forbade it would leave
+  `origin/main` contradicting its own rejection law — the exact failure EC-22 exists to stop.
+
+  **What A-4 does NOT change.** The register mechanism is untouched: sections still declare
+  `data-header-theme`, useHeaderScene reflects it onto `data-eb-theme`, and the frost + instruments
+  invert over dark bands and return over light ones — the rail is legible over warm paper and over
+  the dark takeover it floats on. Glass stays chrome-only (A-1): the rail frosts, evidence surfaces
+  do not, and the frost degrades to a solid panel where `backdrop-filter` is unsupported. The action
+  stays off green (LINT-15) and off indigo (A-1) — it is the warm-paper inverse, filled. The verify
+  affordance is the shield-check "Verify a shared record" (#1430), not reverted to a magnifier.
+  Every control is a real ≥44px box (EC-5). The takeover is the full index with a focus trap,
+  Escape, route-change close, and now a visible ✕ (audit #56).
+
+  **The mobile decision, recorded.** The retired eyebrow split identity to the top and pinned the
+  controls to the viewport bottom. The rail is a single object and stays one bar at the top on
+  mobile — narrower, with the link row and standalone sign-in folded into the takeover and the
+  action shortened. Splitting it would break its identity as one detached bar; this is a deliberate
+  choice, not an omission.
+
+  **Founder gate.** This amendment records the founder's authorization of the FORM; the RENDERED
+  rail still owes a FOUNDER VISUAL DECISION on its PR (`FOUNDER_VISUAL_GATE.md`). Shared chrome is
+  founder-gated; A-4 lands only through that gate.
 
 - **E — the Direction A homepage register, on founder verdict (2026-08-15).** Four rendered
   rounds, one winner, three rulings, and a freeze. The founder judged three live directions

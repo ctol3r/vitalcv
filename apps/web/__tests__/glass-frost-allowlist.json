@@ -21,12 +21,19 @@
     "The list is explicit rather than pattern-matched. Guessing a surface's class from",
     "its filename is how a proof row ends up frosted.",
     "",
-    "NEVER addable here: the eyebrow's blurred-bar-with-a-thin-rule form. EC-10 lists",
-    "'backdrop-blur-navbar-with-thin-line' under 'Banned forms (unchanged)' and EC-10 is",
-    "Class A — A-2 amending the chrome's shape did not license that composite."
+    "AMENDED 2026-08-16 (A-4). This comment used to read: 'NEVER addable here: the",
+    "eyebrow's blurred-bar-with-a-thin-rule form. EC-10 lists backdrop-blur-navbar-with-",
+    "thin-line under Banned forms (unchanged) and EC-10 is Class A.' That ban was",
+    "RETIRED by EC-10 amendment A-4 on the founder's directive ('build the glass rail',",
+    "2026-08-16): the floating frosted bar is now the REQUIRED shared-chrome form, not a",
+    "banned one. Leaving the sentence would have made this file the very thing its own",
+    "header warns about — a guard citing repealed law, converting founder-ordered work",
+    "into blocked work. The A-1 condition it protected is unchanged and still enforced",
+    "below: chrome may frost only if it degrades."
   ],
   "frostPermitted": {
-    "styles/band-system-components.css": "Scene-register component island. `.bs-surface` is the floating chrome/overlay container; A-1 permits frost there and the file binds --vt-frost-bg with a color-mix fallback."
+    "styles/band-system-components.css": "Scene-register component island. `.bs-surface` is the floating chrome/overlay container; A-1 permits frost there and the file binds --vt-frost-bg with a color-mix fallback.",
+    "styles/eyebrow.css": "THE shared public chrome — the floating glass nav rail (EC-10 + EC-20 eyebrow-geometry row, amended A-4, 2026-08-16). A-1 permits frost on chrome; A-4 requires this form. The rail's surface is built from color-mix over scene tokens AND carries an explicit `@supports not (backdrop-filter)` fallback to a solid panel, so it satisfies A-1's degradation condition twice over. Moved here from the ratcheted tail, where it sat as the old eyebrow's single unreviewed blur: it is chrome, which is the class this list exists to name."
   },
   "$removedComment": [
     "styles/easy-home.css left this list with the amendment E recomposition",
