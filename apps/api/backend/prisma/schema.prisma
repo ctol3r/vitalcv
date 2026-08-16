@@ -506,10 +506,6 @@ model Opportunity {
   /// public feed and NOBODY at that employer has stated anything to VitalCV.
   /// The read path branches on this so feed rows never claim employer-backed
   /// provenance, and never publish derived guesses as employer requirements.
-  /// The profession the EMPLOYER stated, when the feed carries one. Null
-  /// means they said nothing and the read path falls back to classifying
-  /// the title — never a claim the employer made.
-  statedProfession String?  @map("stated_profession")
   listingSource    String    @default("employer_posted") @map("listing_source")
   sourceFeed       String?   @map("source_feed")
   sourceRef        String?   @map("source_ref")

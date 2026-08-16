@@ -39,7 +39,6 @@ const listing: FeedListing = {
   remote: false,
   description: 'Inpatient internal medicine.',
   specialty: 'Medical Officer',
-  profession: null,
   payMin: 250000,
   payMax: 320000,
   postedAt: new Date('2026-07-28T00:00:00Z'),

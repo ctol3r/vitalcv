@@ -310,32 +310,49 @@ describe('structured opportunity columns are authoritative', () => {
   });
 });
 
-describe('stated profession overrides the title classifier', () => {
-  const truthFor = (statedProfession: string | null) => buildOpportunityTruth({
-    opportunity: {
-      ...makeOpportunityRecord(),
-      title: 'Family Medicine Physician',
-      statedProfession,
-    },
-    now: new Date('2026-03-20T00:00:00.000Z'),
+describe('profession comes from the title, and a feed metadata field may not override it', () => {
+  /**
+   * This looks like a missing feature. It is a measured decision — see the
+   * 20260816220000 migration.
+   *
+   * Greenhouse employers fill a `Clinician Type` metadata field, and reading it
+   * shipped in #1435 and was reverted the same day. Measured against the live
+   * roster, of the jobs carrying a single-valued Clinician Type:
+   *
+   *   249  agreed with what the title already produced   (redundant)
+   *     0  resolved a title the classifier could not read (no new coverage)
+   *     6  CONTRADICTED the title                         (actively wrong)
+   *
+   * In all 6 the metadata was the wrong half: "Per Diem Family Medicine
+   * Physician" tagged `NP or PA`, and "Nurse Practitioner or Physician
+   * Assistant" tagged `MD or DO`. Preferring it hid roles from exactly the
+   * clinicians they were written for.
+   *
+   * A source that adds nothing and is wrong 6 times is not a better source.
+   * Before wiring this field again, re-measure those three numbers.
+   */
+  it('classifies an "or" title as advanced practice, which is who it is written for', () => {
+    const truth = buildOpportunityTruth({
+      opportunity: {
+        ...makeOpportunityRecord(),
+        title: 'Casual Nurse Practitioner or Physician Assistant',
+      },
+      now: new Date('2026-03-20T00:00:00.000Z'),
+    });
+    expect(truth.profession).toBe('advanced_practice');
   });
 
-  it('publishes the employer statement, not the title guess', () => {
-    // The title says physician; the employer said advanced practice. The
-    // employer is the source, so the title must not win.
-    expect(truthFor('advanced_practice').profession).toBe('advanced_practice');
-  });
-
-  it('falls back to the title when the employer stated nothing', () => {
-    expect(truthFor(null).profession).toBe('physician');
-  });
-
-  it('ignores a stored value outside the known set', () => {
-    // An unrecognised column value must not reach the API as a profession.
-    expect(truthFor('chiropractor').profession).toBe('physician');
-  });
-
-  it('ignores a stored not_stated, which is a classifier output not a statement', () => {
-    expect(truthFor('not_stated').profession).toBe('physician');
+  it('ignores any stray stated-profession value left on the record', () => {
+    // Proves the read path has no back door: an extra property cannot steer
+    // the facet even if some future writer sets one.
+    const truth = buildOpportunityTruth({
+      opportunity: {
+        ...makeOpportunityRecord(),
+        title: 'Casual Nurse Practitioner or Physician Assistant',
+        statedProfession: 'physician',
+      },
+      now: new Date('2026-03-20T00:00:00.000Z'),
+    } as never);
+    expect(truth.profession).toBe('advanced_practice');
   });
 });

@@ -183,7 +183,6 @@ export function normalizeUsaJobsItem(descriptor: UsaJobsDescriptor | undefined):
     // The occupational series NAME is the employer's own classification of the
     // role, so it is a stated specialty rather than a guess from the title.
     specialty: descriptor.JobCategory?.[0]?.Name?.trim() || null,
-    profession: null,
     payMin: pay.min,
     payMax: pay.max,
     postedAt: parseDate(descriptor.PublicationStartDate),
