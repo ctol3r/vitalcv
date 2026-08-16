@@ -22,6 +22,15 @@ jest.mock('../../billing/billingEngine', () => ({ processApplicationBilling: jes
 jest.mock('../../actions/actionEngineService', () => ({
   refreshActionRecommendations: jest.fn(),
 }));
+// Real by default; one test injects a failure at the LAST step of the confirm
+// transaction to prove the whole consequence set rolls back with it.
+jest.mock('../hireToStartOutbox', () => {
+  const actual = jest.requireActual('../hireToStartOutbox');
+  return {
+    ...actual,
+    enqueueHireToStartOutboundEvent: jest.fn(actual.enqueueHireToStartOutboundEvent),
+  };
+});
 
 import { upsertOrgProfile } from '../../opportunities/opportunityService';
 import {
@@ -36,6 +45,7 @@ import {
   confirmStartByAcceptance,
   markApplicationStartReady,
 } from '../applicationStartCommandService';
+import { enqueueHireToStartOutboundEvent } from '../hireToStartOutbox';
 import prisma from '../../../graphql/prisma_client';
 
 const suffix = `${Date.now()}-${Math.round(Math.random() * 1_000_000)}`;
@@ -451,6 +461,118 @@ describe('one application-bound start command — real PostgreSQL', () => {
       startedAt: new Date('2026-08-14T18:00:00.000Z'),
     })).rejects.toMatchObject({ status: 409, code: 'START_ACCEPTANCE_REQUIRED' });
     expect(await prisma.startAttestation.count({ where: { acceptanceId: acceptance.id } })).toBe(0);
+  });
+
+  it('door B (entity-scoped confirm-start) adapts onto the same command: one attestation, both audits, one outbox intent — and idempotent replay', async () => {
+    // ADR 0007 start-writer succession, completed: the entity-scoped
+    // POST /api/employer-review/:entityId/confirm-start path resolves its
+    // acceptance (both employer-id semantics) and then calls
+    // confirmStartByAcceptance with the verified reviewer as actor and the
+    // reviewer's server-resolved organization as the expected authority.
+    // This exercises exactly that call shape against real PostgreSQL.
+    const { applicationId, requirementId } = await acceptedCase();
+    await makeStartReady(applicationId, requirementId);
+    const activation = await prisma.startActivation.findUniqueOrThrow({
+      where: { applicationId },
+      select: { acceptanceId: true },
+    });
+    const acceptanceId = activation.acceptanceId!;
+    const actualFirstDay = new Date();
+
+    const doorBCall = () => confirmStartByAcceptance({
+      acceptanceId,
+      actorId: EMPLOYER, // the verified Clerk reviewer, never a header value
+      startedAt: actualFirstDay,
+      role: 'Hospitalist',
+      facility: 'Mercy General',
+      expectedClinicianNpi: NPI,
+      expectedOrganizationId: organizationId,
+    });
+
+    const confirmed = await doorBCall();
+    expect(confirmed).toMatchObject({ state: 'started', duplicate: false });
+    expect(confirmed.attestation).toMatchObject({
+      acceptanceId,
+      role: 'Hospitalist',
+      facility: 'Mercy General',
+      startedAt: actualFirstDay,
+    });
+    // Exactly one attestation, exactly one of each audit row, exactly one
+    // outbound intent — the full consequence set, committed together.
+    expect(await attestationCount(applicationId)).toBe(1);
+    expect(await prisma.auditEvent.count({
+      where: { referenceId: confirmed.attestation.id, type: 'START_ATTESTED' },
+    })).toBe(1);
+    expect(await prisma.auditEvent.count({
+      where: { referenceId: applicationId, type: 'START_RECORDED' },
+    })).toBe(1);
+    expect(await prisma.outboxEvent.count({
+      where: { aggregateId: applicationId, eventType: 'HIRE_TO_START_START_CONFIRMED' },
+    })).toBe(1);
+
+    // A duplicate confirm of the identical first day answers idempotently:
+    // the same attestation, no second row anywhere.
+    const replay = await doorBCall();
+    expect(replay).toMatchObject({ duplicate: true, attestation: { id: confirmed.attestation.id } });
+    expect(await attestationCount(applicationId)).toBe(1);
+    expect(await prisma.auditEvent.count({
+      where: { referenceId: applicationId, type: 'START_RECORDED' },
+    })).toBe(1);
+
+    // A DIFFERENT first day is a conflict, never a second attestation.
+    await expect(confirmStartByAcceptance({
+      acceptanceId,
+      actorId: EMPLOYER,
+      startedAt: new Date(actualFirstDay.getTime() - 60_000),
+      expectedClinicianNpi: NPI,
+      expectedOrganizationId: organizationId,
+    })).rejects.toMatchObject({ status: 409, code: 'START_ALREADY_CONFIRMED' });
+    expect(await attestationCount(applicationId)).toBe(1);
+  });
+
+  it('persists NO start when any part of the consequence set fails (migrated from the retired startWriter suite)', async () => {
+    // The retired services/hiring/startWriter.ts suite carried the invariant
+    // "a start without its non-repudiation audit row is an unprovable claim":
+    // when the audit write failed, the attestation did not survive. The
+    // canonical command writes attestation → START_ATTESTED → START_RECORDED
+    // → outbox in ONE transaction, so injecting a failure at the FINAL step
+    // proves the stronger form: nothing earlier in the set survives either —
+    // no attestation, no audit rows, no state advance.
+    const { applicationId, requirementId } = await acceptedCase();
+    await makeStartReady(applicationId, requirementId);
+    const actualFirstDay = new Date();
+
+    (enqueueHireToStartOutboundEvent as jest.Mock).mockImplementationOnce(async () => {
+      throw new Error('outbox write failed');
+    });
+
+    await expect(confirmApplicationStart({
+      applicationId,
+      organizationId,
+      actorId: EMPLOYER,
+      startedAt: actualFirstDay,
+    })).rejects.toThrow('outbox write failed');
+
+    expect(await attestationCount(applicationId)).toBe(0);
+    expect(await prisma.auditEvent.count({
+      where: { referenceId: applicationId, type: 'START_RECORDED' },
+    })).toBe(0);
+    expect(await prisma.auditEvent.count({
+      where: { organizationId, type: 'START_ATTESTED' },
+    })).toBe(0);
+    // The state advance rolled back with everything else; the case is intact
+    // and a retry (with the real outbox) succeeds.
+    expect((await prisma.startActivation.findUniqueOrThrow({
+      where: { applicationId },
+    })).activationState).toBe('start_ready');
+    const retried = await confirmApplicationStart({
+      applicationId,
+      organizationId,
+      actorId: EMPLOYER,
+      startedAt: actualFirstDay,
+    });
+    expect(retried).toMatchObject({ state: 'started', duplicate: false });
+    expect(await attestationCount(applicationId)).toBe(1);
   });
 
   it('routes the acceptance-keyed machine lane through the same command, cross-checked', async () => {
