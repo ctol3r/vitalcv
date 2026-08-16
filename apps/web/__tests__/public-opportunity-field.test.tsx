@@ -4,7 +4,10 @@ import { describe, expect, it } from 'vitest';
 import { BoardResultRow } from '@/components/explore/board/BoardResultRow';
 import { OpportunityLensRail } from '@/components/explore/board/OpportunityLensRail';
 import {
+  activeFilterSummary,
   clampedBoardPage,
+  clearFilter,
+  hasActiveFilters,
   parseBoardFilters,
   serializeBoardFilters,
   toApiQuery,
@@ -141,8 +144,12 @@ describe('WO-13 public opportunity field', () => {
       sort: 'organization',
       page: 3,
     });
+    // readinessStatus is a signed-in facet the public board does not carry, so
+    // it is still dropped. payMin is no longer in that category — it is a real
+    // facet now and must survive the round trip.
     expect(publicUrl.has('readinessStatus')).toBe(false);
-    expect(publicUrl.has('payMin')).toBe(false);
+    expect(publicUrl.get('payMin')).toBe('300000');
+    expect(api.get('payMin')).toBe('300000');
     expect(api.get('q')).toBe('family medicine');
     expect(api.get('profession')).toBe('physician');
     expect(api.get('schedule')).toBe('part_time');
@@ -169,6 +176,72 @@ describe('WO-13 public opportunity field', () => {
     expect(html).toContain('applicationMode=vitalcv');
     expect(html).toContain('They are not personalized recommendations or eligibility decisions.');
     expect(html).not.toMatch(/ready now|automatic eligibility|guaranteed/i);
+  });
+
+  it('carries every facet the opportunity API actually implements', () => {
+    // The panel used to expose eleven facets over an API that serves nineteen.
+    // These are the six that were unreachable from the public board.
+    const filters = parseBoardFilters(new URLSearchParams({
+      payModel: 'hourly',
+      payMin: '120',
+      payMax: '260',
+      visaSponsorship: 'available',
+      startUrgency: 'immediate',
+      employerType: 'telehealth',
+      organizationSlug: 'example-clinical-organization',
+    }));
+    const api = toApiQuery(filters);
+
+    expect(api.get('payModel')).toBe('hourly');
+    expect(api.get('payMin')).toBe('120');
+    expect(api.get('payMax')).toBe('260');
+    expect(api.get('visaSponsorship')).toBe('available');
+    expect(api.get('startUrgency')).toBe('immediate');
+    expect(api.get('employerType')).toBe('telehealth');
+    expect(api.get('organizationSlug')).toBe('example-clinical-organization');
+    expect(hasActiveFilters(filters)).toBe(true);
+
+    // Every one of them is individually removable from the chip row.
+    for (const { key } of activeFilterSummary(filters)) {
+      expect(toApiQuery(clearFilter(filters, key)).has(String(key))).toBe(false);
+    }
+  });
+
+  it('refuses a pay bound that would silently drop unpublished pay', () => {
+    // Zero is the dangerous one: it is a real filter the API would honour, and
+    // it excludes every role that published no pay at all. Treat it as unset.
+    expect(parseBoardFilters(new URLSearchParams({ payMin: '0' })).payMin).toBe('');
+    expect(parseBoardFilters(new URLSearchParams({ payMin: '-40' })).payMin).toBe('');
+    expect(parseBoardFilters(new URLSearchParams({ payMax: '12e4' })).payMax).toBe('');
+    expect(parseBoardFilters(new URLSearchParams({ payMax: '99999999999' })).payMax).toBe('');
+
+    // A reversed window is an impossible one; read it the way it was meant.
+    const reversed = parseBoardFilters(new URLSearchParams({ payMin: '300000', payMax: '100000' }));
+    expect([reversed.payMin, reversed.payMax]).toEqual(['100000', '300000']);
+  });
+
+  it('only accepts an employer slug shaped like one of ours', () => {
+    expect(parseBoardFilters(new URLSearchParams({ organizationSlug: 'Good-Slug-1' })).organizationSlug)
+      .toBe('good-slug-1');
+    expect(parseBoardFilters(new URLSearchParams({ organizationSlug: '../etc/passwd' })).organizationSlug)
+      .toBe('');
+    expect(parseBoardFilters(new URLSearchParams({ organizationSlug: '-leading-dash' })).organizationSlug)
+      .toBe('');
+  });
+
+  it('lets a reader narrow the field to one employer from a result row', () => {
+    const picked: string[] = [];
+    const html = renderToStaticMarkup(
+      <BoardResultRow opportunity={externalRole()} ordinal={1} onFilterEmployer={(s) => picked.push(s)} />,
+    );
+    expect(html).toContain('Show only roles at Example clinical organization');
+
+    // Without the callback the name stays plain text — no dead control on a row
+    // that has nothing to filter.
+    const plain = renderToStaticMarkup(<BoardResultRow opportunity={externalRole()} ordinal={1} />);
+    expect(plain).not.toContain('opf-role-org-filter');
+    expect(plain).toContain('Example clinical organization');
+    expect(picked).toEqual([]);
   });
 
   it('normalizes a stale shared page to the last real result page', () => {

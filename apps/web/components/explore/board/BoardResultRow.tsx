@@ -21,9 +21,15 @@ import {
 export function BoardResultRow({
   opportunity,
   ordinal,
+  onFilterEmployer,
 }: {
   opportunity: OpportunitySummary;
   ordinal: number;
+  /**
+   * Narrow the field to this employer. Optional: without it the name renders as
+   * plain text, which is what a row outside the filterable board should do.
+   */
+  onFilterEmployer?: (organizationSlug: string) => void;
 }) {
   const availability = opportunityAvailability(opportunity);
   const applicationMode = opportunityApplicationMode(opportunity);
@@ -49,7 +55,20 @@ export function BoardResultRow({
       <div className="opf-role-main">
         <div className="opf-role-heading">
           <div>
-            <p className="opf-role-org">{opportunity.organizationName}</p>
+            <p className="opf-role-org">
+              {onFilterEmployer && opportunity.organizationSlug ? (
+                <button
+                  type="button"
+                  className="opf-role-org-filter"
+                  onClick={() => onFilterEmployer(opportunity.organizationSlug as string)}
+                  aria-label={`Show only roles at ${opportunity.organizationName}`}
+                >
+                  {opportunity.organizationName}
+                </button>
+              ) : (
+                opportunity.organizationName
+              )}
+            </p>
             <h3 className="opf-role-title">
               <Link href={`/opportunities/${opportunity.id}`}>
                 {opportunity.title.split('/').map((segment, index) => (

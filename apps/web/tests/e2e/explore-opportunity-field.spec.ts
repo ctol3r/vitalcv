@@ -118,9 +118,18 @@ test.describe('WO-13 public opportunity field', () => {
       'Source observation',
       'Application path',
       'Compensation detail',
+      'Pay basis',
+      'Pay range',
+      'Visa sponsorship',
+      'Start timing',
+      'Employer type',
       'Benefits detail',
       'Sort field',
     ]);
+    // Fifteen, not fourteen: the grid steps 5 → 3 → 2 → 1 columns, so a count
+    // divisible by 5 and 3 is what keeps the last row from leaving an orphan
+    // cell painted in the rule colour.
+    await expect(facetLabels).toHaveCount(15);
     for (const label of await facetLabels.all()) await expect(label).toBeVisible();
 
     const body = (await page.locator('body').innerText()).toLowerCase();

@@ -334,6 +334,50 @@
   gap: 0.45rem;
 }
 
+/*
+ * Inherits .opf-role-org entirely — the employer name reads the same whether or
+ * not it filters. Underline on interaction only, so the row's visual hierarchy
+ * is unchanged when the board is not filterable.
+ */
+.opf-role-org-filter {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.opf-role-org-filter:hover,
+.opf-role-org-filter:focus-visible {
+  color: var(--vt-home-d-ink);
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
+}
+
+/* Two equal bounds, unlike the state/setting pair above. */
+.opf-pay-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+/*
+ * Says what a facet actually does to the result set. Sentence case and
+ * non-uppercase on purpose: this is prose the reader has to parse, not a label
+ * they scan, so it does not inherit the mono treatment of .opf-filter-label.
+ */
+.opf-filter-hint {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--vt-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  text-wrap: pretty;
+}
+
 .opf-search-input:focus-visible,
 .opf-filter-control:focus-visible,
 .opf-filter-toggle:focus-visible,
@@ -341,6 +385,7 @@
 .opf-page-button:focus-visible,
 .opf-lens-card:focus-visible,
 .opf-lens-controls button:focus-visible,
+.opf-role-org-filter:focus-visible,
 .opf-role a:focus-visible {
   outline: 3px solid var(--vt-focus-ring-scene-paper);
   outline-offset: 2px;
