@@ -71,13 +71,15 @@ describe('validateOrganizationContext', () => {
     })).toThrow(ShareValidationError);
   });
 
-  it('accepts http:// callback_url (not just https)', () => {
+  it('rejects http:// callback_url (https only — code and message now agree)', () => {
+    // Previously this asserted http:// was ACCEPTED while the error message
+    // claimed "must be a valid https:// URL". The validator now rejects http://.
     expect(() => validateOrganizationContext({
       organization_id: 'org-001',
       name: 'Test Org',
       purpose_of_use: 'Contract renewal',
       callback_url: 'http://internal.example.com/webhook',
-    })).not.toThrow();
+    })).toThrow(ShareValidationError);
   });
 
   it('throws when organization_id exceeds 256 chars', () => {

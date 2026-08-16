@@ -7,11 +7,12 @@
  */
 
 import type { Express, NextFunction, Request, Response } from 'express';
-import { generateApplyBundle, getApplyBundle, verifyBundle } from '../services/distribution/applyBundle';
+import { generateApplyBundle, verifyBundle } from '../services/distribution/applyBundle';
 import {
   shareBundle,
   listSharesForNpi,
   revokeShare,
+  readPublicBundle,
   validateOrganizationContext,
   ShareValidationError,
 } from '../services/distribution/applyShareService';
@@ -61,13 +62,19 @@ export function registerApplyRoutes(app: Express): void {
     '/api/apply/bundle/:bundleId',
     asyncHandler(async (req, res) => {
       const { bundleId } = req.params;
-      const bundle = await getApplyBundle(bundleId);
-      if (!bundle) throw new HttpError(404, 'Bundle not found.');
-      if (new Date(bundle.expiresAt) < new Date()) {
-        res.status(410).json({ error: 'Bundle has expired.', expiresAt: bundle.expiresAt });
+      // Anonymous capability URL. readPublicBundle fails closed on revocation as
+      // well as expiry, so a revoked share stops serving the bundle.
+      const result = await readPublicBundle(bundleId);
+      if (result.outcome === 'not_found') throw new HttpError(404, 'Bundle not found.');
+      if (result.outcome === 'expired') {
+        res.status(410).json({ error: 'Bundle has expired.', expiresAt: result.expiresAt });
         return;
       }
-      res.json(bundle);
+      if (result.outcome === 'revoked') {
+        res.status(410).json({ error: 'This share has been revoked.' });
+        return;
+      }
+      res.json(result.bundle);
     }),
   );
 
