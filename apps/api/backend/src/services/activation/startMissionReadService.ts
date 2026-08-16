@@ -377,8 +377,9 @@ const DEFAULT_DEPENDENCIES: StartMissionReadDependencies = {
 export async function readStartMission(
   input: ReadApplicationPacketInput,
   dependencies: StartMissionReadDependencies = DEFAULT_DEPENDENCIES,
+  authorizedPacket?: ApplicationPacketReadResponse,
 ): Promise<StartMissionReadResult> {
-  const submittedPacket = await dependencies.readPacket(input);
+  const submittedPacket = authorizedPacket ?? await dependencies.readPacket(input);
   const record = await dependencies.load(input.applicationId);
   if (!record) throw notFound();
 
@@ -414,10 +415,13 @@ export async function readStartMission(
     if (!record.acceptedPacket || record.acceptedPacket.applicationId !== record.application.id) {
       throw bindingFailure('Accepted packet record is missing or belongs to another application.');
     }
-    exactPacket = await dependencies.readPacket({
-      ...input,
-      packetVersion: record.acceptedPacket.packetVersion,
-    });
+    exactPacket = authorizedPacket
+      && submittedPacket.submittedPacket?.packetVersion === record.acceptedPacket.packetVersion
+      ? submittedPacket
+      : await dependencies.readPacket({
+          ...input,
+          packetVersion: record.acceptedPacket.packetVersion,
+        });
     const replayedHash = exactPacket.submittedPacket?.packetHash ?? null;
     if (
       !replayedHash

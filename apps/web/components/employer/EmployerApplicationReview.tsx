@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { ArrowLeft, FileCheck2, ShieldAlert } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ApplicationEvidenceView } from '@/components/applications/ApplicationEvidenceView';
 import { EmployerHandoffReceiptCard } from '@/components/employer/EmployerHandoffReceiptCard';
+import { HireToStartCasePanel } from '@/components/applications/HireToStartCasePanel';
+import { EmployerDecisionControls } from '@/components/employer/EmployerDecisionControls';
 import {
   employerWorkflowStateLabel,
   employerWorkflowStateTone,
@@ -13,6 +15,7 @@ import {
 import type { ApplicationEvidenceLoadResult } from '@/lib/applications/evidenceView';
 import type { EmployerWorkflowLoadResult } from '@/lib/server/employerWorkflow';
 import type { EmployerHandoffLoadResult } from '@/lib/server/handoffReceipt';
+import type { HireToStartLoadResult } from '@/lib/applications/hireToStart';
 
 function clinicianName(application: EmployerWorkflowApplication): string {
   return application.provider?.fullName ?? (application.npi ? `NPI ${application.npi}` : 'Clinician');
@@ -33,15 +36,19 @@ export function EmployerApplicationReview({
   workflowResult,
   evidenceResult,
   handoffResult,
+  hireToStartResult,
 }: {
   workflowResult: EmployerWorkflowLoadResult;
   evidenceResult: ApplicationEvidenceLoadResult;
   /** Optional only for retained pre-Phase-2 render fixtures. Runtime pages supply it. */
   handoffResult?: EmployerHandoffLoadResult;
+  /** Optional only for retained pre-hire-to-start render fixtures. Runtime pages supply it. */
+  hireToStartResult?: HireToStartLoadResult;
 }) {
   const workflow = workflowResult.status === 'ok' ? workflowResult.data : null;
   const error = workflowError(workflowResult);
   const resolvedHandoffResult: EmployerHandoffLoadResult = handoffResult ?? { status: 'not_found' };
+  const resolvedHireToStartResult: HireToStartLoadResult = hireToStartResult ?? { status: 'not_found' };
 
   return (
     <main className="min-h-screen bg-[#08101d] px-4 py-8 text-white sm:px-6 lg:px-8">
@@ -94,6 +101,8 @@ export function EmployerApplicationReview({
 
         <EmployerHandoffReceiptCard result={resolvedHandoffResult} />
 
+        <HireToStartCasePanel result={resolvedHireToStartResult} variant="employer" />
+
         <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-4 sm:p-6">
           <div className="mb-5 flex items-start gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-emerald-50">
             <FileCheck2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
@@ -104,15 +113,7 @@ export function EmployerApplicationReview({
           <ApplicationEvidenceView result={evidenceResult} />
         </section>
 
-        <Card className="border-white/10 bg-white/[0.04] text-white">
-          <CardHeader>
-            <CardTitle>Decision controls are not available on this route yet</CardTitle>
-            <CardDescription className="text-white/65">
-              Accepting, declining, or requesting clarification must record the exact packet version, an auditable decision, and durable consequences together. This review surface does not simulate those actions.
-            </CardDescription>
-          </CardHeader>
-          {workflow?.reviewNote ? <CardContent className="text-sm text-white/75"><strong className="text-white">Most recent note:</strong> {workflow.reviewNote}</CardContent> : null}
-        </Card>
+        {resolvedHireToStartResult.status === 'ok' ? <EmployerDecisionControls data={resolvedHireToStartResult.data} /> : null}
       </div>
     </main>
   );

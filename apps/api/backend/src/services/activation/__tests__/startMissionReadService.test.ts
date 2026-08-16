@@ -24,6 +24,7 @@ function packet(hash = 'packet-hash'): ApplicationPacketReadResponse {
     submittedPacket: {
       packetVersion: 1,
       packetHash: hash,
+      opportunityVersion: '2026-08-14T10:00:00.000Z',
       clinicianNpi: '1558302470',
       integrity: 'valid',
       purpose: 'application',

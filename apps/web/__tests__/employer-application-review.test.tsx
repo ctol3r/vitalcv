@@ -4,6 +4,9 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('@/components/applications/ApplicationEvidenceView', () => ({
   ApplicationEvidenceView: () => <div data-application-evidence-view="true" />,
 }));
+vi.mock('@/components/employer/EmployerDecisionControls', () => ({
+  EmployerDecisionControls: () => <div data-employer-decision-controls="true" />,
+}));
 
 import { EmployerApplicationReview } from '@/components/employer/EmployerApplicationReview';
 
@@ -23,7 +26,7 @@ const workflowResult = {
 const evidenceResult = { status: 'not_found' as const };
 
 describe('EmployerApplicationReview', () => {
-  it('shows the authorized application context and exact-packet boundary without simulated decisions', () => {
+  it('shows the authorized application context and exact-packet boundary without inventing unavailable decisions', () => {
     const html = renderToStaticMarkup(
       <EmployerApplicationReview workflowResult={workflowResult} evidenceResult={evidenceResult} />,
     );
@@ -32,7 +35,7 @@ describe('EmployerApplicationReview', () => {
     expect(html).toContain('Ada Clinician');
     expect(html).toContain('data-application-evidence-view="true"');
     expect(html).toContain('Review the exact submitted packet below');
-    expect(html).toContain('Decision controls are not available on this route yet');
+    expect(html).not.toContain('data-employer-decision-controls="true"');
     expect(html).not.toMatch(/Accept as head start|Request missing info|Reject/);
   });
 });

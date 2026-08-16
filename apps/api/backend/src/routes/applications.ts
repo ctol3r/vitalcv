@@ -36,6 +36,7 @@ import {
   readApplicationEvidenceView,
 } from '../services/opportunities/applicationPacketReadService';
 import { getClinicianApplicationActivation } from '../services/activation/clinicianActivationService';
+import { readHireToStartCase } from '../services/opportunities/hireToStartReadService';
 import { HttpError } from '../utils/httpError';
 import { requireOrgRole, VERIFIER_MUTATION_ROLES } from '../middleware/orgRoleGuard';
 import type { VerifiedAuth } from '../middleware/verifiedIdentity';
@@ -144,6 +145,18 @@ export function registerApplicationRoutes(app: Express): void {
         ? await readApplicationEvidenceView(readInput)
         : await readApplicationPacket(readInput);
       res.json(packet);
+    }),
+  );
+
+  /* ── Authorized joined hire-to-start case ── */
+  app.get(
+    '/api/applications/:applicationId/hire-to-start',
+    asyncHandler(async (req, res) => {
+      res.setHeader('Cache-Control', 'private, no-store');
+      const clerkUserId = requireVerifiedClerkUserId(req);
+      const applicationId = parseApplicationPacketApplicationId(req.params.applicationId);
+      const view = await readHireToStartCase({ applicationId, clerkUserId });
+      res.json(view);
     }),
   );
 
