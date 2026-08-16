@@ -60,7 +60,7 @@ function post(path: string, body: Record<string, unknown>): Test {
 }
 
 const EXPORT_BODY = {
-  subject: '1407202518',
+  subject: '1558395518',
   credentialIds: ['11111111-1111-4111-8111-111111111111'],
   exportType: 'smart_health_card_file',
 };

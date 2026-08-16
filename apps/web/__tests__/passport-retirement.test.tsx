@@ -45,8 +45,8 @@ describe('retired routes redirect, never render', () => {
 
   it('/passport?npi={10-digit} carries the NPI to /onboarding — historical lookup links', async () => {
     redirectMock.mockClear();
-    await RetiredPassportPage({ searchParams: Promise.resolve({ npi: '1407202518' }) });
-    expect(redirectMock.mock.calls[0]).toEqual(['/onboarding?npi=1407202518']);
+    await RetiredPassportPage({ searchParams: Promise.resolve({ npi: '1558395518' }) });
+    expect(redirectMock.mock.calls[0]).toEqual(['/onboarding?npi=1558395518']);
   });
 
   it('/passport?npi={malformed} drops the param', async () => {
@@ -56,7 +56,7 @@ describe('retired routes redirect, never render', () => {
 
     redirectMock.mockClear();
     await RetiredPassportPage({
-      searchParams: Promise.resolve({ npi: '1407202518; DROP' }),
+      searchParams: Promise.resolve({ npi: '1558395518; DROP' }),
     });
     expect(redirectMock.mock.calls[0]).toEqual(['/onboarding']);
   });
@@ -69,8 +69,8 @@ describe('retired routes redirect, never render', () => {
 
   it('/passport/{npi} → /verify/{npi} — the shipped-mobile deep link', async () => {
     redirectMock.mockClear();
-    await RetiredPassportEntityPage({ params: Promise.resolve({ id: '1407202518' }) });
-    expect(redirectMock.mock.calls[0]).toEqual(['/verify/1407202518']);
+    await RetiredPassportEntityPage({ params: Promise.resolve({ id: '1558395518' }) });
+    expect(redirectMock.mock.calls[0]).toEqual(['/verify/1558395518']);
   });
 
   it('/passport/{uuid} → /onboarding — legacy share ids land on the entry', async () => {
@@ -85,7 +85,7 @@ describe('retired routes redirect, never render', () => {
 describe('route declaration and nav posture', () => {
   it('both routes are declared public — never unclassified', () => {
     expect(isPublicRoute('/passport')).toBe(true);
-    expect(isPublicRoute('/passport/1407202518')).toBe(true);
+    expect(isPublicRoute('/passport/1558395518')).toBe(true);
   });
 
   it('the nav offers exactly one clinician build entry, and it is /onboarding', () => {
@@ -122,7 +122,7 @@ describe('ShareBundleCard — the ported bundle share', () => {
 
     root = createRoot(container);
     await act(async () => {
-      root.render(<ShareBundleCard npi="1407202518" />);
+      root.render(<ShareBundleCard npi="1558395518" />);
     });
 
     const button = container.querySelector('button')!;
@@ -138,7 +138,7 @@ describe('ShareBundleCard — the ported bundle share', () => {
     // Verbatim from the retired PassportWallet so BundleShareEvent KPI rows
     // stay continuous across the retirement.
     expect(calls[0].body).toMatchObject({
-      npi: '1407202518',
+      npi: '1558395518',
       organization_context: { organization_id: 'pilot-manual-share' },
     });
     expect(container.textContent).toContain('/apply/bundle-42');

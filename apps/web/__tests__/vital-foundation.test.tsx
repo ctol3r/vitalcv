@@ -15,27 +15,34 @@ import { TrustGlyph } from '@/components/vital/TrustGlyph';
 import { NpiInput } from '@/components/vital/NpiInput';
 
 describe('vital/npi — validation', () => {
-  it('accepts a real NPI checksum (1407202518)', () => {
-    expect(isValidNpiChecksum('1407202518')).toBe(true);
+  // 1234567893 is the worked example from the CMS NPI check-digit spec
+  // (123456789 + check digit 3): an EXTERNAL ground-truth vector, so an
+  // algorithm error here cannot be masked by computing the expectation with
+  // the code under test. NPPES result_count 0, verified 2026-08-16 — but a
+  // valid-format number can be assigned later, so re-verify against NPPES
+  // before reusing it anywhere that renders or fetches. Never use a
+  // registrant's NPI here: only checksum-valid numbers can name real people.
+  it('accepts the CMS worked-example NPI checksum (1234567893)', () => {
+    expect(isValidNpiChecksum('1234567893')).toBe(true);
   });
 
   it('rejects a 10-digit number that fails the check digit', () => {
-    expect(isValidNpiChecksum('1407202519')).toBe(false); // last digit tampered
+    expect(isValidNpiChecksum('1234567894')).toBe(false); // last digit tampered
     expect(isValidNpiChecksum('1234567890')).toBe(false);
   });
 
   it('checkNpi classifies each state', () => {
     expect(checkNpi('').validity).toBe('empty');
     expect(checkNpi('12ab').validity).toBe('not_numeric');
-    expect(checkNpi('140720').validity).toBe('incomplete');
-    expect(checkNpi('1407202519').validity).toBe('bad_checksum');
-    const ok = checkNpi('1407202518');
+    expect(checkNpi('123456').validity).toBe('incomplete');
+    expect(checkNpi('1234567894').validity).toBe('bad_checksum');
+    const ok = checkNpi('1234567893');
     expect(ok.validity).toBe('valid');
-    expect(ok.npi).toBe('1407202518');
+    expect(ok.npi).toBe('1234567893');
   });
 
   it('npiDigits strips non-digits and caps at 10', () => {
-    expect(npiDigits('140-720 2518xx99')).toBe('1407202518');
+    expect(npiDigits('123-456 7893xx99')).toBe('1234567893');
   });
 });
 

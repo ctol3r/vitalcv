@@ -27,7 +27,12 @@ if (!baseUrl || !outDir) {
 mkdirSync(outDir, { recursive: true });
 
 const label = beforeOnly ? 'before' : 'after';
-const VALID_TEST_NPI = '1407202518'; // repo-canonical checksum-valid fixture
+// Checksum-valid (passes the entry gate) but assigned to nobody — NPPES
+// result_count 0, verified 2026-08-16 (npi-smoke's canonical ABSENT NPI). The
+// committed metrics were captured with 1407202518, which later turned out to
+// be a real registrant's NPI. All registry routes are mocked below, so the
+// fixture person stays synthetic end to end.
+const VALID_TEST_NPI = '1999999992';
 const FIXTURE = {
   npi: VALID_TEST_NPI,
   npiType: 'TYPE_1',

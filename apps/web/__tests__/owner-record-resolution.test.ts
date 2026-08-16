@@ -86,12 +86,12 @@ describe('loadOwnerRecord', () => {
   });
 
   it('maps a linked NPI with an unreachable registry to registry_unavailable', async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ personProfile: { npi: '1407202518' } }));
+    fetchMock.mockResolvedValue(jsonResponse({ personProfile: { npi: '1558395518' } }));
     nppesMock.mockResolvedValue(null);
 
     await expect(loadOwnerRecord()).resolves.toEqual({
       state: 'registry_unavailable',
-      npi: '1407202518',
+      npi: '1558395518',
     });
   });
 });

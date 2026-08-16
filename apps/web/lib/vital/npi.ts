@@ -7,7 +7,9 @@
 //
 // NPI check digit: prefix the first 9 digits with the CMS issuer id "80840"
 // and run the Luhn algorithm; the result must equal the 10th (check) digit.
-// (Verified against real NPIs, e.g. 1407202518 → valid.)
+// (Worked example from the CMS spec: 1234567893 → valid. NPPES-unassigned,
+// result_count 0 as of 2026-08-16 — never cite a registrant's NPI as an
+// example; only checksum-valid numbers can name real people.)
 
 export type NpiValidity =
   | 'empty'
