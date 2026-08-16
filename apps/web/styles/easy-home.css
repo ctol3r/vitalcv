@@ -4759,3 +4759,429 @@
     display: none;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DIRECTION A — the amendment E homepage register (2026-08-15)
+
+   Founder verdict after a four-round rendered bake-off: minimal-bold warm
+   paper, one hot accent, and drawn figures rather than text alone. The law is
+   `docs/design/VITALCV_EXPERIENCE_CONSTITUTION.md` §"Direction A homepage
+   register — amendment E"; the committed artifact is
+   `design-lab/homepage-2026-08-direction-a/`.
+
+   This block is LAST on purpose. It is a register cascade in the same shape as
+   the Direction D block above it: it rebinds the island's `--ezh-*` names to
+   the E tokens rather than editing ~1,700 call sites, then overrides only the
+   presentation D decided differently (display face, action colour, material).
+   D's block is left intact so the diff reads as a supersession, not a rewrite.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.ezh {
+  --ezh-ground: var(--vt-home-e-ground);
+  --ezh-panel: var(--vt-home-e-panel);
+  --ezh-panel2: var(--vt-home-e-ground);
+  --ezh-line: var(--vt-home-e-rule);
+  --ezh-line2: var(--vt-home-e-rule);
+  --ezh-text: var(--vt-home-e-ink);
+  --ezh-text2: var(--vt-home-e-dim);
+  --ezh-text3: var(--vt-home-e-dim);
+  --ezh-hold: var(--vt-home-e-ink);
+  --ezh-wait: var(--vt-home-e-dim);
+  --ezh-light: var(--vt-home-e-ground);
+  --ezh-light-line: var(--vt-home-e-rule);
+  --ezh-light-text: var(--vt-home-e-ink);
+  --ezh-light-text2: var(--vt-home-e-dim);
+
+  /* The page action becomes the hot instrument. White label on #D92800 is
+     4.94:1 — measured, and asserted in scene-token-contract.test.ts. */
+  --ezh-cta-bg: var(--vt-home-e-action);
+  --ezh-cta-text: var(--vt-home-e-action-label);
+  --ezh-cta-bg-press: var(--vt-home-e-action-press);
+  --ezh-cta-text-press: var(--vt-home-e-action-label);
+
+  /* A-1 restored: indigo carries focus on this route. Direction D had handed
+     focus to its green source colour, which E retires from `/`. */
+  --ezh-focus: var(--vt-focus-ring-scene-paper);
+
+  /* Figure inks. `--ezh-fig-hot` is the band-local override seam: on paper it
+     is the action red, and the dark band re-points it (see .ezh-mobility). */
+  --ezh-fig-line: var(--vt-home-e-figure-line);
+  --ezh-fig-dim: var(--vt-home-e-figure-dim);
+  --ezh-fig-bar: var(--vt-home-e-figure-bar);
+  --ezh-fig-hot: var(--vt-home-e-action);
+
+  color: var(--vt-home-e-ink);
+  background: var(--vt-home-e-ground);
+}
+
+/* ── material: flat paper. D.7's frosted folio is superseded ──────────────
+   The frost is killed at the register level rather than by deleting the D.7
+   rules, so the rollback is one block, not an archaeology exercise. A-1's
+   chrome-frost permission lives in eyebrow.css and is untouched. */
+.ezh [class*='folio'],
+.ezh [class*='glass'],
+.ezh [class*='frost'],
+.ezh-tactile-object,
+.ezh-watch-record {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* ── display: Geist restored (EC-20 typography row) ───────────────────────
+   Direction D printed the H1 in Fraunces; roles.json already recorded Fraunces
+   as the SUPERSEDED display face, and the artifact's H1 was a sans. Three
+   signals agree, so E restores Geist at the artifact's scale. Fraunces
+   survives only as the serif editorial aside below. */
+.ezh h1 {
+  font-family: var(--font-geist);
+  font-size: clamp(38px, 6.2cqw, 66px);
+  font-weight: 500;
+  letter-spacing: -0.042em;
+  line-height: 0.96;
+  max-width: 16ch;
+  text-wrap: balance;
+}
+
+.ezh .ezh-sec-head h2,
+.ezh-roles h2,
+.ezh-watch h2 {
+  font-family: var(--font-geist);
+  font-size: clamp(26px, 3.4vw, 40px);
+  font-weight: 500;
+  letter-spacing: -0.032em;
+  line-height: 1.08;
+  max-width: 20ch;
+  text-wrap: balance;
+}
+
+.ezh-hero-eyebrow {
+  display: block;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--ezh-text2);
+  margin-bottom: 18px;
+}
+
+/* ── the payoff line and its single-pass cycling word ─────────────────────
+   Round 2's one explicit borrow from Direction C. The word is an action-
+   coloured instrument only while it moves; it settles and stops. */
+.ezh-payoff {
+  font-size: clamp(21px, 2.5vw, 30px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  margin-top: 18px;
+}
+
+.ezh-payoff-cycle {
+  color: var(--vt-home-e-action);
+}
+
+.ezh-payoff-cycle[data-cycling] {
+  transition: opacity 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ezh-payoff-cycle {
+    transition: none;
+  }
+}
+
+.ezh-hero-sub {
+  font-size: clamp(16.5px, 1.5vw, 18.5px);
+  line-height: 1.5;
+  color: var(--ezh-text2);
+  max-width: 46ch;
+  margin-top: 16px;
+}
+
+/* ── the primary action: square-ish page action, hot fill ─────────────────
+   A-2 says an ACTION is square and a WORD-LABEL may be a pill. Amendment E
+   resolves the seam A-2 left with Direction D: chrome instruments stay radius
+   0, PAGE actions take 8px — the value D shipped and the e2e contract pins. */
+.ezh .ezh-npi-submit,
+.ezh .ezh-start-cta {
+  background: var(--vt-home-e-action);
+  color: var(--vt-home-e-action-label);
+  border: 0;
+  border-radius: var(--vt-shape-action-page);
+}
+
+.ezh .ezh-npi-submit:hover,
+.ezh .ezh-start-cta:hover {
+  background: var(--vt-home-e-action-hover);
+  color: var(--vt-home-e-action-label);
+}
+
+.ezh .ezh-npi-submit:active,
+.ezh .ezh-start-cta:active {
+  background: var(--vt-home-e-action-press);
+  color: var(--vt-home-e-action-label);
+}
+
+.ezh .ezh-npi-input {
+  border-radius: var(--vt-shape-action-page);
+}
+
+/* ── shared section grammar for the E additions ───────────────────────────── */
+.ezh-roles,
+.ezh-watch {
+  background: var(--ezh-ground);
+  color: var(--ezh-text);
+  border-top: 1px solid var(--ezh-line);
+}
+
+.ezh-roles .ezh-wrap,
+.ezh-watch .ezh-wrap {
+  padding-top: clamp(52px, 7vw, 92px);
+  padding-bottom: clamp(40px, 5vw, 64px);
+}
+
+.ezh-roles .ezh-k,
+.ezh-watch .ezh-k {
+  margin-bottom: 14px;
+}
+
+.ezh-sec-p {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--ezh-text2);
+  max-width: 54ch;
+  margin-top: 16px;
+}
+
+/* Roles frames the live feed: the two read as one section, so the feed's own
+   rule is suppressed where it follows this frame. The feed component itself is
+   untouched — it carries the D.1 opportunity truth contract. */
+.ezh-roles + .ezh-opportunities {
+  border-top: 0;
+}
+
+.ezh-roles + .ezh-opportunities .ezh-wrap {
+  padding-top: 8px;
+}
+
+/* ── beats ─────────────────────────────────────────────────────────────── */
+.ezh-beats {
+  display: grid;
+  gap: 1px;
+  background: var(--ezh-line);
+  margin-top: 34px;
+  border-top: 1px solid var(--ezh-line);
+  border-bottom: 1px solid var(--ezh-line);
+}
+
+.ezh-beat {
+  background: var(--ezh-ground);
+  padding: 20px 18px 22px;
+}
+
+.ezh-beat b {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 7px;
+}
+
+.ezh-beat span {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ezh-text2);
+}
+
+@media (min-width: 820px) {
+  .ezh-beats-three {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ── drawn figures ─────────────────────────────────────────────────────────
+   Line work is currentColor so one `color` declaration re-inks a whole figure;
+   the action accent routes through the two `-hot-` classes so it stays a
+   single instrument (EC-4) and the dark band can re-point it in one place. */
+.ezh-fig-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.ezh-fig {
+  margin: 0;
+  color: var(--ezh-fig-line);
+}
+
+.ezh-fig svg {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.ezh-fig-cap {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ezh-fig-dim);
+  margin-top: 12px;
+  max-width: 68ch;
+}
+
+.ezh-fig-bar,
+.ezh-fig-bar-g rect {
+  fill: var(--ezh-fig-bar);
+}
+
+.ezh-fig-hot-fill {
+  fill: var(--ezh-fig-hot);
+}
+
+.ezh-fig-hot-stroke {
+  stroke: var(--ezh-fig-hot);
+  fill: none;
+}
+
+/* The hero figure sits in a drawn frame so it reads as an image, not a table. */
+.ezh-fig-hero {
+  border: 1px solid var(--ezh-line);
+  border-radius: 16px;
+  padding: clamp(16px, 2.2vw, 24px);
+  background: var(--vt-home-e-panel);
+}
+
+.ezh-roles .ezh-fig,
+.ezh-watch .ezh-fig {
+  margin-top: clamp(32px, 4vw, 48px);
+}
+
+/* Wide/narrow pair. The swap is a real drawing change, not a scale-down: the
+   effective size of SVG text is font-size × rendered-width ÷ viewBox-width, so
+   a 1000-unit figure squeezed into a phone drops its 13.5px labels to ~9px.
+   900px is the width at which the widest figures still clear the 11px floor. */
+/* Specificity note, learned the hard way: `.ezh-fig svg` above is 0-1-1 and a
+   bare `.ezh-fig-narrow` is 0-1-0, so the shared `display: block` beat the hide
+   rule and BOTH drawings rendered — doubling every figure's height and folding
+   the hero. The swap rules are qualified to outrank it. */
+.ezh-fig svg.ezh-fig-narrow {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  .ezh-fig svg.ezh-fig-wide {
+    display: none;
+  }
+
+  .ezh-fig svg.ezh-fig-narrow {
+    display: block;
+    max-width: 430px;
+    margin-inline: auto;
+  }
+}
+
+/* The row reveal is an ENHANCEMENT. Rows are visible unless script says
+   otherwise, so no-JS and reduced motion both get the complete figure. */
+.ezh-rowfx {
+  opacity: 1;
+}
+
+/* ── the dark band re-inks, it does not restructure ───────────────────────
+   Amendment E keeps the career-mobility sequence as the route's one dark band
+   and keeps its seven steps and boundary sentences. Only the material changes,
+   plus the two figures it now carries. The action red is not legible on
+   #141312, so the band re-points --ezh-fig-hot to the artifact's band accent. */
+.ezh-mobility,
+.ezh-band {
+  --ezh-fig-line: var(--vt-home-e-band-text);
+  --ezh-fig-dim: var(--vt-home-e-figure-dim-band);
+  --ezh-fig-bar: var(--vt-home-e-figure-bar-band);
+  --ezh-fig-hot: var(--vt-home-e-figure-hot-band);
+}
+
+.ezh-fig-band-fill {
+  fill: var(--vt-home-e-figure-hot-band);
+}
+
+.ezh-fig-band-stroke {
+  stroke: var(--vt-home-e-figure-hot-band);
+  fill: none;
+}
+
+/* ── the serif editorial aside — Fraunces' surviving role ─────────────────── */
+.ezh-aside {
+  font-family: var(--font-fraunces-loaded, Georgia, 'Times New Roman', serif);
+  font-size: clamp(24px, 3.2vw, 34px);
+  font-style: italic;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  max-width: 26ch;
+  color: var(--ezh-text);
+}
+
+/* ── sr-only, island-local ─────────────────────────────────────────────────
+   The figures are aria-hidden art; their describing sentences live here, and
+   the payoff line's full word list does too. Meaning never rides on motion or
+   on artwork (EC-4). */
+.ezh-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── the dark band's two figures, and the prose that carries their meaning ──
+   EC-4: the drawing is never the sole carrier. Each figure here is introduced
+   by a heading and a sentence that stand on their own with every figure
+   removed. */
+.ezh-mobility-figures {
+  display: grid;
+  gap: clamp(40px, 6vw, 72px);
+  margin-top: clamp(44px, 6vw, 76px);
+}
+
+@media (min-width: 1000px) {
+  .ezh-mobility-figures {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+.ezh-mobility-figure h3 {
+  font-family: var(--font-geist);
+  font-size: clamp(21px, 2.2vw, 27px);
+  font-weight: 500;
+  letter-spacing: -0.028em;
+  line-height: 1.12;
+  max-width: 22ch;
+  margin: 10px 0 0;
+  text-wrap: balance;
+}
+
+.ezh-mobility-figure .ezh-sec-p {
+  font-size: 15.5px;
+  max-width: 48ch;
+}
+
+.ezh-mobility-figure .ezh-fig {
+  margin-top: 26px;
+}
+
+/* Attribution's routing figure sits under the ledger, full width. */
+.ezh-attr-figure {
+  margin-top: clamp(36px, 5vw, 60px);
+}
+
+/* The framed hero figure pays for its border and padding out of the drawing's
+   rendered width, which pushes its 11.5px labels to 11.01px effective at 390px
+   — clearing the floor by 0.01px is not clearance. Narrow the frame on small
+   screens so the drawing keeps a real margin over the limit. */
+@media (max-width: 480px) {
+  .ezh-fig-hero {
+    padding: 10px;
+    border-radius: 12px;
+  }
+}
