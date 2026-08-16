@@ -402,7 +402,20 @@ describe('one application-bound start command — real PostgreSQL', () => {
       actorId: EMPLOYER,
       startedAt: actualFirstDay,
     });
-    const attempts = await Promise.allSettled([command(), command()]);
+
+    // Barrier: hold the aggregate's row lock while BOTH commands start, so
+    // both pass their duplicate pre-checks and stack up at the conditional
+    // state advance. Without this, event-loop scheduling can serialize the two
+    // commands and the pre-check alone masks a broken exactly-once guard —
+    // measured: with the advance's count check deleted, an unbarriered version
+    // of this test still passed. Releasing the lock makes them race for real.
+    let racing!: Promise<PromiseSettledResult<Awaited<ReturnType<typeof command>>>[]>;
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT id FROM start_activations WHERE application_id = ${applicationId}::uuid FOR UPDATE`;
+      racing = Promise.allSettled([command(), command()]);
+      await new Promise((resolve) => setTimeout(resolve, 750));
+    });
+    const attempts = await racing;
 
     const fulfilled = attempts.filter(
       (attempt): attempt is PromiseFulfilledResult<Awaited<ReturnType<typeof command>>> => attempt.status === 'fulfilled',
