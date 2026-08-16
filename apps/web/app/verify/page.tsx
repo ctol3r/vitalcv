@@ -85,7 +85,7 @@ export default function VerifyPage() {
         <button
           onClick={handleVerify}
           disabled={loading || !token.trim()}
-          className="mz-btn mb-8 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mz-btn mb-8 disabled:cursor-not-allowed disabled:border-[var(--ink-200)]! disabled:bg-[var(--ink-100)]! disabled:text-[var(--ink-700)]!"
         >
           {loading ? 'Verifying…' : 'Verify'}
         </button>
@@ -193,7 +193,7 @@ function ReceiptReplaySection({
         <button
           onClick={onNavigate}
           disabled={!receiptIdInput.trim()}
-          className="mz-btn disabled:cursor-not-allowed disabled:opacity-40"
+          className="mz-btn disabled:cursor-not-allowed disabled:border-[var(--ink-200)]! disabled:bg-[var(--ink-100)]! disabled:text-[var(--ink-700)]!"
         >
           Inspect
         </button>

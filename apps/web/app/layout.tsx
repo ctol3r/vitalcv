@@ -106,7 +106,10 @@ export const metadata: Metadata = {
   ],
   robots: { index: true, follow: true },
   other: {
-    'theme-color': '#2C3E2D',
+    // The register's paper. #2C3E2D was a forest green that matched no live
+    // surface and tinted the browser chrome green over a cream site; the paper
+    // value keeps the chrome continuous with the page.
+    'theme-color': '#FBFAF7',
   },
   openGraph: {
     title: 'VitalCV — Your career evidence, ready before your next job.',
@@ -162,6 +165,19 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background text-foreground antialiased font-sans">
+        {/* Entrance-reveal enhancement enabler. The <Reveal> primitive's content
+            is VISIBLE BY DEFAULT (matcha-zen.css `.mz-reveal { opacity: 1 }`);
+            the rise/fade entrance is a pure progressive enhancement that only
+            arms once this runs. Set before the reveal content paints (first
+            child of <body>, blocking inline) so armed elements never flash from
+            visible to hidden. If this never runs — no JS, blocked script,
+            aborted hydration, a crawler — the page simply stays at full
+            opacity. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "document.documentElement.setAttribute('data-reveal','js')",
+          }}
+        />
         <Providers initialUserId={null} initialClerkRole={null}>
           <RootChrome clerkEnabled={clerkEnabled}>{children}</RootChrome>
           {renderGlobalChrome ? <CommandPalette /> : null}

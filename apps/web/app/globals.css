@@ -481,8 +481,21 @@ body {
 @layer base {
   html {
     scroll-behavior: smooth;
-    scroll-padding-top: 4.5rem;
+    /* Anchor/section offset for the floating sticky chrome (.vcv-eb). It reserves
+       104px on desktop and 72px on mobile (.vcv-eb__space in styles/eyebrow.css);
+       this inset keeps hash targets like /#npi and section eyebrows on /trust, /
+       from landing under it. Was 4.5rem (72px) unconditionally, which cleared the
+       mobile footprint but left desktop anchors ~32px under the translucent panel.
+       Set here rather than as a second per-target scroll-margin-top so it does not
+       stack with this container inset and double the offset. */
+    scroll-padding-top: 6.5rem; /* 104px — desktop chrome footprint */
     overflow-x: clip; /* Prevent mobile horizontal bleed without creating a scroll container */
+  }
+
+  @media (max-width: 767px) {
+    html {
+      scroll-padding-top: 4.5rem; /* 72px — mobile chrome footprint */
+    }
   }
 
   * {
