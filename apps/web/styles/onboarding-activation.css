@@ -126,7 +126,14 @@
   transform-origin: left center;
 }
 
-.oba a {
+/* Links take the signal indigo — but never inside a nested island that
+   paints its own controls (`.mz-btn` is accent-filled with a paper label;
+   colouring that anchor indigo made its label vanish on its own fill —
+   measured on the identity step's support card before this guard). The
+   `:where()` keeps this at (0,1,1) so any island control class — .oba-action,
+   .oba-ghost, .oba-quiet, .oba-ulink — outranks it; without it the guard
+   itself painted the resolved state's anchor action label indigo (2.24:1). */
+.oba a:where(:not([class*='mz-'])) {
   color: var(--vt-home-f-signal);
 }
 
@@ -184,8 +191,10 @@
 .oba .oba-quiet {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 6px;
   min-height: 44px;
+  min-width: 44px; /* EC-5 target floor — a one-word link still measures 44 */
   padding: 0;
   background: transparent;
   border: 0;

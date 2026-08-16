@@ -58,7 +58,7 @@ export function ResolverProgressIndicator({
   }, [currentStepIndex, durationPerStep, onComplete]);
 
   return (
-    <div className="oba-resolver mx-auto w-full max-w-md" role="status" aria-live="polite">
+    <div className="oba-resolver w-full max-w-md" role="status" aria-live="polite">
       {DEFAULT_STEPS.map((step, index) => {
         const isCompleted = index < currentStepIndex;
         const isCurrent = index === currentStepIndex;
