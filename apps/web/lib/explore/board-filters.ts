@@ -18,7 +18,6 @@ export const OBSERVED_WITHIN_OPTIONS = ['1', '3', '7', '14', '30', '90'] as cons
 export const APPLICATION_MODE_OPTIONS = ['external', 'vitalcv'] as const;
 export const COMPENSATION_OPTIONS = ['supplied', 'not_supplied'] as const;
 export const BENEFITS_OPTIONS = ['listed', 'limited', 'not_listed'] as const;
-export const PAY_MODEL_OPTIONS = ['salary', 'hourly', 'locums', 'shift', 'unknown'] as const;
 export const VISA_OPTIONS = ['available', 'case_by_case', 'not_available', 'not_stated'] as const;
 export const START_URGENCY_OPTIONS = ['immediate', 'within_2_weeks', 'within_month', 'flexible', 'unknown'] as const;
 export const SORT_OPTIONS = ['recent', 'title', 'organization'] as const;
@@ -43,13 +42,12 @@ export interface BoardFilters {
   applicationMode: string;
   compensation: string;
   benefits: string;
-  /** Pay basis the employer published: salary / hourly / locums / shift. */
-  payModel: string;
   /**
    * Pay bounds, held as strings because they are text-input state. Empty means
-   * unset. The API compares these against the employer's PUBLISHED range, so a
-   * role with no published pay is excluded by either bound — the panel says so
-   * rather than letting an empty result read as "nothing pays this".
+   * unset. The API compares these against the employer's PUBLISHED range with no
+   * unit conversion, so a role with no published pay is excluded by either bound
+   * — the panel says so rather than letting an empty result read as "nothing
+   * pays this".
    */
   payMin: string;
   payMax: string;
@@ -85,7 +83,6 @@ export const EMPTY_BOARD_FILTERS: BoardFilters = {
   applicationMode: '',
   compensation: '',
   benefits: '',
-  payModel: '',
   payMin: '',
   payMax: '',
   visaSponsorship: '',
@@ -160,7 +157,6 @@ export function normalizeBoardFilters(filters: Partial<BoardFilters>): BoardFilt
     applicationMode: oneOf(filters.applicationMode, APPLICATION_MODE_OPTIONS),
     compensation: oneOf(filters.compensation, COMPENSATION_OPTIONS),
     benefits: oneOf(filters.benefits, BENEFITS_OPTIONS),
-    payModel: oneOf(filters.payModel, PAY_MODEL_OPTIONS),
     payMin,
     payMax,
     visaSponsorship: oneOf(filters.visaSponsorship, VISA_OPTIONS),
@@ -185,7 +181,6 @@ export function parseBoardFilters(searchParams: SearchParamsReader): BoardFilter
     applicationMode: searchParams.get('applicationMode') ?? '',
     compensation: searchParams.get('compensation') ?? '',
     benefits: searchParams.get('benefits') ?? '',
-    payModel: searchParams.get('payModel') ?? '',
     payMin: searchParams.get('payMin') ?? '',
     payMax: searchParams.get('payMax') ?? '',
     visaSponsorship: searchParams.get('visaSponsorship') ?? '',
@@ -211,7 +206,6 @@ export function serializeBoardFilters(filters: Partial<BoardFilters>): URLSearch
   if (f.applicationMode) params.set('applicationMode', f.applicationMode);
   if (f.compensation) params.set('compensation', f.compensation);
   if (f.benefits) params.set('benefits', f.benefits);
-  if (f.payModel) params.set('payModel', f.payModel);
   if (f.payMin) params.set('payMin', f.payMin);
   if (f.payMax) params.set('payMax', f.payMax);
   if (f.visaSponsorship) params.set('visaSponsorship', f.visaSponsorship);
@@ -237,7 +231,6 @@ export function toApiQuery(filters: Partial<BoardFilters>): URLSearchParams {
   if (f.applicationMode) params.set('applicationMode', f.applicationMode);
   if (f.compensation) params.set('compensation', f.compensation);
   if (f.benefits) params.set('benefits', f.benefits);
-  if (f.payModel) params.set('payModel', f.payModel);
   if (f.payMin) params.set('payMin', f.payMin);
   if (f.payMax) params.set('payMax', f.payMax);
   if (f.visaSponsorship) params.set('visaSponsorship', f.visaSponsorship);
@@ -256,7 +249,7 @@ export function hasActiveFilters(filters: BoardFilters): boolean {
   return Boolean(
     f.q || f.specialty || f.profession || f.state || f.schedule
     || f.hiringType || f.remote !== null || f.observedWithin || f.applicationMode
-    || f.compensation || f.benefits || f.payModel || f.payMin || f.payMax
+    || f.compensation || f.benefits || f.payMin || f.payMax
     || f.visaSponsorship || f.startUrgency || f.employerType || f.organizationSlug,
   );
 }
@@ -285,7 +278,6 @@ export function activeFilterSummary(filters: BoardFilters): Array<{ key: keyof B
     label: COMPENSATION_LABEL[f.compensation] ?? f.compensation,
   });
   if (f.benefits) out.push({ key: 'benefits', label: BENEFITS_LABEL[f.benefits] ?? f.benefits });
-  if (f.payModel) out.push({ key: 'payModel', label: PAY_MODEL_LABEL[f.payModel] ?? f.payModel });
   // Two chips rather than one range chip, so each bound clears on its own.
   if (f.payMin) out.push({ key: 'payMin', label: `Pay from ${formatPayBound(f.payMin)}` });
   if (f.payMax) out.push({ key: 'payMax', label: `Pay up to ${formatPayBound(f.payMax)}` });
@@ -377,14 +369,6 @@ export const BENEFITS_LABEL: Record<string, string> = {
   listed: 'Benefits listed',
   limited: 'Limited benefits detail',
   not_listed: 'Benefits not listed',
-};
-
-export const PAY_MODEL_LABEL: Record<string, string> = {
-  salary: 'Salaried',
-  hourly: 'Hourly',
-  locums: 'Locums rate',
-  shift: 'Per shift',
-  unknown: 'Pay basis not stated',
 };
 
 export const VISA_LABEL: Record<string, string> = {

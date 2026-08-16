@@ -300,12 +300,20 @@
   display: block;
 }
 
+/*
+ * The rules are drawn by each field's own outline rather than by a rule-coloured
+ * container showing through the gaps. Both paint identically when the last row
+ * is full — but the container technique paints any leftover cell as a solid rule
+ * block, which made the grid silently dependent on the facet count staying
+ * divisible by every column step (5 / 3 / 2). Outlines make a short last row
+ * simply end.
+ */
 .opf-filter-grid {
   display: grid;
   grid-template-columns: 1.1fr 0.9fr 1.35fr 0.9fr 0.9fr;
   gap: 1px;
   margin-top: 1.1rem;
-  background: var(--vt-home-d-rule);
+  background: var(--vt-home-d-panel);
   border: 1px solid var(--vt-home-d-rule);
 }
 
@@ -313,6 +321,9 @@
   min-width: 0;
   padding: 0.75rem;
   background: var(--vt-home-d-panel);
+  /* Fills the 1px gap; adjacent outlines overlap in the same colour. */
+  outline: 1px solid var(--vt-home-d-rule);
+  outline-offset: 0;
 }
 
 .opf-filter-label {

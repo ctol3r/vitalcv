@@ -12,8 +12,6 @@ import {
   HIRING_TYPE_OPTIONS,
   OBSERVED_WITHIN_LABEL,
   OBSERVED_WITHIN_OPTIONS,
-  PAY_MODEL_LABEL,
-  PAY_MODEL_OPTIONS,
   PROFESSION_LABEL,
   PROFESSION_OPTIONS,
   SCHEDULE_LABEL,
@@ -67,8 +65,9 @@ function Field({
  * be said on the control, or an empty result reads as "nothing pays this".
  */
 const PAY_RANGE_HINT
-  = 'Compares against the published figure, in whatever basis the employer used. '
-  + 'Setting either bound excludes roles that published no pay.';
+  = 'Compares against the published figure, whether that is annual, hourly or per '
+  + 'shift — the figures are not converted. Setting either bound excludes roles '
+  + 'that published no pay.';
 
 export function BoardFilterPanel({
   filters,
@@ -202,20 +201,6 @@ export function BoardFilterPanel({
           <option value="">Any compensation detail</option>
           {COMPENSATION_OPTIONS.map((value) => (
             <option key={value} value={value}>{COMPENSATION_LABEL[value]}</option>
-          ))}
-        </select>
-      </Field>
-
-      <Field label="Pay basis">
-        <select
-          value={filters.payModel}
-          onChange={(event) => onChange({ payModel: event.target.value })}
-          className="opf-filter-control"
-          style={CONTROL_STYLE}
-        >
-          <option value="">Any pay basis</option>
-          {PAY_MODEL_OPTIONS.map((value) => (
-            <option key={value} value={value}>{PAY_MODEL_LABEL[value]}</option>
           ))}
         </select>
       </Field>

@@ -180,9 +180,9 @@ describe('WO-13 public opportunity field', () => {
 
   it('carries every facet the opportunity API actually implements', () => {
     // The panel used to expose eleven facets over an API that serves nineteen.
-    // These are the six that were unreachable from the public board.
+    // These are the five that were unreachable and that live data can populate.
+    // payModel is deliberately absent — see the pay-basis removal.
     const filters = parseBoardFilters(new URLSearchParams({
-      payModel: 'hourly',
       payMin: '120',
       payMax: '260',
       visaSponsorship: 'available',
@@ -192,7 +192,6 @@ describe('WO-13 public opportunity field', () => {
     }));
     const api = toApiQuery(filters);
 
-    expect(api.get('payModel')).toBe('hourly');
     expect(api.get('payMin')).toBe('120');
     expect(api.get('payMax')).toBe('260');
     expect(api.get('visaSponsorship')).toBe('available');
