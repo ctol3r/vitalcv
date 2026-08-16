@@ -43,7 +43,7 @@ import { captureDecisionSignal } from '../services/feedback/decisionSignalServic
 import { buildPassport } from '../services/entity/passportService';
 import { buildEmployerEvidencePacket } from '../services/entity/employerPacket';
 import { createEmployerEvidencePacketZipStream } from '../services/entity/employerPacketExport';
-import { recordStart } from '../services/hiring/startWriter';
+import { confirmStartByAcceptance } from '../services/activation/applicationStartCommandService';
 import { issueTrustContainerManifestEntry } from '../services/trust/container/trustContainerIssuance';
 import { toTrustContainerAuditMetadata } from '../services/trust/container/trustContainerManifest';
 import { requireVerifiedClerkUserId } from '../middleware/verifiedActor';
@@ -1684,11 +1684,12 @@ export function registerEmployerActionRoutes(app: Express): void {
 
   // ─────────────────────────────────────────────────────────────────────────
   // POST /api/employer-review/:entityId/confirm-start
-  // Record the clinician's actual start date, closing the wedge proof loop.
-  // AUDIT CONTRACT: StartAttestation + AuditEvent written in $transaction
-  //                 before returning 2xx (START_ATTESTED is a canonical
-  //                 non-repudiation event).
+  // Record the clinician's actual start date through the canonical
+  // application-bound start command (ADR 0007 start-writer succession).
+  // AUDIT CONTRACT: StartAttestation + START_ATTESTED + START_RECORDED +
+  //                 outbound intent commit in ONE transaction before any 2xx.
   // Returns: { ok, attestationId, auditEventId, startedAt }
+  //          201 on first confirmation, 200 on an identical idempotent replay.
   // ─────────────────────────────────────────────────────────────────────────
   app.post(
     '/api/employer-review/:entityId/confirm-start',
@@ -1774,59 +1775,30 @@ export function registerEmployerActionRoutes(app: Express): void {
         throw new HttpError(409, 'No active acceptance found for this employer/clinician pair. Accept first before recording a start.');
       }
 
-      const attestationId = randomUUID();
-      const auditEventId  = randomUUID();
-      const attestationHash = sha256ForPayload({
-        attestationId,
-        acceptanceId: acceptance.id,
-        entityId,
-        employerId,
-        clinicianNpi: acceptance.clinicianNpi,
-        startedAt: startDate.toISOString(),
-        role,
-        facility,
-      });
-      const runtimeTrust = buildRuntimeMutationMetadata({
-        action: 'confirm-start',
-        actorId: employerId,
-        entityId,
-        clinicianNpi: acceptance.clinicianNpi,
-        correlationId: resolveCorrelationId(req),
-        payload: {
-          attestationId,
-          acceptanceId: acceptance.id,
-          startedAt: startDate.toISOString(),
-          role,
-          facility,
-        },
-        outcome: 'allowed',
-        readonly: resolveReadonlyIndicator(req),
-      });
-
       // AUDIT: START_ATTESTED is one of the 5 canonical non-repudiation events.
-      // StartAttestation and AuditEvent are written atomically before returning
-      // 2xx, through the single start writer (VCD-01c). createdAt is not pinned
-      // here — the hash above does not commit to it — so the column default applies.
-      const { attestation } = await recordStart({
-        attestationId,
+      // The canonical application-bound start command (ADR 0007, start-writer
+      // succession — COMPLETE) owns the whole consequence set atomically:
+      // StartActivation advance, StartAttestation, START_ATTESTED +
+      // START_RECORDED audit events, and the outbound HIRE_TO_START intent
+      // commit in one transaction or not at all. Door B keeps only subject
+      // resolution, RBAC, acceptance selection, and this legacy response
+      // mapping. An acceptance with no application binding fails closed inside
+      // the command (409 START_ACCEPTANCE_REQUIRED) — a legacy row cannot
+      // manufacture a start. A repeat confirmation of the identical first day
+      // answers idempotently (200), never a second attestation.
+      const confirmed = await confirmStartByAcceptance({
         acceptanceId: acceptance.id,
-        clinicianNpi: acceptance.clinicianNpi,
+        actorId: employerId,
+        startedAt: startDate,
         role,
         facility,
-        startedAt: startDate,
-        attestationHash,
-        auditEventId,
-        auditMetadata: {
-          attestationId,
-          acceptanceId: acceptance.id,
-          entityId,
-          employerId,
-          ...runtimeFields(runtimeTrust),
-          startedAt:   startDate.toISOString(),
-          role,
-          facility,
-        },
+        expectedClinicianNpi: subject.clinicianNpi,
+        ...(startReviewer.organizationId
+          ? { expectedOrganizationId: startReviewer.organizationId }
+          : {}),
       });
+      const attestation = confirmed.attestation;
+      const auditEventId = confirmed.attestationAuditEventId;
 
       log('info', 'employer_start_attested', {
         attestationId:  attestation.id,
@@ -1834,36 +1806,44 @@ export function registerEmployerActionRoutes(app: Express): void {
         acceptanceId:   acceptance.id,
         entityId,
         employerId,
+        duplicate:      confirmed.duplicate,
         npi_prefix:     (acceptance.clinicianNpi ?? '0000000000').slice(0, 4) + '····',
         startedAt:      startDate.toISOString(),
       });
 
-      // SEAL: fire-and-forget start outcome capture for KPI funnel
-      void captureStartOutcome({
-        entityId,
-        startedAt:             startDate,
-        blockersAtStart:       [],
-        sourceCoverageAtStart: {},
-        metadata: {
-          attestationId:  attestation.id,
-          acceptanceId:   acceptance.id,
-          employerId,
-          role,
-          facility,
-          recordedVia: 'employer_review_confirm_start',
-        },
-      }).catch((err: unknown) => {
-        log('warn', 'start_outcome_capture_failed', {
-          attestationId: attestation.id,
-          error: err instanceof Error ? err.message : String(err),
+      // SEAL: fire-and-forget start outcome capture for KPI funnel. Only on a
+      // first-time confirmation — an idempotent replay is not a second outcome.
+      if (!confirmed.duplicate) {
+        void captureStartOutcome({
+          entityId,
+          startedAt:             startDate,
+          blockersAtStart:       [],
+          sourceCoverageAtStart: {},
+          metadata: {
+            attestationId:  attestation.id,
+            acceptanceId:   acceptance.id,
+            employerId,
+            role,
+            facility,
+            recordedVia: 'employer_review_confirm_start',
+          },
+        }).catch((err: unknown) => {
+          log('warn', 'start_outcome_capture_failed', {
+            attestationId: attestation.id,
+            error: err instanceof Error ? err.message : String(err),
+          });
         });
-      });
+      }
 
-      return void res.status(201).json({
+      // Legacy response contract, unchanged: the web proxy
+      // (apps/web/app/api/employer-review/[entityId]/[action]/route.ts)
+      // requires { ok, attestationId, auditEventId, startedAt } on any 2xx.
+      // 200 (not 201) signals an idempotent replay, mirroring /api/hiring/start.
+      return void res.status(confirmed.duplicate ? 200 : 201).json({
         ok:            true,
         attestationId: attestation.id,
         auditEventId,
-        startedAt:     startDate.toISOString(),
+        startedAt:     attestation.startedAt.toISOString(),
       });
     }),
   );

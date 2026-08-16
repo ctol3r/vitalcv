@@ -37,20 +37,18 @@ const EMPLOYER_ACCEPTANCE_WRITERS = [
   'src/services/opportunities/employerWorkflowService.ts',
 ];
 
-/** The only modules permitted to create StartAttestation rows. */
+/** The only module permitted to create StartAttestation rows. */
 const START_ATTESTATION_WRITERS = [
   // The canonical application-bound start command (ADR 0007, start-writer
-  // succession section): advances StartActivation, creates the attestation,
+  // succession — COMPLETE): advances StartActivation, creates the attestation,
   // writes START_ATTESTED + START_RECORDED, and enqueues the outbound event in
-  // ONE transaction. POST /api/applications/:appId/start and the machine lane
-  // (POST /api/hiring/start, via confirmStartByAcceptance) both write here.
+  // ONE transaction. All three start routes write here:
+  // POST /api/applications/:appId/start runs it directly, and the machine lane
+  // (POST /api/hiring/start) and the entity-scoped door-B path
+  // (POST /api/employer-review/:entityId/confirm-start) adapt onto it via
+  // confirmStartByAcceptance. The legacy `services/hiring/startWriter.ts` and
+  // its last caller were migrated and deleted under the ADR 0007 amendment.
   'src/services/activation/applicationStartCommandService.ts',
-  // Legacy atomic writer, retained ONLY for the entity-scoped
-  // POST /api/employer-review/:entityId/confirm-start path
-  // (routes/employerActions.ts), which is outside this succession's scope.
-  // ADR 0007 records its migration onto the command service as the follow-up
-  // that empties this entry; do not point new callers at it.
-  'src/services/hiring/startWriter.ts',
 ];
 
 function isTestPath(relPath: string): boolean {

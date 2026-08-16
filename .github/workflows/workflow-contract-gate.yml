@@ -75,7 +75,17 @@ jobs:
       # before it checked the closure.
       - name: The contract checker must catch the defects it claims to catch
         run: node scripts/check-workflow-path-filters.js --self-test
+      # The report step also asserts a protection object EXISTS on main at all
+      # (classic protection or a branch ruleset) — an unprotected main makes
+      # every "required" check decorative. That assertion reads two endpoints
+      # the default token can see (`branches/main` and `rules/branches/main`),
+      # and it fails CLOSED if it cannot read them — hence GH_TOKEN, without
+      # which gh refuses to make any call and the step reds for the wrong
+      # reason. Full context-list comparison stays opt-in (--verify-protection)
+      # because reading classic protection's contexts needs admin scope.
       - name: Required checks must actually report on a pull request to main
         run: node scripts/check-workflow-path-filters.js --report
+        env:
+          GH_TOKEN: ${{ github.token }}
       - name: PR-triggered workflows must cancel superseded runs (never on main)
         run: node scripts/check-workflow-concurrency.js

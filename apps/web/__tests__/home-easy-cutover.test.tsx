@@ -62,9 +62,9 @@ describe('1 — / renders the UX-V1 experience by default', () => {
   it('serves the Easy Button hero with no variant configured', async () => {
     const html = await renderRoot(undefined);
     expect(html).toContain(EASY);
-    expect(html).toContain('The Provider Career Evidence Network.');
+    expect(html).toContain('Your VitalCV profile. Ready for every move.');
     expect(html).toContain('One career record. More ways forward.');
-    expect(html).toContain('Start my CV Wallet');
+    expect(html).toContain('Build my free profile');
     expect(html).toContain('Explore clinician opportunities');
     expect(html).toContain('data-home-work-surface');
   });
@@ -317,5 +317,17 @@ describe('banned vocabulary and claims stay out of the homepage', () => {
     // The one lane genuinely read per request is named; the snapshots are not
     // allowed to inherit its freshness.
     expect(html).toMatch(/snapshot/i);
+  });
+
+  it('the 2026-08-15 retired acquisition vocabulary cannot silently return', () => {
+    // Founder vocabulary rulings (Wave C1, 2026-08-15): "Provider Career
+    // Evidence Network" is retired as public category language, and the
+    // acquisition CTA is "Build my free profile" — CV Wallet may survive as a
+    // secondary product noun (the work-surface register still says it) but is
+    // never required to enter the product. The full route render includes the
+    // JSON-LD block, so this also guards the structured-data description.
+    const html = renderHomepageHtml();
+    expect(html).not.toContain('Provider Career Evidence Network');
+    expect(html).not.toContain('Start my CV Wallet');
   });
 });

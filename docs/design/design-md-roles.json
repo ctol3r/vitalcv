@@ -33,6 +33,6 @@
   ],
   "--vt-font-display": "Fraunces, the SUPERSEDED display face — EC-20 locks Geist. Verified 2026-08-10: narrower than it looks. All four `home.css` consumers are `.film-*` classes and the film variant does NOT render in production, so the homepage is unaffected. Live consumers are `typography.css` (`--font-display`), `matcha-zen.css` (`--mz-serif`), and the authed holder nav. Resolving it is a design ruling, not a bug fix.",
   "--vt-font-body": "Geist Sans via `next/font/local`, correctly bound to `--font-geist-loaded`. Matches EC-20. Fallback is the system sans stack — the substitute is part of the design, not an implementation detail.",
-  "--vt-glass-bg": "Glass surface tint. EC-20 locks glass treatment to None, so any use on a public surface is a conflict; the remaining tokens survive for scoped islands. Check the island before assuming a defect — the unused ones were retired in the dead-token sweep.",
-  "--vt-shape-panel": "24px panel radius against EC-20's locked near-sharp 0–3px. Retained for scoped islands; a public panel reaching for this is a rejection under EC-21."
+  "--vt-glass-bg": "Glass surface tint. EC-20 (amended A-1) permits frost on chrome and scene overlays only; evidence surfaces stay solid, so use on a proof row, artifact, receipt, or any decision-bearing surface is a conflict; the remaining tokens survive for scoped islands. Check the island before assuming a defect — the unused ones were retired in the dead-token sweep.",
+  "--vt-shape-panel": "24px panel radius within the A-1 scene shape scale (pill/control/card/panel); actions stay square on chrome and take --vt-shape-action-page on page actions (A-2, E). Retained for scoped islands; a public panel reaching for this is a rejection under EC-21."
 }

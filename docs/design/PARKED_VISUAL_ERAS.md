@@ -82,6 +82,27 @@ Notes:
 - Two parallel component systems (`design-system/` vs `components/ui/`); a `Badge` import
   resolves differently by path; **≥30 status/badge components** express the same truth states.
 
+**Removal note (2026-08-15).** The #1411 squash commit — the commit that
+carries this note, findable with `git log --grep "#1411"` — deleted three
+era-less dead motion components — RevealOnScroll and BackgroundField under components/motion,
+plus ScrollReveal under components/ui (deliberately written without path
+syntax: the files no longer exist, and the citability guard is right to reject
+a dead path; the unrelated BackgroundField under components/ui stays). All
+three had zero importers and belonged to no recorded era — generic
+framer-motion wrappers born inside feature waves, the entropy class DG-5.6 /
+DG-6.13 had already marked for consolidation or deletion. The removing commit
+is their park. The same commit dropped two dead apps/web dependencies
+(tailwindcss-animate — no Tailwind config or `@plugin` reference existed, so
+it was never loaded — and react-countup, zero imports) and retired the deleted
+files' stale glass-ratchet rows.
+
+Two neighbours from the same zero-importer inventory were evaluated and
+**kept** as Era 3 (Antigravity) residue under this register:
+`apps/web/components/motion/ParticleLayer.tsx` (cursor-attraction ambient
+particle system — the era row's "particle/magnetic interaction code") and
+`apps/web/components/motion/FloatingCredentials.tsx` (self-declared Wave 230 /
+Antigravity UI signature). Zero importers does not un-park an era artifact.
+
 Two entries from the 2026-08-08 audit have since been corrected on mainline and are **not**
 outstanding: `apps/web/app/fonts/` does exist (Geist, Geist Mono and Fraunces are self-hosted via
 `next/font/local`), and `scripts/check-design-lint.ts` is on mainline behind the required

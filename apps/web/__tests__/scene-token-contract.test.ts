@@ -85,6 +85,48 @@ describe('scene register token contract (D-01A)', () => {
     }
   });
 
+  describe('E register — amendment E (2026-08-15)', () => {
+    it('every E action state clears AA with its label', () => {
+      const label = token('--vt-home-e-action-label');
+      for (const bg of ['--vt-home-e-action', '--vt-home-e-action-hover', '--vt-home-e-action-press']) {
+        expect(
+          contrast(label, token(bg)),
+          `E action label on ${bg} — the paper-coloured label was rejected at 4.73:1; the floor is 4.5`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    });
+
+    it('E text tokens clear AA on ground and panel', () => {
+      for (const fg of ['--vt-home-e-ink', '--vt-home-e-dim']) {
+        for (const bg of ['--vt-home-e-ground', '--vt-home-e-panel']) {
+          expect(contrast(token(fg), token(bg)), `${fg} on ${bg}`).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+      expect(
+        contrast(token('--vt-home-e-band-text'), token('--vt-home-e-ink')),
+        'band text on the dark band ground',
+      ).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it('the E action is an instrument, never a state — distinct from every state hue and the reserved severity red', () => {
+      const action = token('--vt-home-e-action').toLowerCase();
+      const reserved = [
+        token('--vt-scene-state-source-confirmed'),
+        token('--vt-scene-state-source-confirmed-deep'),
+        token('--vt-scene-state-needs-person'),
+        token('--vt-scene-state-waiting'),
+      ].map((v) => v.toLowerCase());
+      expect(reserved, 'the E action resolved to a state hue').not.toContain(action);
+      // The reserved revoked-red. The E row says severity red never renders on
+      // the `/` scene register; the palette-level guard is that the two values
+      // never converge, because the rule cannot survive them becoming equal.
+      const severityMatch = themes.match(/--vt-severity-critical:\s*(#[0-9a-fA-F]{6})/);
+      if (severityMatch) {
+        expect(action, 'the E action equals --vt-severity-critical').not.toBe(severityMatch[1].toLowerCase());
+      }
+    });
+  });
+
   it('the bridged islands declare no literal colours', () => {
     const colourish =
       /(?:color|background|border|fill|stroke|shadow|outline)[a-z-]*\s*:[^;]*(?:#[0-9a-fA-F]{3,8}\b|\b(?:oklch|rgba?|hsla?)\()|(?:^|[{;])\s*--(?!vt-)[a-z0-9-]+\s*:\s*[^;]*(?:#[0-9a-fA-F]{3,8}\b|\b(?:oklch|rgba?|hsla?)\()/;

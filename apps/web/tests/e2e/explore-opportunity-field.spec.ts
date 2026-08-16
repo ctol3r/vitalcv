@@ -105,7 +105,8 @@ test.describe('WO-13 public opportunity field', () => {
       level: 1,
       name: 'Find clinical work with the source in view.',
     })).toBeVisible();
-    await expect(page.locator('[data-scene-variant="explore_documentary"]')).toBeVisible();
+    await expect(page.locator('.opf-hero-media')).toHaveCount(0);
+    await expect(page.locator('.opf-hero img')).toHaveCount(0);
 
     const facetLabels = page.locator('.opf-filter-grid .opf-filter-label');
     await expect(facetLabels).toHaveText([
@@ -117,9 +118,18 @@ test.describe('WO-13 public opportunity field', () => {
       'Source observation',
       'Application path',
       'Compensation detail',
+      'Pay basis',
+      'Pay range',
+      'Visa sponsorship',
+      'Start timing',
+      'Employer type',
       'Benefits detail',
       'Sort field',
     ]);
+    // Fifteen, not fourteen: the grid steps 5 → 3 → 2 → 1 columns, so a count
+    // divisible by 5 and 3 is what keeps the last row from leaving an orphan
+    // cell painted in the rule colour.
+    await expect(facetLabels).toHaveCount(15);
     for (const label of await facetLabels.all()) await expect(label).toBeVisible();
 
     const body = (await page.locator('body').innerText()).toLowerCase();
@@ -225,7 +235,8 @@ test.describe('WO-13 public opportunity field', () => {
     ]) {
       await page.setViewportSize(viewport);
       await page.goto('/explore', { waitUntil: 'domcontentloaded' });
-      await expect(page.locator('.opf-hero-media img')).toBeVisible();
+      await expect(page.locator('.opf-hero-media')).toHaveCount(0);
+      await expect(page.locator('.opf-hero img')).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
     }
 

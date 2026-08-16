@@ -20,16 +20,12 @@
 }
 
 .opf-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 0.82fr) minmax(30rem, 1.18fr);
-  gap: clamp(2rem, 4vw, 5rem);
-  align-items: center;
   padding-bottom: clamp(2.5rem, 5vw, 4.75rem);
   border-bottom: 1px solid var(--vt-home-d-rule);
 }
 
 .opf-hero-copy {
-  max-width: 40rem;
+  max-width: 69rem;
 }
 
 .opf-eyebrow,
@@ -65,7 +61,7 @@
 }
 
 .opf-hero h1 {
-  max-width: 11ch;
+  max-width: 14ch;
   margin: 1.35rem 0 0;
   color: var(--vt-home-d-ink);
   font-family: var(--font-fraunces-loaded, Georgia, 'Times New Roman', serif);
@@ -77,7 +73,7 @@
 }
 
 .opf-hero-lede {
-  max-width: 37rem;
+  max-width: 46rem;
   margin: 1.55rem 0 0;
   color: var(--vt-home-d-dim);
   font-size: clamp(1.02rem, 1.15vw, 1.24rem);
@@ -87,6 +83,7 @@
 .opf-hero-boundary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 56rem;
   margin-top: 2rem;
   border-top: 1px solid var(--vt-home-d-rule);
 }
@@ -107,59 +104,6 @@
   font-family: var(--font-geist-mono-loaded, ui-monospace, monospace);
   font-size: 0.65rem;
   letter-spacing: 0.08em;
-}
-
-.opf-hero-media {
-  position: relative;
-  border: 1px solid var(--vt-home-d-rule);
-  background: var(--vt-home-d-panel);
-  overflow: hidden;
-}
-
-.opf-hero-media figure > div {
-  min-height: 22rem;
-}
-
-.opf-hero-media img {
-  filter: saturate(0.74) contrast(1.02);
-}
-
-.opf-hero-media figcaption {
-  position: absolute;
-  left: 1rem;
-  bottom: 1rem;
-  width: min(26rem, calc(100% - 2rem));
-  padding: 0.75rem 0.85rem;
-  border: 1px solid var(--vt-home-d-ink);
-  color: var(--vt-home-d-panel);
-  background: var(--vt-home-d-ink);
-}
-
-.opf-hero-media figcaption p {
-  margin: 0;
-  font-size: 0.72rem;
-  line-height: 1.45;
-}
-
-.opf-media-caption {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  display: flex;
-  gap: 0.6rem;
-  padding: 0.5rem 0.65rem;
-  border: 1px solid var(--vt-home-d-ink);
-  color: var(--vt-home-d-panel);
-  background: var(--vt-home-d-ink);
-  font-family: var(--font-geist-mono-loaded, ui-monospace, monospace);
-  font-size: 0.62rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.opf-media-caption span + span::before {
-  padding-right: 0.6rem;
-  content: '·';
 }
 
 .opf-board {
@@ -390,6 +334,50 @@
   gap: 0.45rem;
 }
 
+/*
+ * Inherits .opf-role-org entirely — the employer name reads the same whether or
+ * not it filters. Underline on interaction only, so the row's visual hierarchy
+ * is unchanged when the board is not filterable.
+ */
+.opf-role-org-filter {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.opf-role-org-filter:hover,
+.opf-role-org-filter:focus-visible {
+  color: var(--vt-home-d-ink);
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
+}
+
+/* Two equal bounds, unlike the state/setting pair above. */
+.opf-pay-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+/*
+ * Says what a facet actually does to the result set. Sentence case and
+ * non-uppercase on purpose: this is prose the reader has to parse, not a label
+ * they scan, so it does not inherit the mono treatment of .opf-filter-label.
+ */
+.opf-filter-hint {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--vt-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  text-wrap: pretty;
+}
+
 .opf-search-input:focus-visible,
 .opf-filter-control:focus-visible,
 .opf-filter-toggle:focus-visible,
@@ -397,6 +385,7 @@
 .opf-page-button:focus-visible,
 .opf-lens-card:focus-visible,
 .opf-lens-controls button:focus-visible,
+.opf-role-org-filter:focus-visible,
 .opf-role a:focus-visible {
   outline: 3px solid var(--vt-focus-ring-scene-paper);
   outline-offset: 2px;
@@ -682,11 +671,6 @@
 }
 
 @media (max-width: 74rem) {
-  .opf-hero {
-    grid-template-columns: minmax(0, 0.95fr) minmax(25rem, 1.05fr);
-    gap: 2.5rem;
-  }
-
   .opf-filter-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -711,21 +695,12 @@
     padding-top: 6.25rem;
   }
 
-  .opf-hero {
-    grid-template-columns: 1fr;
-    gap: 2rem;
-  }
-
   .opf-hero-copy {
     max-width: 43rem;
   }
 
   .opf-hero h1 {
     max-width: 13ch;
-  }
-
-  .opf-hero-media figure > div {
-    min-height: 18rem;
   }
 
   .opf-filter-toggle {
@@ -760,10 +735,6 @@
     padding-bottom: 7rem;
   }
 
-  .opf-hero {
-    gap: 1.5rem;
-  }
-
   .opf-hero h1 {
     margin-top: 1rem;
     font-size: clamp(2.55rem, 13vw, 3.55rem);
@@ -786,31 +757,6 @@
     gap: 0.25rem;
     padding: 0.6rem 0;
     border-bottom: 1px solid var(--vt-border-subtle);
-  }
-
-  .opf-hero-media figure > div {
-    min-height: 12.5rem;
-  }
-
-  .opf-hero-media figcaption {
-    position: static;
-    width: 100%;
-    border: 0;
-    color: var(--vt-home-d-dim);
-    background: var(--vt-home-d-panel);
-  }
-
-  .opf-media-caption {
-    top: 0.6rem;
-    right: 0.6rem;
-  }
-
-  .opf-media-caption span:first-child {
-    display: none;
-  }
-
-  .opf-media-caption span + span::before {
-    display: none;
   }
 
   .opf-board {
@@ -944,7 +890,6 @@
     background: var(--vt-home-d-panel);
   }
 
-  .opf-hero-media,
   .opf-search-band,
   .opf-pagination,
   .opf-role-action {

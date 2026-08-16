@@ -4,7 +4,13 @@ import type { Transition, Variants } from 'framer-motion';
  * Motion Token System — Precision + Flow
  *
  * SYSTEM CURVE: [0.2, 0.8, 0.2, 1]  (all motion uses this)
- * DURATION BAND: 280–420ms           (no motion outside this range)
+ * DURATION BANDS (EC-29, Class A):
+ *   80–150ms control feedback · 150–250ms state transition ·
+ *   250–450ms product transformation · 450–800ms rare narrative
+ *
+ * This file MIRRORS the canonical values in `styles/tokens.css` for
+ * framer-motion consumers. It never sets its own values — agreement is
+ * enforced by `__tests__/motion-token-sync.test.ts` (UX-02).
  */
 
 /** The one canonical easing array for Framer Motion */
@@ -12,7 +18,8 @@ const SYSTEM_EASE = [0.2, 0.8, 0.2, 1] as const;
 
 export const motionTokens = {
   duration: {
-    fast: '280ms',
+    control: '120ms',
+    fast: '200ms',
     normal: '320ms',
     slow: '380ms',
   },
@@ -32,10 +39,10 @@ export const motionEasings = {
 } as const;
 
 export const motionDurations = {
-  instant: 0.28,
-  fast: 0.28,
+  instant: 0.12,
+  fast: 0.2,
   tooltip: 0.18,
-  highlight: 0.28,
+  highlight: 0.2,
   panel: 0.32,
   drawer: 0.36,
   normal: 0.32,

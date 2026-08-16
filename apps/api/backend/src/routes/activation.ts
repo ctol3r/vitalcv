@@ -36,10 +36,10 @@
  *
  * The application-scoped command (applicationStartCommandService) is the one
  * authoritative start writer: POST /start below runs it directly, and the
- * machine lane (POST /api/hiring/start) adapts onto it. The entity-scoped
- * `POST /api/employer-review/:entityId/confirm-start` path still writes through
- * the legacy startWriter — migrating it is recorded as a follow-up in ADR 0007,
- * not solved here.
+ * machine lane (POST /api/hiring/start) and the entity-scoped
+ * `POST /api/employer-review/:entityId/confirm-start` path both adapt onto it
+ * via confirmStartByAcceptance (ADR 0007 start-writer succession, complete —
+ * the legacy startWriter is deleted).
  */
 
 import type { Express, NextFunction, Request, Response } from 'express';
