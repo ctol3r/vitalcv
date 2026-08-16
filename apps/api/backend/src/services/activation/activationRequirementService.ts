@@ -14,6 +14,7 @@ import { randomUUID } from 'crypto';
 
 import prisma from '../../graphql/prisma_client';
 import type { AuditEventType } from '../../types/auditEventTypes';
+import { enqueueHireToStartOutboundEvent } from './hireToStartOutbox';
 import {
   canTransition,
   deriveActivationReadiness,
@@ -118,6 +119,13 @@ export type ResolveRequirementResult =
  * Move one requirement to a new status. Only its own transition changes — never
  * another requirement's (single-id update). Rejects a transition the state
  * machine forbids, and a requirement outside the acting organization.
+ *
+ * The status update, its audit event, and the outbound intent commit in ONE
+ * transaction (a resolved requirement with no audit row, or vice versa, is not
+ * a possible state). The updateMany is conditioned on the status the decision
+ * was made against, so a concurrent transition invalidates rather than
+ * overwrites — the loser reports invalid_transition instead of silently
+ * clobbering the winner.
  */
 export async function resolveActivationRequirement(input: {
   requirementId: string;
@@ -127,36 +135,68 @@ export async function resolveActivationRequirement(input: {
   reason?: string;
   policyVersion?: string;
 }): Promise<ResolveRequirementResult> {
-  const row = await prisma.activationRequirement.findUnique({ where: { id: input.requirementId } });
-  if (!row) return { ok: false, reason: 'not_found' };
-  if (row.organizationId !== input.organizationId) return { ok: false, reason: 'wrong_tenant' };
+  return prisma.$transaction(async (tx) => {
+    const row = await tx.activationRequirement.findUnique({ where: { id: input.requirementId } });
+    if (!row) return { ok: false, reason: 'not_found' as const };
+    if (row.organizationId !== input.organizationId) return { ok: false, reason: 'wrong_tenant' as const };
 
-  const from = row.status as ActivationRequirementStatus;
-  if (!canTransition(from, input.toStatus)) return { ok: false, reason: 'invalid_transition' };
+    const from = row.status as ActivationRequirementStatus;
+    if (!canTransition(from, input.toStatus)) return { ok: false, reason: 'invalid_transition' as const };
 
-  const resolved = isRequirementResolved(input.toStatus);
-  const now = new Date();
-
-  // Audit before success.
-  await writeActivationAudit('ACTIVATION_REQUIREMENT_RESOLVED', input.requirementId, null, input.organizationId, {
-    applicationId: row.applicationId,
-    priorStatus: from,
-    nextStatus: input.toStatus,
-    actorId: input.actorId,
-    reason: input.reason ?? null,
-    policyVersion: input.policyVersion ?? row.policyVersion ?? null,
-  });
-
-  await prisma.activationRequirement.update({
-    where: { id: input.requirementId },
-    data: {
-      status: input.toStatus,
-      resolvedBy: resolved ? input.actorId : null,
-      resolvedAt: resolved ? now : null,
+    const resolved = isRequirementResolved(input.toStatus);
+    const now = new Date();
+    const payload = {
+      applicationId: row.applicationId,
+      priorStatus: from,
+      nextStatus: input.toStatus,
+      actorId: input.actorId,
+      reason: input.reason ?? null,
       policyVersion: input.policyVersion ?? row.policyVersion ?? null,
-    },
+    };
+    const updated = await tx.activationRequirement.updateMany({
+      where: { id: input.requirementId, status: row.status },
+      data: {
+        status: input.toStatus,
+        resolvedBy: resolved ? input.actorId : null,
+        resolvedAt: resolved ? now : null,
+        policyVersion: input.policyVersion ?? row.policyVersion ?? null,
+      },
+    });
+    if (updated.count !== 1) return { ok: false, reason: 'invalid_transition' as const };
+    const audit = await tx.auditEvent.create({
+      data: {
+        id: randomUUID(),
+        type: 'ACTIVATION_REQUIREMENT_RESOLVED',
+        referenceId: input.requirementId,
+        clinicianId: null,
+        organizationId: input.organizationId,
+        hash: hashPayload({
+          type: 'ACTIVATION_REQUIREMENT_RESOLVED',
+          referenceId: input.requirementId,
+          organizationId: input.organizationId,
+          metadata: payload,
+        }),
+        metadata: payload,
+      },
+    });
+    await enqueueHireToStartOutboundEvent(tx, {
+      eventType: 'HIRE_TO_START_REQUIREMENT_CHANGED',
+      applicationId: row.applicationId,
+      organizationId: input.organizationId,
+      occurredAt: now,
+      dedupeKey: `HIRE_TO_START_REQUIREMENT_CHANGED:${input.requirementId}:${audit.id}`,
+      data: {
+        requirementId: input.requirementId,
+        auditEventId: audit.id,
+        priorStatus: from,
+        status: input.toStatus,
+        owner: row.owner,
+        reason: input.reason ?? null,
+        sourceSystem: 'vitalcv',
+      },
+    });
+    return { ok: true };
   });
-  return { ok: true };
 }
 
 /** Read an application's requirements and derive its start-readiness. */

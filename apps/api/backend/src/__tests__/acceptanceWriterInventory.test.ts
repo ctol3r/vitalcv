@@ -39,6 +39,17 @@ const EMPLOYER_ACCEPTANCE_WRITERS = [
 
 /** The only modules permitted to create StartAttestation rows. */
 const START_ATTESTATION_WRITERS = [
+  // The canonical application-bound start command (ADR 0007, start-writer
+  // succession section): advances StartActivation, creates the attestation,
+  // writes START_ATTESTED + START_RECORDED, and enqueues the outbound event in
+  // ONE transaction. POST /api/applications/:appId/start and the machine lane
+  // (POST /api/hiring/start, via confirmStartByAcceptance) both write here.
+  'src/services/activation/applicationStartCommandService.ts',
+  // Legacy atomic writer, retained ONLY for the entity-scoped
+  // POST /api/employer-review/:entityId/confirm-start path
+  // (routes/employerActions.ts), which is outside this succession's scope.
+  // ADR 0007 records its migration onto the command service as the follow-up
+  // that empties this entry; do not point new callers at it.
   'src/services/hiring/startWriter.ts',
 ];
 

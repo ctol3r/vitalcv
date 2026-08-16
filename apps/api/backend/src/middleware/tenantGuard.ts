@@ -178,17 +178,22 @@ const NEVER_SKIP_TENANT_CONTEXT = [
 export function shouldSkipTenantContext(path: string): boolean {
   const normalized = normalizePath(path);
   const isAuthorizedPacketRead = /^\/api\/applications\/[^/]+\/(packet|hire-to-start)$/.test(normalized);
-  // The canonical decision family (/review, /workflow, /workflow-action) and
-  // the clinician's own /withdraw authorize entirely in-route: verified Clerk
-  // identity (requireVerifiedClerkUserId), the org-role guard, and org scope
-  // derived server-side from membership (getOrgForVerifier → 404 cross-org).
-  // The marketplace proxies forward verified identity but never an org header,
-  // so leaving these behind the turnstile ships the entire employer decision
-  // path inert — accept/reject/clarify/withdraw all die as
-  // organization_context_required before routing, swallowed by their callers.
-  // /activation is deliberately NOT here: it is orphaned by the joined-case
-  // swap and stays guarded until deleted.
-  const isAuthorizedDecisionRoute = /^\/api\/applications\/[^/]+\/(review|workflow|workflow-action|withdraw)$/.test(normalized);
+  // The canonical decision family (/review, /workflow, /workflow-action), the
+  // clinician's own /withdraw, and the start lifecycle commands (/start-ready,
+  // /start) authorize entirely in-route: verified Clerk identity
+  // (requireVerifiedClerkUserId), the org-role guard, and org scope derived
+  // server-side from membership (owning-org membership → uniform 404
+  // cross-org). The marketplace proxies forward verified identity but never an
+  // org header, so leaving these behind the turnstile ships the path inert —
+  // the mutation dies as organization_context_required before routing,
+  // swallowed by its caller. The requirement-resolution PATCH
+  // (/activation/requirements/:id) carries the same in-route contract and its
+  // own proxy. Unlisted siblings (/start-state, /start/cancel,
+  // /activation/instantiate) stay guarded — nothing proxies them. The
+  // orphaned GET /activation read was deleted outright (superseded by the
+  // joined /hire-to-start case); its path shape stays non-exempt.
+  const isAuthorizedDecisionRoute = /^\/api\/applications\/[^/]+\/(review|workflow|workflow-action|withdraw|start-ready|start)$/.test(normalized);
+  const isAuthorizedRequirementRoute = /^\/api\/applications\/[^/]+\/activation\/requirements\/[^/]+$/.test(normalized);
 
   if (NEVER_SKIP_TENANT_CONTEXT.includes(normalized as typeof NEVER_SKIP_TENANT_CONTEXT[number])) {
     return false;
@@ -296,8 +301,9 @@ export function shouldSkipTenantContext(path: string): boolean {
     || isAuthorizedPacketRead
     // Decision-route family: see isAuthorizedDecisionRoute above. Pinned by
     // routes/__tests__/decisionRouteReachability.test.ts, which also pins that
-    // unlisted siblings (e.g. /activation) stay guarded.
+    // unlisted siblings (e.g. /start-state, /start/cancel) stay guarded.
     || isAuthorizedDecisionRoute
+    || isAuthorizedRequirementRoute
     // The clinician's own application list: self-scoped, verified-identity
     // only (no org exists for most clinicians). Same reachability defect and
     // pin as the decision family.

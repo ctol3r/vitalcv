@@ -3,7 +3,6 @@
   "generatedAt": "2026-07-06",
   "baselineGapFiles": [
     "actions.ts",
-    "activation.ts",
     "agents.ts",
     "alerts.ts",
     "ambassador.ts",

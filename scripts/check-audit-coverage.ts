@@ -60,6 +60,20 @@ const DELEGATED_AUDIT_WRITERS: ReadonlyArray<{
     importSpecifier: 'services/hiring/startWriter',
     module: join('apps', 'api', 'backend', 'src', 'services', 'hiring', 'startWriter.ts'),
   },
+  // ADR 0007 start-writer succession: the canonical application-bound start
+  // command pairs the StartAttestation with START_ATTESTED + START_RECORDED in
+  // one transaction. Same closure as recordStart above — the import identifies
+  // the writer, and the module itself must carry the durable signal.
+  {
+    call: /\bconfirmStartByAcceptance\s*\(/,
+    importSpecifier: 'services/activation/applicationStartCommandService',
+    module: join('apps', 'api', 'backend', 'src', 'services', 'activation', 'applicationStartCommandService.ts'),
+  },
+  {
+    call: /\bconfirmApplicationStart\s*\(/,
+    importSpecifier: 'services/activation/applicationStartCommandService',
+    module: join('apps', 'api', 'backend', 'src', 'services', 'activation', 'applicationStartCommandService.ts'),
+  },
 ];
 
 /** True when the file delegates to a writer that it imports and that provably audits. */

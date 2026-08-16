@@ -34,11 +34,12 @@
  *     while any REQUIRED requirement is open and names the blockers, so 409
  *     always points at an actionable requirement.
  *
- * NOT in scope here (ACT-7.4, needs a founder/architect decision — see
- * docs/design/act-7-activation-http-surface.md): reconciling this
- * application-scoped START_* lifecycle with the live entity-scoped
- * `POST /api/employer-review/:entityId/confirm-start` attestation path. This
- * module does not touch confirm-start.
+ * The application-scoped command (applicationStartCommandService) is the one
+ * authoritative start writer: POST /start below runs it directly, and the
+ * machine lane (POST /api/hiring/start) adapts onto it. The entity-scoped
+ * `POST /api/employer-review/:entityId/confirm-start` path still writes through
+ * the legacy startWriter — migrating it is recorded as a follow-up in ADR 0007,
+ * not solved here.
  */
 
 import type { Express, NextFunction, Request, Response } from 'express';
@@ -55,10 +56,10 @@ import {
 import {
   getApplicationStartState,
   markStartReady,
-  recordStart,
   cancelStart,
   type StartActionResult,
 } from '../services/activation/startEventService';
+import { confirmApplicationStart } from '../services/activation/applicationStartCommandService';
 import type {
   ActivationRequirementCategory,
   ActivationRequirementNecessity,
@@ -310,7 +311,9 @@ export function registerActivationRoutes(app: Express): void {
         res.json({ ok: true });
         return;
       }
-      const status = result.reason === 'not_found' ? 404 : result.reason === 'wrong_tenant' ? 403 : 409;
+      // Unknown and foreign requirement ids are deliberately indistinguishable:
+      // a 403 here would confirm to a foreign org that the requirement exists.
+      const status = result.reason === 'not_found' || result.reason === 'wrong_tenant' ? 404 : 409;
       res.status(status).json({ ok: false, reason: result.reason });
     }),
   );
@@ -356,12 +359,21 @@ export function registerActivationRoutes(app: Express): void {
         throw new HttpError(400, 'startedAt is required and must be a valid ISO date.');
       }
 
-      const result = await recordStart({ applicationId, organizationId, actorId, startedAt });
-      if (result.ok) {
-        res.json({ ok: true, state: result.state });
-        return;
-      }
-      sendStartFailure(res, result);
+      const result = await confirmApplicationStart({
+        applicationId,
+        organizationId,
+        actorId,
+        startedAt: new Date(startedAt),
+      });
+      res.status(result.duplicate ? 200 : 201).json({
+        ok: true,
+        state: result.state,
+        duplicate: result.duplicate,
+        startAttestationId: result.attestation.id,
+        actualFirstDay: result.attestation.startedAt.toISOString(),
+        lifecycleAuditEventId: result.lifecycleAuditEventId,
+        attestationAuditEventId: result.attestationAuditEventId,
+      });
     }),
   );
 

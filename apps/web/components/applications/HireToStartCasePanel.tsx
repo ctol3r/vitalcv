@@ -1,4 +1,5 @@
 import { Icon } from '@/components/Icon';
+import { HireToStartEmployerControls } from './HireToStartEmployerControls';
 import type {
   HireToStartCase,
   HireToStartLoadResult,
@@ -171,7 +172,19 @@ export function HireToStartCasePanel({
       </div>
       {result.status === 'error'
         ? <p className={dark ? 'text-sm text-white/65' : 'text-sm text-[var(--vt-text-secondary)]'}>{result.message}</p>
-        : <CaseBody data={result.data} dark={dark} />}
+        : (
+          <>
+            <CaseBody data={result.data} dark={dark} />
+            {variant === 'employer' ? (
+              <HireToStartEmployerControls
+                applicationId={result.data.application.id}
+                decisionState={result.data.decision?.state ?? null}
+                currentStage={result.data.currentStage}
+                requirements={result.data.requirements}
+              />
+            ) : null}
+          </>
+        )}
     </section>
   );
 }
