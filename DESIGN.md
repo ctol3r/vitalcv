@@ -27,12 +27,12 @@ specificity, so this list is the precedence:
 
 | # | File | `--vt-*` declarations |
 |---|---|---|
-| 1 | `apps/web/styles/themes/index.css` | 186 |
+| 1 | `apps/web/styles/themes/index.css` | 171 |
 | 2 | `apps/web/styles/tokens.css` | 32 |
 | 3 | `apps/web/styles/vitalTokens.css` | 65 |
 | 4 | `apps/web/styles/matcha-zen.css` | 16 |
 
-**299 declarations across 4 files, 210 distinct tokens.**
+**284 declarations across 4 files, 195 distinct tokens.**
 
 ### Route-scoped token files (outside the global cascade)
 
@@ -212,7 +212,7 @@ table — the table says what exists, this says what to do.
 
 ## Tokens
 
-Role sentences come from `docs/design/design-md-roles.json`. **12 of 210**
+Role sentences come from `docs/design/design-md-roles.json`. **12 of 195**
 tokens have a documented role; the rest say so plainly rather than inventing one.
 
 | Token | Effective value | Declared in | Role |
@@ -300,36 +300,20 @@ tokens have a documented role; the rest say so plainly rather than inventing one
 | `--vt-glass-ring-faint` | `oklch(1 0 0 / 0.06)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-glass-subtle-bg` | `oklch(1 0 0 / 0.03)` | `styles/vitalTokens.css` | — *(role not documented)* |
 | `--vt-glow-passport` | `oklch(0.45 0.01 255 / 0.10)` | `styles/vitalTokens.css` | — *(role not documented)* |
-| `--vt-home-d-binding` | `#191817` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-home-d-binding-line` | `#A7A197` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-dim` | `#5C5852` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-home-d-folio-back` | `#C8C2B7` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-home-d-folio-line` | `#C9C2B5` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-home-d-folio-mid` | `#EEE9DF` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-home-d-folio-sheet` | `#E7E2D8` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-home-d-glass` | `rgb(255 255 255 / 58%)` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-home-d-glass-catch` | `rgb(255 255 255 / 46%)` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-home-d-glass-line` | `rgb(255 255 255 / 76%)` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-home-d-glass-quiet` | `rgb(247 246 243 / 42%)` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-home-d-glass-strong` | `rgb(255 255 255 / 74%)` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-ground` | `#F7F6F3` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-home-d-horizon` | `#DDE8E2` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-home-d-horizon-deep` | `#B8CFC3` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-ink` | `#131211` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-panel` | `#FFFFFF` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-home-d-photo-matte` | `#D8D4CA` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-rule` | `#E0DDD6` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-d-source` | `#0F6D4E` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-home-d-tab` | `#EFEDE8` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-home-d-tactile-back` | `#D8D2C7` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-home-d-tactile-front` | `#FDFCF9` | `styles/themes/index.css` | — *(role not documented)* |
-| `--vt-home-d-tactile-line` | `#AAA397` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-e-action` | `#D92800` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-e-action-hover` | `#C42400` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-e-action-label` | `#FFFFFF` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-e-action-press` | `#B22000` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-e-band-text` | `#FBFAF7` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-e-dim` | `#5C5852` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-e-figure-accent` | `#D92800` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-e-figure-accent-band` | `#FF6B4A` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-e-figure-bar` | `#E6E2DA` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-e-figure-dim` | `#5C5852` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-e-figure-line` | `#141312` | `styles/themes/index.css` | — *(role not documented)* |
@@ -337,6 +321,7 @@ tokens have a documented role; the rest say so plainly rather than inventing one
 | `--vt-home-e-ink` | `#141312` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-e-panel` | `#FFFFFF` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-home-e-rule` | `#E0DDD6` | `styles/themes/index.css` | — *(role not documented)* |
+| `--vt-home-e-source` | `#0F6D4E` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-info` | `var(--vt-accent)` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-node-alert` | `#ef4444` | `styles/themes/index.css` | — *(role not documented)* |
 | `--vt-node-company` | `#8b5cf6` | `styles/themes/index.css` | — *(role not documented)* |

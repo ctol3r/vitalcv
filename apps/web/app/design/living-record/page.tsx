@@ -18,10 +18,11 @@ import { IMPLEMENTED_FACES } from '@/components/vital/record/anatomy';
  *
  * Why this is here and not on `/`: the EC-28 placement note forecloses a
  * relationship scene on the homepage without an EC-22 amendment and a founder
- * visual gate, and `/` already tells this story twice — the WorkSurface
- * (manifest §2) and UX-04's ProcessStory (manifest §4). Adding a third telling
- * is a consolidation decision for the founder, not something an illustration
- * wave should take. See docs/design/illustrated-journey-baseline.md §4.2.
+ * visual gate, and `/` already tells this story with amendment E's drawn
+ * figure set (WorkSurface is Figure 1; the approval boundary and reuse
+ * figures carry the dark band). Adding another telling is a consolidation
+ * decision for the founder, not something an illustration wave should take.
+ * See docs/design/illustrated-journey-baseline.md §4.2.
  *
  * Accessibility shape: every record, kiosk, gate, figure and desk is
  * aria-hidden artwork. The scene's live transcript and the numbered story below

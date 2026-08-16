@@ -33,7 +33,7 @@ const STRUCTURED_DATA = {
       name: 'VitalCV',
       url: 'https://vitalcv.com',
       description:
-        'VitalCV is the portable professional identity and employment network for clinicians: a clinician-owned record for finding opportunities, applying with selected evidence, and carrying accepted work forward.',
+        'VitalCV is a clinician-owned career record for finding opportunities, applying with the exact record you approve, and carrying accepted work forward.',
     },
     {
       '@type': 'WebSite',

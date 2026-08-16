@@ -18,15 +18,19 @@
  * is banned outright (CLAUDE.md, `scripts/check-public-claims.ts`). The rows
  * below are the real source lanes and the chips are full state phrases.
  *
- * v2's trust-flow diagram is deliberately NOT ported: it restates ProcessStory
- * chapters 1–2, and a second systemic picture on the same page is duplication,
- * not clarity.
+ * Amendment E adds the SECOND axis this section was missing a picture for:
+ * Figure 2 draws the ownership routing — each remaining item to exactly one
+ * owner — so the section now answers both "whose move is it" and "how was
+ * this line established" in one place.
  *
  * Design Handoff References — EC-3 (truth invariants), EC-4 (meaning is never
  * carried by colour alone; remove every colour and this section still reads),
  * EC-9 (customer-facing language), EC-20 A-2 (a pill is never a state marker —
- * these chips take radius 0, matching `.ezh-st`).
+ * these chips take radius 0, matching `.ezh-st`), amendment E Illustration and
+ * Figure-set rows (owner routing, drawn, blank bars, self-labelling caption).
  */
+
+import OwnerRoutingFigure from '@/components/home/easy/figures/OwnerRoutingFigure';
 
 /**
  * The four states are drawn from the product's real lane vocabulary — Checked,
@@ -109,9 +113,12 @@ export default function Attribution() {
           <h2 id="ezh-attr-h">Every line says how it got there</h2>
         </div>
         <p className="ezh-sec-sub">
-          Confirmed by a source, reported by you, not checked, withdrawn. Four different things, so
-          four different words &mdash; never flattened into one green tick.
+          Everything that remains has exactly one owner &mdash; and every line says how it was
+          established. Confirmed by a source, reported by you, not checked: different things, so
+          different words, never flattened into one green tick.
         </p>
+
+        <OwnerRoutingFigure />
 
         <div className="ezh-attr-grid">
           <ul className="ezh-attr-points">
@@ -145,8 +152,8 @@ export default function Attribution() {
         </div>
 
         <p className="ezh-attr-scope">
-          None of this is a credentialing decision. It is the evidence an institution&rsquo;s review
-          starts from, with the gaps named instead of buried.
+          None of this is a credentialing decision. It is the evidence a review starts from,
+          with the gaps named instead of buried.
         </p>
       </div>
     </section>

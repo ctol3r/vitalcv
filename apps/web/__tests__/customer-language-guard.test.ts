@@ -41,6 +41,12 @@ const WALLET_FREE_SURFACES = [
   'components/onboarding/OnboardingReadiness.tsx',
   'components/mobile/ClinicianHomeSurface.tsx',
   'components/ui/CommandPalette.tsx',
+  // The Direction A recomposition (amendment E) retired the last "CV Wallet"
+  // from `/` — the acquisition surface now stays wallet-free outright, not
+  // via the ratified-compound exception.
+  'components/home/easy/EasyHome.tsx',
+  'components/home/easy/WorkSurface.tsx',
+  'components/home/easy/Questions.tsx',
 ];
 
 /**

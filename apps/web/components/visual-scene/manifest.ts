@@ -38,7 +38,6 @@ export type SceneKind = 'decorative' | 'process' | 'stateful';
  * undocumented second media system.
  */
 export type SceneRouteVariantId =
-  | 'home_documentary'
   | 'explore_documentary'
   | 'opportunity_detail_documentary'
   | 'employers_documentary';
@@ -102,25 +101,25 @@ export const SCENE_MANIFEST: readonly SceneManifestEntry[] = [
     scene: 'journey_film',
     kind: 'process',
     title: 'A clinician moving toward the next role',
-    aspect: { w: 2, h: 3 },
+    /* The WO-12 portrait poster (`home-career-forward-portrait.jpg`) and its
+       `home_documentary` route variant were deleted with the Direction A
+       homepage recomposition (amendment E): `/` draws its figures in-repo
+       and mounts no documentary scene. The base poster now points at the
+       WO-13 horizon frame every remaining consumer of this scene already
+       overrides to; the aspect follows the asset. */
+    aspect: { w: 16, h: 9 },
     poster: {
-      path: '/scenes/home-career-forward-portrait.jpg',
+      path: '/scenes/explore-clinician-horizon.jpg',
       format: 'jpeg',
       source: 'Original generated commission for VitalCV',
       license: 'VitalCV proprietary',
-      origin: 'WO-12, 2026-08-14; generated adult, no real clinician or patient',
+      origin: 'WO-13, 2026-08-14; generated adult, no real clinician or patient',
     },
     motion: [],
     transcript:
       'An art-directed image of an anonymous clinician moving through a quiet clinical setting. No real clinician, patient, employer, credential, or outcome is represented.',
     altText: 'Art-directed view from behind of a clinician walking through a quiet hospital corridor',
     routeVariants: [
-      {
-        id: 'home_documentary',
-        route: '/',
-        aspect: { w: 4, h: 5 },
-        objectPosition: '52% 46%',
-      },
       {
         id: 'explore_documentary',
         route: '/explore',

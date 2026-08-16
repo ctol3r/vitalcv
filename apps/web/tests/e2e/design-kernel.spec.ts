@@ -18,10 +18,11 @@ import { expect, test, type Page } from '@playwright/test';
  * next/font/google, the kill switch's exact shape — and proves each guard by
  * injection where a unit can.
  *
- * Direction D uses the product's three-face system deliberately: Fraunces for
- * the homepage display, Geist for reading and controls, and Geist Mono only
+ * Amendment E (Direction A) restores the EC-20 typography row on `/`: Geist
+ * carries the display AND the reading copy; Fraunces is retired from the H1
+ * and survives only as the serif editorial aside; Geist Mono appears only
  * where a source surface calls for it. This spec measures that rendered
- * contract instead of pinning the superseded all-Geist homepage register.
+ * contract instead of pinning the superseded Fraunces-display register.
  */
 
 /** The loaded-family names next/font/local registers (see app/layout.tsx). */
@@ -44,23 +45,37 @@ test.describe('design kernel — the intended font stack actually computes', () 
     // document.fonts is the browser's own ledger. If a woff2 404s or
     // next/font/local misconfigures, the face never reaches "loaded" and the
     // page silently renders the var() fallback — which is exactly the state
-    // this repo shipped once. Checked on `/` where all three are declared.
+    // this repo shipped once. A face only loads where something renders it:
+    // amendment E removed the last mono use from `/` (its Monospace row is
+    // "None"), so Geist and Fraunces are checked on `/` and Geist Mono on
+    // /explore, whose filter labels genuinely render it.
     await page.waitForFunction(() => document.fonts.status === 'loaded');
     const loaded = await page.evaluate(() =>
       [...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family),
     );
     expect(loaded).toContain(SANS);
-    expect(loaded).toContain(MONO);
     expect(loaded).toContain(DISPLAY);
+    expect(loaded, 'amendment E: no mono may render on /').not.toContain(MONO);
+
+    await page.goto('/explore');
+    await page.waitForFunction(() => document.fonts.status === 'loaded');
+    const exploreLoaded = await page.evaluate(() =>
+      [...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family),
+    );
+    expect(exploreLoaded).toContain(MONO);
   });
 
-  test('homepage display computes Fraunces while reading copy computes Geist', async ({ page }) => {
-    expect(await firstFamily(page, 'h1')).toBe(DISPLAY);
+  test('homepage display computes Geist; Fraunces survives only as the serif aside', async ({ page }) => {
+    // Amendment E, Display row: the hero H1 is Geist at display scale.
+    expect(await firstFamily(page, 'h1')).toBe(SANS);
     // `#main-content p`, not `main p`: the homepage gained a <main> landmark in the 2026-08-08 audit wave; #main-content still wraps it, so this selector holds. It previously had no <main> landmark —
     // a finding the #1165 census already records. This spec measures fonts;
     // the landmark belongs to the census's accessibility work, and asserting
     // `main p` here would just re-discover that bug as a locator timeout.
     expect(await firstFamily(page, '#main-content p')).toBe(SANS);
+    // The one lawful Fraunces use on this route — and the reason the
+    // loaded-faces assertion above still holds on `/`.
+    expect(await firstFamily(page, '.ezh-serif-aside')).toBe(DISPLAY);
   });
 
   test('homepage labels remain in Geist rather than presenting a false machine-data signal', async ({ page }) => {

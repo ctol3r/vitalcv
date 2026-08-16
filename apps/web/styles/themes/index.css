@@ -193,38 +193,21 @@ html[data-theme='dark'] {
  * document themes above are untouched.
  */
 :root {
-  /* ── Direction D — homepage route register (2026-08-11) ───────────────
-     These values are deliberately separate from the document light/dark
-     themes and the earlier scene register. `/` consumes them through the
-     `easy` island; other public routes keep their established registers. */
+  /* ── Direction D — route register, now serving /explore and
+     /opportunities/[id] (2026-08-11; homepage superseded by E, 2026-08-15).
+     `/` no longer consumes these: the Direction A recomposition moved the
+     easy island onto the `--vt-home-e-*` family below. The six core values
+     remain because opportunity-field.css, opportunity-detail.css and
+     BoardFilterPanel.tsx paint with them until their own Direction A surface
+     wave (WS: /explore + /opportunities together) recuts those routes. The
+     D.1 tactile and D.7 glass palettes were deleted with their only consumer,
+     the superseded homepage folio. */
   --vt-home-d-ground: #F7F6F3;
   --vt-home-d-ink: #131211;
   --vt-home-d-dim: #5C5852;
   --vt-home-d-rule: #E0DDD6;
   --vt-home-d-panel: #FFFFFF;
   --vt-home-d-source: #0F6D4E;
-  /* D.1 tactile material palette. These belong to the route register rather
-     than easy-home.css so every rendered colour remains token-owned. */
-  --vt-home-d-photo-matte: #D8D4CA;
-  --vt-home-d-folio-line: #C9C2B5;
-  --vt-home-d-folio-sheet: #E7E2D8;
-  --vt-home-d-folio-back: #C8C2B7;
-  --vt-home-d-folio-mid: #EEE9DF;
-  --vt-home-d-binding-line: #A7A197;
-  --vt-home-d-binding: #191817;
-  --vt-home-d-tab: #EFEDE8;
-  /* D.7 frosted career register. The external glass reference contributes
-     material behavior only; VitalCV keeps the warm Direction D register. */
-  --vt-home-d-glass: rgb(255 255 255 / 58%);
-  --vt-home-d-glass-strong: rgb(255 255 255 / 74%);
-  --vt-home-d-glass-line: rgb(255 255 255 / 76%);
-  --vt-home-d-glass-quiet: rgb(247 246 243 / 42%);
-  --vt-home-d-glass-catch: rgb(255 255 255 / 46%);
-  --vt-home-d-horizon: #DDE8E2;
-  --vt-home-d-horizon-deep: #B8CFC3;
-  --vt-home-d-tactile-line: #AAA397;
-  --vt-home-d-tactile-back: #D8D2C7;
-  --vt-home-d-tactile-front: #FDFCF9;
   /* ── Direction A — homepage route register, amendment E (2026-08-15) ──
      Declared ahead of the recomposition per the A-1 lesson: the law and its
      values land together; the consuming surface follows under the founder
@@ -245,9 +228,21 @@ html[data-theme='dark'] {
   --vt-home-e-action-hover: #C42400; /* white label 5.83:1 */
   --vt-home-e-action-press: #B22000; /* white label 6.78:1 */
   --vt-home-e-band-text: #FBFAF7; /* on --vt-home-e-ink: 16.6:1 */
+  /* The evidence green, carried forward byte-identical from Direction D.
+     State vocabulary (source-confirmed chips, reveal states), never part of
+     the E action ladder: green stays exclusive to evidence (LINT-15). */
+  --vt-home-e-source: #0F6D4E;
   --vt-home-e-figure-line: #141312;
   --vt-home-e-figure-dim: #5C5852;
   --vt-home-e-figure-bar: #E6E2DA; /* blank value bars in drawn figures */
+  /* Figure emphasis, inside the drawn art only (the open row, a named
+     blocker, the one needs-you moment). Same hue as the action on paper;
+     the band variant exists because #D92800 is illegible on the ink band —
+     the marker pair in figures/FigureMarkers.tsx is the reason both live
+     here. Removing every accent mark from a figure costs only emphasis
+     (EC-4): the dashes, unfilled boxes and words carry the meaning. */
+  --vt-home-e-figure-accent: #D92800;
+  --vt-home-e-figure-accent-band: #FF6B4A;
   /* Established DG-18.4 material-above-flow stop, made available to the live
      register; it is not a new layer in the seven-stop z scale. */
   --vt-z-raised: 10;

@@ -87,8 +87,8 @@ describe('page density system', () => {
     //   relationship composition (noindex; gated by the same /design layout).
     //   It is a reference route on purpose: EC-28's placement note forecloses a
     //   relationship scene on `/` without an EC-22 amendment and a founder
-    //   visual gate, and `/` already carries the WorkSurface and ProcessStory
-    //   tellings of the same story.
+    //   visual gate, and `/` already carries this story in amendment E's
+    //   drawn figure set (WorkSurface is Figure 1).
     // 139 = 138 + /design/band-system — the R3 synthesis component layer
     //   (noindex; 404s in canonical production via the same /design layout
     //   gate). A reference route, not a product surface: it is where the band

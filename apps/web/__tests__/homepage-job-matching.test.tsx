@@ -34,7 +34,9 @@ const text = html
 describe('homepage — the public opportunity horizon is present', () => {
   it('renders the acquisition surface directly on the served route', () => {
     expect(html).toContain('data-home-opportunity-horizon');
-    expect(text).toContain('See where your record could go next.');
+    // The Roles heading (amendment E): the feed framed by the
+    // match-explanation figure, scored on the record rather than keywords.
+    expect(text).toContain('A job board that reads your credentials, not your keywords.');
     expect(html).toContain('href="/explore"');
   });
 
