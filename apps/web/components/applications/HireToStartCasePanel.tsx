@@ -1,4 +1,4 @@
-import { CalendarClock, CircleAlert, ExternalLink, Flag, Route } from 'lucide-react';
+import { Icon } from '@/components/Icon';
 import type {
   HireToStartCase,
   HireToStartLoadResult,
@@ -70,7 +70,7 @@ function CaseBody({ data, dark }: { data: HireToStartCase; dark: boolean }) {
 
       <div className={`mt-4 rounded-2xl border p-4 ${border} ${surface}`}>
         <div className="flex items-start gap-3">
-          <Flag className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" aria-hidden="true" />
+          <Icon name="list-checks" className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" aria-hidden="true" />
           <div>
             <p className={`text-xs uppercase tracking-[0.14em] ${secondary}`}>Primary next action · {normalized(data.primaryNextAction.owner)}</p>
             <p className={`mt-1 text-sm font-semibold ${primary}`}>{data.primaryNextAction.label}</p>
@@ -117,7 +117,7 @@ function CaseBody({ data, dark }: { data: HireToStartCase; dark: boolean }) {
           <ol className="mt-2">
             {data.milestones.map((item) => (
               <li key={`${item.type}-${item.occurredAt}`} className={`flex gap-3 border-t py-3 first:border-t-0 ${border}`}>
-                <Route className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" aria-hidden="true" />
+                <Icon name="waypoints" className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" aria-hidden="true" />
                 <div>
                   <p className={`text-sm font-medium ${primary}`}>{MILESTONE_LABEL[item.type]}</p>
                   <time className={`text-xs ${secondary}`} dateTime={item.occurredAt}>{formatDate(item.occurredAt, true)}</time>
@@ -129,7 +129,7 @@ function CaseBody({ data, dark }: { data: HireToStartCase; dark: boolean }) {
       </div>
 
       <div className={`mt-5 flex items-start gap-3 border-t pt-4 ${border}`}>
-        <ExternalLink className={`mt-0.5 h-4 w-4 shrink-0 ${secondary}`} aria-hidden="true" />
+        <Icon name="arrow-right" className={`mt-0.5 h-4 w-4 shrink-0 ${secondary}`} aria-hidden="true" />
         <div>
           <p className={`text-xs font-semibold uppercase tracking-[0.12em] ${secondary}`}>External system sync</p>
           <p className={`mt-1 text-sm ${primary}`}>Not configured for this case</p>
@@ -139,7 +139,7 @@ function CaseBody({ data, dark }: { data: HireToStartCase; dark: boolean }) {
 
       {(data.packetBinding.limitations.length > 0 || data.limitations.length > 0) ? (
         <div className={`mt-4 flex items-start gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 ${primary}`}>
-          <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" aria-hidden="true" />
+          <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" aria-hidden="true" />
           <p className="text-xs leading-5">{[...data.packetBinding.limitations, ...data.limitations].join(' ')}</p>
         </div>
       ) : null}
@@ -163,7 +163,7 @@ export function HireToStartCasePanel({
   return (
     <section aria-label="Hire-to-start case" data-hire-to-start-case={variant} className={shell}>
       <div className="mb-4 flex items-center gap-3">
-        <CalendarClock className="h-5 w-5 text-emerald-500" aria-hidden="true" />
+        <Icon name="clock" className="h-5 w-5 text-emerald-500" aria-hidden="true" />
         <div>
           <p className={dark ? 'text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200/80' : 'mz-eyebrow'}>Hire-to-start case</p>
           <h2 className={dark ? 'mt-1 text-xl font-semibold' : 'mt-1 text-sm font-semibold text-[var(--vt-text-primary)]'}>One joined path to the confirmed first day</h2>
