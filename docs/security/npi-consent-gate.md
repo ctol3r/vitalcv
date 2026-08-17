@@ -62,15 +62,22 @@ consent register, not in this exemption.
 ## Current state (2026-08-16)
 
 The baseline was generated, not chosen: **35 valid NPIs across 219 file
-references**, being the true state of `origin/main` at `57dfe9f8b`. At least
-five resolve to real, enumerated people, four of them in non-test files:
+references**, being the true state of `origin/main` at `57dfe9f8b`. Sampling
+the registry, at least five resolve to real, enumerated people — four of those
+in non-test files:
 
-| NPI | Registrant | Notable location |
+| NPI | Enumerated? | Notable location |
 | --- | --- | --- |
-| `1003000126` | ARDALAN ENKESHAFI, Internal Medicine | 13 non-test files, incl. live backend agents |
-| `1003000134` | THOMAS CIBULL, Pathology | `seed-provider-intelligence.ts` |
-| `1215930367` | LAURENT GRESSOT | `components/status/ConnectorMatrix.tsx` |
-| `1699264564` | VICTORIA FISCHER, Neurological Surgery | `services/ingest/ingestOrchestrator.ts` |
+| `1003000126` | yes | 13 non-test files, incl. live backend agents |
+| `1003000134` | yes | `seed-provider-intelligence.ts` |
+| `1215930367` | yes | `components/status/ConnectorMatrix.tsx` |
+| `1699264564` | yes | `services/ingest/ingestOrchestrator.ts` |
+
+Names and specialties are deliberately **not** recorded here. The numbers are
+unavoidable — the ratchet is keyed on them and eviction work needs them — but
+transcribing the registrants' identities into a new durable document would
+repeat, in this file, the thing the gate exists to stop. Anyone doing the
+eviction can resolve a number against NPPES at the moment they need it.
 
 This corrects a claim in the *Closing the Gap* plan (CG-1-07), which recorded
 "the seed scripts are clean". `apps/api/backend/scripts/seed-provider-intelligence.ts`
