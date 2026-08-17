@@ -194,8 +194,27 @@ jobs:
   #
   # Requires two repo secrets from the Clerk DEVELOPMENT instance:
   #   E2E_CLERK_PUBLISHABLE_KEY (pk_test_…), E2E_CLERK_SECRET_KEY (sk_test_…)
-  # Without them the job no-ops with a notice, so forks and secretless runs
-  # stay green. The signed-out gate above is untouched either way.
+  #
+  # FAIL-CLOSED (changed 2026-08-16). Until today, absent keys made this job
+  # no-op with a `::notice::` and exit 0 — so it reported SUCCESS in about 20
+  # seconds having executed a single conditional, against ~19 minutes for the
+  # real suite. Neither secret has ever existed on this repository (enumeration
+  # returns exactly five: CLERK_FAPI_URL, CRON_SECRET, PROBE_URL, RAILWAY_TOKEN,
+  # RAILWAY_WEB_DOMAIN), which means the fifteen real steps below have never run
+  # once, and everything behind the sign-in wall has no automated coverage at
+  # all. A green check that asserts nothing is worse than a missing one: it is
+  # counted as evidence.
+  #
+  # This copies the fix the release monitor took on 2026-08-08, and copies its
+  # reasoning too — "not wired" is a MISCONFIGURATION, not a resting state.
+  # Silence must not mean consent.
+  #
+  # To run deliberately unwired (forks, secretless runs), set the repository
+  # VARIABLE E2E_UNWIRED_OK=true. That is an auditable statement of intent that
+  # someone had to write down, rather than an absence nobody noticed for months.
+  #
+  # Proof of wiring is a run in which `Run real-auth e2e suite` actually
+  # EXECUTED — never the job conclusion alone.
   web-e2e-authed:
     name: Web E2E (real auth)
     runs-on: ubuntu-latest
@@ -218,15 +237,21 @@ jobs:
       E2E_CLERK_SECRET_KEY: ${{ secrets.E2E_CLERK_SECRET_KEY }}
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vitalcv_e2e
       BACKEND_URL: http://127.0.0.1:4000
+      E2E_UNWIRED_OK: ${{ vars.E2E_UNWIRED_OK }}
     steps:
       - name: Check for Clerk development-instance keys
         id: keys
         run: |
           if [ -n "$E2E_CLERK_SECRET_KEY" ] && [ -n "$E2E_CLERK_PUBLISHABLE_KEY" ]; then
             echo "present=true" >> "$GITHUB_OUTPUT"
+            echo "Keys present — running the real signed-in journey."
+          elif [ "$E2E_UNWIRED_OK" = "true" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::E2E_CLERK_* unset and E2E_UNWIRED_OK=true — deliberate no-op."
           else
             echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::E2E_CLERK_* secrets not configured — real-auth e2e skipped"
+            echo "::error::E2E_CLERK_PUBLISHABLE_KEY / E2E_CLERK_SECRET_KEY are not visible to this job — the real-auth e2e did NOT run, so nothing behind the sign-in wall was tested. Create both repository secrets from the Clerk DEVELOPMENT instance (pk_test_… / sk_test_…). A missing secret name resolves to the empty string with no error, so check the spelling exactly. If unwired is intended, set the repository variable E2E_UNWIRED_OK=true."
+            exit 1
           fi
       - uses: actions/checkout@v7
         if: steps.keys.outputs.present == 'true'

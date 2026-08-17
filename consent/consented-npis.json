@@ -1,0 +1,295 @@
+{
+  "$comment": "Consent register projection + NPI ratchet. baselineUnconsentedNpis may SHRINK, never grow. See scripts/check-npi-consent.ts and docs/security/npi-consent-gate.md.",
+  "consented": [],
+  "baselineUnconsentedNpis": {
+    "1003000126": [
+      "apps/api/backend/__tests__/caBreezeLiveLookup.test.ts",
+      "apps/api/backend/__tests__/connectors/abmsConnector.test.ts",
+      "apps/api/backend/__tests__/connectors/caqhConnector.test.ts",
+      "apps/api/backend/__tests__/connectors/connectorReliabilityControls.test.ts",
+      "apps/api/backend/__tests__/connectors/npdbConnector.test.ts",
+      "apps/api/backend/__tests__/connectors/oigConnector.test.ts",
+      "apps/api/backend/__tests__/connectors/stateBoardConnector.test.ts",
+      "apps/api/backend/__tests__/credentialIngestion.repo.test.ts",
+      "apps/api/backend/__tests__/demoNpiContainment.test.ts",
+      "apps/api/backend/__tests__/e2e.providerFabric.test.ts",
+      "apps/api/backend/__tests__/stateBoardConnectorLiveGrade.test.ts",
+      "apps/api/backend/repositories/__tests__/decisionCapsules.repo.test.ts",
+      "apps/api/backend/scripts/seed-provider-intelligence.ts",
+      "apps/api/backend/src/agents/SanctionsAgent.ts",
+      "apps/api/backend/src/agents/StateBoardAgent.ts",
+      "apps/api/backend/src/domain/entity/__tests__/entityModel.test.ts",
+      "apps/api/backend/src/domain/entity/__tests__/leieCache.test.ts",
+      "apps/api/backend/src/middleware/__tests__/tenantGuard.test.ts",
+      "apps/api/backend/src/modules/demo/demo.controller.ts",
+      "apps/api/backend/src/routes/__tests__/matcha.test.ts",
+      "apps/api/backend/src/routes/__tests__/npiAuthorizationAbuse.test.ts",
+      "apps/api/backend/src/routes/__tests__/npiOwnershipStates.test.ts",
+      "apps/api/backend/src/routes/__tests__/readinessSnapshot.test.ts",
+      "apps/api/backend/src/services/__tests__/manualAuditBundle.test.ts",
+      "apps/api/backend/src/services/alerts/trustAlerts.ts",
+      "apps/api/backend/src/services/audit/__tests__/auditBundleProof.test.ts",
+      "apps/api/backend/src/services/decision/__tests__/capsuleEngine.test.ts",
+      "apps/api/backend/src/services/decision/__tests__/decisionOutbox.test.ts",
+      "apps/api/backend/src/services/distribution/__tests__/applyBundleRevocation.test.ts",
+      "apps/api/backend/src/services/distribution/__tests__/applyWebhookDispatch.test.ts",
+      "apps/api/backend/src/services/matcha/matchaStorage.ts",
+      "apps/api/backend/src/services/matcha/mockData.ts",
+      "apps/api/backend/src/services/pas/__tests__/pasBuilder.test.ts",
+      "apps/api/backend/src/services/providers/providerSmokeTest.ts",
+      "apps/api/backend/src/services/verifier/verifierPipelineService.ts",
+      "apps/api/backend/src/services/workspace/__tests__/bootstrapFromNpi.test.ts",
+      "apps/marketing/app/demo/DemoLanding.tsx",
+      "apps/web/__tests__/career-map-ownership-scope.test.ts",
+      "apps/web/__tests__/career-map-page-scope-wiring.test.tsx",
+      "apps/web/__tests__/career-map-route-guard.test.ts",
+      "apps/web/__tests__/clinician-record-build.test.ts",
+      "apps/web/__tests__/clinician-record-detail-render.test.tsx",
+      "apps/web/__tests__/cms-clinicians-connector.test.ts",
+      "apps/web/__tests__/credential-wallet.test.tsx",
+      "apps/web/__tests__/directory-server-timing.test.tsx",
+      "apps/web/__tests__/entity-relationships-public-disclosure.test.ts",
+      "apps/web/__tests__/executable-npi-fixtures.test.ts",
+      "apps/web/__tests__/ingest-proxy-fallback.test.ts",
+      "apps/web/__tests__/intelligence-forwarding.test.ts",
+      "apps/web/__tests__/live-npi-registry-identity.test.ts",
+      "apps/web/__tests__/matcha-opportunity-action-route.test.ts",
+      "apps/web/__tests__/matcha-opportunity-card-wiring.test.tsx",
+      "apps/web/__tests__/matcha-preferences.test.ts",
+      "apps/web/__tests__/snapshot-page.test.tsx",
+      "apps/web/__tests__/verifier/foundation-sweep-7.test.ts",
+      "apps/web/__tests__/verify-no-profile-truth.test.tsx",
+      "apps/web/__tests__/verify-not-found-truth-contract.test.tsx",
+      "apps/web/__tests__/wallet-outage-truth.test.tsx",
+      "apps/web/__tests__/wedge-smoke-flow.test.ts",
+      "apps/web/app/dev/page-stack/PageStackHarness.tsx",
+      "apps/web/app/verify/[npi]/page.tsx",
+      "apps/web/lib/trust/buildDegradedPassportStub.ts",
+      "apps/web/tests/e2e/relationship-drawer.spec.ts"
+    ],
+    "1003000134": [
+      "apps/api/backend/scripts/seed-provider-intelligence.ts",
+      "apps/api/backend/src/routes/__tests__/npiAuthorizationAbuse.test.ts",
+      "apps/api/backend/src/routes/__tests__/npiOwnershipStates.test.ts",
+      "apps/web/tests/e2e/home-career-loop.spec.ts"
+    ],
+    "1003000142": [
+      "apps/api/backend/scripts/seed-provider-intelligence.ts",
+      "apps/api/backend/src/routes/__tests__/npiAuthorizationAbuse.test.ts"
+    ],
+    "1003000159": [
+      "apps/api/backend/scripts/seed-provider-intelligence.ts",
+      "apps/api/backend/src/routes/__tests__/npiAuthorizationAbuse.test.ts"
+    ],
+    "1003000167": [
+      "apps/api/backend/scripts/seed-provider-intelligence.ts",
+      "apps/api/backend/src/routes/__tests__/npiAuthorizationAbuse.test.ts"
+    ],
+    "1003000175": [
+      "apps/api/backend/scripts/seed-provider-intelligence.ts",
+      "apps/api/backend/src/routes/__tests__/npiAuthorizationAbuse.test.ts"
+    ],
+    "1003000183": [
+      "apps/api/backend/scripts/seed-provider-intelligence.ts"
+    ],
+    "1003000191": [
+      "apps/api/backend/scripts/seed-provider-intelligence.ts"
+    ],
+    "1003000209": [
+      "apps/api/backend/scripts/seed-provider-intelligence.ts"
+    ],
+    "1003000217": [
+      "apps/api/backend/scripts/seed-provider-intelligence.ts"
+    ],
+    "1003882564": [
+      "apps/web/__tests__/global-intelligence-map-model.test.ts"
+    ],
+    "1013395227": [
+      "apps/web/__tests__/agent-scheduler-anonymous-reads.test.ts"
+    ],
+    "1093888745": [
+      "apps/api/backend/src/routes/__tests__/identityMobileRoutes.test.ts"
+    ],
+    "1215930367": [
+      "apps/web/__tests__/connector-matrix.test.tsx",
+      "apps/web/__tests__/status-attribution-receipts.test.tsx",
+      "apps/web/components/status/ConnectorMatrix.tsx"
+    ],
+    "1225082860": [
+      "apps/api/backend/src/services/matcha/__tests__/clinicianProfileTruth.test.ts",
+      "apps/api/backend/src/services/matcha/clinicianProfileFromNppes.ts"
+    ],
+    "1234567893": [
+      "apps/api/backend/__tests__/credentialIngestion.artifacts.test.ts",
+      "apps/api/backend/__tests__/credentialIngestion.service.test.ts",
+      "apps/api/backend/__tests__/credentialIngestion.trustState.test.ts",
+      "apps/api/backend/__tests__/genai.tracing.test.ts",
+      "apps/api/backend/__tests__/identity_artifact_security.test.ts",
+      "apps/api/backend/__tests__/ingest.routes.test.ts",
+      "apps/api/backend/__tests__/npiIngest.test.ts",
+      "apps/api/backend/__tests__/nppesApi.test.ts",
+      "apps/api/backend/__tests__/psvInterop.store.test.ts",
+      "apps/api/backend/__tests__/trustStateEngine.oigTimeout.test.ts",
+      "apps/api/backend/src/middleware/__tests__/npiOwnershipIdBoundary.test.ts",
+      "apps/api/backend/src/routes/__tests__/applyIdentityBoundary.test.ts",
+      "apps/api/backend/src/routes/__tests__/auditBundleAbsence.test.ts",
+      "apps/api/backend/src/routes/__tests__/decisionRouteReachability.test.ts",
+      "apps/api/backend/src/routes/__tests__/omegaDecisionWritesRetired.test.ts",
+      "apps/api/backend/src/routes/__tests__/reportAuthorization.test.ts",
+      "apps/api/backend/src/routes/__tests__/thinAcceptDoorClosed.test.ts",
+      "apps/api/backend/src/routes/__tests__/trustStateEngine.integration.test.ts",
+      "apps/api/backend/src/routes/__tests__/trustStateEngine.test.ts",
+      "apps/api/backend/src/routes/__tests__/verifierPipelineAuthorization.test.ts",
+      "apps/api/backend/src/services/actions/__tests__/actionEngineConcurrency.test.ts",
+      "apps/api/backend/src/services/actions/__tests__/hiringAutomationService.test.ts",
+      "apps/api/backend/src/services/activation/__tests__/applicationStartCommand.db.test.ts",
+      "apps/api/backend/src/services/documents/__tests__/credentialIngestion.cache.test.ts",
+      "apps/api/backend/src/services/identity/__tests__/licenseStatusFailClosed.test.ts",
+      "apps/api/backend/src/services/identity/__tests__/nppesReportedLicense.test.ts",
+      "apps/api/backend/src/services/matcha/__tests__/clinicianProfileTruth.test.ts",
+      "apps/api/backend/src/services/matcha/clinicianProfileFromNppes.ts",
+      "apps/api/backend/src/services/notifications/__tests__/clinicianAlertRecipient.db.test.ts",
+      "apps/api/backend/src/services/psv-adapters/__tests__/nccpaAdapter.test.ts",
+      "apps/api/backend/src/services/psv-adapters/adapters/__tests__/adapterFailClosed.test.ts",
+      "apps/api/backend/src/services/psv-adapters/adapters/__tests__/dcaBreezeFailClosed.test.ts",
+      "apps/api/backend/src/services/workspace/__tests__/hydrateWorkspaceUser.test.ts",
+      "apps/web/.captures.mjs",
+      "apps/web/__tests__/agent-consent-route.test.ts",
+      "apps/web/__tests__/agent-execute-action-route.test.ts",
+      "apps/web/__tests__/agent-outcome-recorder.test.ts",
+      "apps/web/__tests__/agent-schedule-db.test.ts",
+      "apps/web/__tests__/agent-start-plan-route.test.ts",
+      "apps/web/__tests__/apply-proxy-identity.test.ts",
+      "apps/web/__tests__/career-map-ownership-scope.test.ts",
+      "apps/web/__tests__/career-map-route-guard.test.ts",
+      "apps/web/__tests__/clinician-notifications-route.test.ts",
+      "apps/web/__tests__/employer-workspace-bearer.test.ts",
+      "apps/web/__tests__/evidence-capsule.test.tsx",
+      "apps/web/__tests__/executable-npi-fixtures.test.ts",
+      "apps/web/__tests__/experience-components-doctrine.test.tsx",
+      "apps/web/__tests__/eyebrow-chrome.test.tsx",
+      "apps/web/__tests__/header-journey-system.test.tsx",
+      "apps/web/__tests__/matcha-deck-signal-route.test.ts",
+      "apps/web/__tests__/onboarding-guest-preview.test.tsx",
+      "apps/web/__tests__/public-evidence-source-state.test.ts",
+      "apps/web/__tests__/public-surface-registry.test.ts",
+      "apps/web/__tests__/start-agent-actor-model.test.ts",
+      "apps/web/__tests__/start-agent-consent-loop-db.test.ts",
+      "apps/web/__tests__/start-agent-execution.test.ts",
+      "apps/web/__tests__/start-agent-policy.test.ts",
+      "apps/web/__tests__/start-agent-standing-consent.test.ts",
+      "apps/web/__tests__/start-agent-telemetry-db.test.ts",
+      "apps/web/__tests__/start-agent-tools.test.ts",
+      "apps/web/__tests__/verifier/foundation-sweep-7.test.ts",
+      "apps/web/__tests__/verify-no-profile-truth.test.tsx",
+      "apps/web/__tests__/verify-not-found-truth-contract.test.tsx",
+      "apps/web/__tests__/vital-foundation.test.tsx",
+      "apps/web/components/design-wave1505/views-governance.tsx",
+      "apps/web/components/evidence-record/NpiActivation.tsx",
+      "apps/web/lib/agent/bench/scenarios.ts",
+      "apps/web/lib/agent/bench/temporal-scenarios.ts",
+      "apps/web/lib/source-health/probes/nppesProbe.ts",
+      "apps/web/lib/vital/npi.ts",
+      "apps/web/scripts/capture-f-evidence.mjs",
+      "apps/web/tests/e2e/ask-home.spec.ts",
+      "apps/web/tests/e2e/ask-npi-response.spec.ts",
+      "apps/web/tests/e2e/glass-chrome.spec.ts",
+      "apps/web/tests/e2e/home-a11y-floor.spec.ts",
+      "apps/web/tests/e2e/home-career-loop.spec.ts",
+      "apps/web/tests/e2e/home-easy.spec.ts",
+      "apps/web/tests/e2e/home-layout-stability.spec.ts",
+      "apps/web/tests/e2e/home-phase.spec.ts",
+      "apps/web/tests/e2e/homepage-degradation.spec.ts",
+      "apps/web/tests/e2e/npi-truth-engine.spec.ts",
+      "apps/web/tests/e2e/z1-preview-story.spec.ts",
+      "packages/licensure/src/__tests__/truthRules.test.ts",
+      "packages/psv-adapters/__tests__/DisclosurePolicy.test.ts",
+      "packages/psv-adapters/__tests__/Idempotency.property.test.ts",
+      "packages/psv-adapters/__tests__/NpiRegistryAdapter.test.ts",
+      "packages/psv-adapters/__tests__/NursysENotifyAdapter.test.ts",
+      "packages/trust-state/__tests__/sourceCoverage.test.ts",
+      "packages/trust-state/sourceCoverage.ts",
+      "scripts/verify-artifact.ts"
+    ],
+    "1245319599": [
+      "apps/api/backend/src/routes/__tests__/reportAuthorization.test.ts",
+      "apps/api/backend/src/routes/__tests__/verifierPipelineAuthorization.test.ts"
+    ],
+    "1346053246": [
+      "apps/api/backend/src/services/matcha/__tests__/clinicianProfileTruth.test.ts",
+      "apps/api/backend/src/services/matcha/clinicianProfileFromNppes.ts",
+      "apps/web/__tests__/agent-scheduler-anonymous-reads.test.ts",
+      "apps/web/__tests__/clinician-record-build.test.ts",
+      "apps/web/__tests__/clinician-record-detail-render.test.tsx",
+      "apps/web/__tests__/passport-proxy-routes.test.ts",
+      "apps/web/app/api/runtime-health/route.ts"
+    ],
+    "1407202518": [
+      "apps/web/__tests__/executable-npi-fixtures.test.ts",
+      "scripts/npi-smoke.mjs"
+    ],
+    "1417246141": [
+      "apps/web/__tests__/verify-no-profile-truth.test.tsx"
+    ],
+    "1457128589": [
+      "apps/api/backend/src/routes/__tests__/activation.test.ts",
+      "apps/web/__tests__/search-surface-contract.test.ts",
+      "apps/web/__tests__/sentry-scrub.test.ts",
+      "apps/web/app/api/receipt/[lineageKey]/route.ts",
+      "packages/poe-engine/zeroPhiGuard.test.ts"
+    ],
+    "1578672820": [
+      "apps/api/backend/src/routes/__tests__/applyIdentityBoundary.test.ts"
+    ],
+    "1699264564": [
+      "apps/api/backend/__tests__/ingestOrchestrator.test.ts",
+      "apps/api/backend/src/services/ingest/ingestOrchestrator.ts"
+    ],
+    "1720082779": [
+      "apps/api/backend/src/services/employers/__tests__/organizationAccessGovernance.postgres.test.ts",
+      "apps/api/backend/src/services/opportunities/__tests__/fieldLevelDisclosure.test.ts"
+    ],
+    "1841386489": [
+      "apps/api/backend/src/services/matcha/__tests__/clinicianProfileTruth.test.ts"
+    ],
+    "1888888876": [
+      "apps/web/__tests__/verifier/foundation-sweep-7.test.ts"
+    ],
+    "1942355292": [
+      "apps/api/backend/src/services/matcha/__tests__/clinicianProfileTruth.test.ts",
+      "apps/api/backend/src/services/matcha/clinicianProfileFromNppes.ts"
+    ],
+    "1952388852": [
+      "apps/api/backend/src/services/matcha/__tests__/clinicianProfileTruth.test.ts",
+      "apps/web/__tests__/verify-no-profile-truth.test.tsx"
+    ],
+    "1998887776": [
+      "apps/api/backend/__tests__/sourceAccessFailClosed.test.ts"
+    ],
+    "1999999984": [
+      "apps/web/__tests__/decision-context-render.test.tsx",
+      "apps/web/__tests__/decision-context.test.ts",
+      "apps/web/__tests__/verifier/foundation-sweep-7.test.ts",
+      "packages/psv-adapters/__tests__/NpiRegistryAdapter.test.ts"
+    ],
+    "1999999992": [
+      "apps/web/__tests__/executable-npi-fixtures.test.ts",
+      "apps/web/__tests__/release-truth-scripts.test.ts",
+      "apps/web/__tests__/start-agent-model-context.test.ts",
+      "apps/web/tests/e2e-authed/clinician-profile-editing.spec.ts",
+      "scripts/npi-smoke.mjs"
+    ],
+    "2602100010": [
+      "apps/api/backend/src/workers/ontologyIngestion.ts"
+    ],
+    "6299787005": [
+      "scripts/check-design-lint.ts"
+    ],
+    "7827717662": [
+      "scripts/check-design-lint.ts"
+    ],
+    "9779984951": [
+      "scripts/check-design-lint.ts"
+    ]
+  }
+}
