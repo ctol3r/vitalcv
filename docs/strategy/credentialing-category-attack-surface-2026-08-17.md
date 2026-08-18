@@ -23,6 +23,12 @@ Medallion on those axes.
 entering, and the fifth changed ownership eight weeks ago in a way that opens a
 position none of the five vendors can take.**
 
+That fifth column is an **argument, not a build**. The first draft proposed a
+product against it; the founder's challenge — *"so why do we need CAQH?"* — killed
+that proposal the same day, and §4.1 records both the proposal and the reasoning
+that withdrew it. **The two strongest moves in this document (A1, A3) touch
+CAQH/DataSpring not at all.**
+
 This is consistent with, and extends, the founder ruling of 2026-08-15: attack
 the intake seam, do not build the credentialing surfaces.
 
@@ -150,27 +156,55 @@ this is structurally uncopyable rather than merely different.
 | Platform model | Cannot match, should not try | Be the input to every platform; own the step excluded from their timer |
 | NCQA / CVO certified | Table stakes — differentiates nobody | Certification covers the verifier, not the record; make the column not apply |
 | Delegated credentialing | A different company | Pursue acceptance, which is the same economic good without certification |
-| CAQH integration | **The opening** | Be upstream of the payer-owned record, not integrated with it |
+| CAQH integration | **The opening — but an argument, not a build** | Be upstream of the payer-owned record. We have no read or write access and should not plan around obtaining it (§4.1) |
 | Pricing | All priced per provider-month | Price the avoided request |
 
 ---
 
-## 4. The three defensible moves
+## 4. The defensible moves
 
-### 4.1 The 120-day attestation is the recurring hook we have never had
+**Two hold. One was withdrawn on the day of writing** — §4.1 records it and
+the reasoning that killed it.
+
+### 4.1 The DataSpring position is positioning, not a build target
+
+> **Amended 2026-08-17, same day, on founder challenge — "so why do we need
+> CAQH?"** The first draft of this section proposed helping clinicians meet the
+> 120-day re-attestation as "the recurring hook we have never had." **That
+> proposal is withdrawn.** It is recorded rather than deleted because the
+> reasoning that killed it is the reusable part.
 
 Our own analysis established that a reusable clinician profile already exists,
 is free, is universal, is two decades old — and became a compliance chore rather
 than a career asset. The unanswered half of that finding was that VitalCV had
-**no earned reason for a clinician to return**.
+**no earned reason for a clinician to return**. The 120-day re-attestation looked
+like the answer: recurring, dated, universal, genuinely disliked, and not
+dependent on the clinician being in the market for a job.
 
-The 120-day re-attestation is a recurring, dated, universal, genuinely
-disliked obligation. Helping a clinician satisfy it **from their own record,
-while keeping their own copy**, is a reason to return that does not depend on
-the clinician being in the market for a job — which is the weakness of every
-job-seeking-triggered retention model.
+**It fails our own wedge test, on two counts.**
 
-The ownership change gives this a story it did not have in 2025.
+1. **It makes no recipient ask for less.** In §6 terms the test is *"what makes
+   one recipient ask for less?"* Helping a clinician attest to DataSpring does not cause any employer
+   to request fewer items. It is clinician-side convenience — retention, not
+   acceptance — and this document's whole argument is that acceptance is the
+   scarce good.
+2. **We cannot remove the chore, only remind them of it.** We have no write
+   access (see the constraint under §2, *CAQH integration*). The clinician still
+   logs in and types it themselves. A reminder about someone else's form is a
+   thin reason to return.
+
+**What survives is the argument, not the roadmap.** That the reusable-profile
+incumbent is now for-profit and payer-owned makes "clinician-controlled"
+concrete rather than ideological. That belongs in how VitalCV explains itself.
+It does not belong in a build queue.
+
+**The cautionary half is the more valuable half.** CAQH solved the *payers'*
+collective-action problem — each plan chasing the same clinician separately. It
+never solved the clinician's. That is precisely why a free, universal,
+twenty-year-old reusable profile became a chore. **If VitalCV optimises for
+employer convenience, VitalCV becomes CAQH**: the clinician does the work and the
+recipient asks anyway. Design against that, and treat it as the reason to study
+them rather than integrate with them.
 
 ### 4.2 Their 90-day decay is our freshness doctrine's payoff
 
@@ -275,7 +309,7 @@ to each is the wedge test — **not** "what makes a clinician build a record?" b
 | A2 | Directory accuracy attestation | Legally forced every 90 days, for every billing clinician | High |
 | A3 | The nursing lane | The only licensure lane where source access is already free and solved | High |
 | A4 | Locums / travel repetition | Highest re-ask frequency in the market | Medium-high |
-| A5 | The 120-day DataSpring attestation | See §4.1 | Medium-high |
+| ~~A5~~ | ~~The 120-day DataSpring attestation~~ | **Withdrawn** — fails the wedge test; positioning only, see §4.1 | **Not a build** |
 | A6 | Identity continuity | Unmandated for PSV, re-done at every organization, unowned | Medium |
 | A7 | Enrollment delay economics | Gives us ROI language without claiming the capability | Medium (framing) |
 | A8 | The standards seat | CMS has named direct provider attestation as a future source | Low cost, high option value |
@@ -428,11 +462,18 @@ surfaces without the capability would be fabrication.
    SAM.gov v3 route on evidence.
 2. **A3** — resolve the Nursys enrolment and privacy decision; it is the only
    cheap path to a live licensure route.
-3. **A2** — clinician-side attestation, which serves A5 and A8 simultaneously.
+3. **A2** — clinician-side attestation, which also serves A8. Sell it precisely:
+   the recipient who asks for less here is a **payer**, not an employer. Different
+   buyer, different sale, and it does not by itself move the north-star metric.
 
-A4, A6, A7 and A9 are framing and sequencing rather than new build. **None of
-these substitute for §6: if employer requests avoided is zero across the first
-ten packets, none of this matters.**
+**Neither A1 nor A3 touches CAQH/DataSpring at all** — the two strongest moves
+were never dependent on them, which is the clearest evidence that §4.1's
+withdrawn proposal was the weak one.
+
+A4, A6, A7 and A9 are framing and sequencing rather than new build. **A5 is
+withdrawn as a build and retained as positioning.** None of this substitutes for
+§6: if employer requests avoided is zero across the first ten packets, none of it
+matters.
 
 ---
 
