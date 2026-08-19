@@ -91,6 +91,7 @@ reviewer should follow.
 | Document | What it answers |
 | --- | --- |
 | [`market-evidence-2026-08-11.md`](./market-evidence-2026-08-11.md) | The competitive map in five rings, the 2026 trend read, and where a clinician who has never heard of VitalCV first meets it. Supporting evidence for the canon, not a replacement — but its **IP constraints section binds engineering**. |
+| [`market-evidence-2026-08-18.md`](./market-evidence-2026-08-18.md) | Addendum to the above. Corrects the distribution finding (closed by #1358), records that the reusable-profile incumbent CAQH/DataSpring is now payer-owned, and argues that **recipient acceptance, not the clinician record, is the scarce good** — which makes the record-first build order in every current program backwards. |
 | [`fto-axuall-12079891.md`](./fto-axuall-12079891.md) | Axuall's patent read against the OID4VP layer already in `apps/api/backend`, and the design-around acceptance intelligence must respect until counsel says otherwise |
 | [`name-clearance-2026-08-10.md`](./name-clearance-2026-08-10.md) | Whether to rename (no), what a rename costs as receipt volume grows, and what counsel still needs to clear |
 

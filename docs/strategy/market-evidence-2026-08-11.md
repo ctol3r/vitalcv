@@ -3,6 +3,12 @@
 **Established:** 2026-08-11 · **Status:** supporting evidence, rank 5 in the
 [source-of-truth order](./README.md#source-of-truth-order).
 
+> **Partly superseded 2026-08-18.** [`market-evidence-2026-08-18.md`](./market-evidence-2026-08-18.md)
+> corrects [the distribution finding](#the-distribution-finding) — it was closed by #1358 on the day
+> this document was established — and adds two facts this document does not carry: the CAQH →
+> DataSpring conversion to payer ownership, and the argument that recipient acceptance, not the
+> clinician record, is the scarce good. The five rings and the IP constraints below stand unchanged.
+
 **This document does not change the positioning.** `vitalcv-category-strategy.md` and
 `vitalcv-strategy-operating-brief.md` stay canonical: the portable professional identity and
 employment network for clinicians, NPI as the wedge, `Apply with VitalCV` as the transaction,
@@ -104,6 +110,12 @@ first meets it. The answer was already built and wired to nothing:
 `/directory/[npi]` renders for **any** NPI in the federal registry — canonical, `Physician`
 JSON-LD, hourly revalidation, noindex fallback, and a banner stating what the filing is not. It
 had zero inbound links, zero sitemap presence, no way to act on it, and no analytics.
+
+> **Closed 2026-08-11 by #1358** (`7de868d9d`), the same day this was written. Analytics, the claim
+> CTA, the sitemap route and seed, and an inbound link all shipped. **Do not propose this as
+> untapped work** — read `apps/web/components/directory/RecordAnalytics.tsx` and
+> `apps/web/app/directory/sitemap.ts` on `origin/main` first. The only lever still unpulled is the
+> `DIRECTORY_SITEMAP` founder flip described below.
 
 This is the acquisition surface, and it is the only strategy that works at zero demand density,
 because it runs on public NPPES data for clinicians who have never heard of us. It needs no
