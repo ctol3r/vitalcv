@@ -45,6 +45,18 @@ test('glob matcher handles ** and exact filenames', () => {
   assert.equal(globToRegExp('packages/*/src/**').test('packages/domain-evidence/src/a/b.ts'), true);
 });
 
+test('agent-only changes remain tier 0', () => {
+  const result = classifyPaths(['docs/agent/README.md', 'scripts/agent/context.mjs'], manifest);
+  assert.equal(result.risk, 'tier_0');
+  assert.deepEqual(result.gates, ['kernel-test']);
+});
+
+test('unmatched paths receive the default risk', () => {
+  const result = classifyPaths(['package.json'], manifest);
+  assert.equal(result.risk, 'tier_1');
+  assert.deepEqual(result.gates, ['typecheck']);
+});
+
 test('classification escalates to the highest matched risk and de-duplicates gates', () => {
   const result = classifyPaths([
     'docs/agent/README.md',

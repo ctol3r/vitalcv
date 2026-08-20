@@ -47,8 +47,7 @@
         "docs/agent/**",
         "scripts/agent/**",
         ".claude/skills/vitalcv-agent-kernel/**",
-        ".agents/skills/vitalcv-agent-kernel/**",
-        "package.json"
+        ".agents/skills/vitalcv-agent-kernel/**"
       ],
       "risk": "tier_0",
       "read": ["docs/agent/README.md", "docs/agent/AUTHORITY.json", "docs/agent/TRIGGERS.json"],

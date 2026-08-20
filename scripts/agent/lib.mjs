@@ -94,19 +94,26 @@ export function changedPaths(root, base = 'origin/main') {
 
 export function classifyPaths(paths, manifest) {
   const riskIndex = new Map(manifest.risk_order.map((risk, index) => [risk, index]));
-  let risk = paths.length === 0 ? 'tier_0' : manifest.default_risk;
+  let risk = manifest.risk_order[0];
   const matches = [];
   const read = [];
   const gates = [];
   const manualEvidence = [];
+  const matchedPaths = new Set();
 
   for (const trigger of manifest.triggers) {
-    if (!paths.some((file) => trigger.paths.some((pattern) => matchPattern(file, pattern)))) continue;
+    const filesForTrigger = paths.filter((file) => trigger.paths.some((pattern) => matchPattern(file, pattern)));
+    if (filesForTrigger.length === 0) continue;
+    filesForTrigger.forEach((file) => matchedPaths.add(file));
     matches.push(trigger.id);
     read.push(...(trigger.read ?? []));
     gates.push(...(trigger.gates ?? []));
     manualEvidence.push(...(trigger.manual_evidence ?? []));
     if ((riskIndex.get(trigger.risk) ?? 0) > (riskIndex.get(risk) ?? 0)) risk = trigger.risk;
+  }
+
+  if (paths.some((file) => !matchedPaths.has(file))) {
+    if ((riskIndex.get(manifest.default_risk) ?? 0) > (riskIndex.get(risk) ?? 0)) risk = manifest.default_risk;
   }
 
   const tier = manifest.risk_tiers[risk];
