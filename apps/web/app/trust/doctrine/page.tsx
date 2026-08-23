@@ -25,8 +25,23 @@ export const metadata: Metadata = {
 
 // ─── Example data ─────────────────────────────────────────────────────────────
 
+// A synthetic subject. 1457128509 is check-digit-INVALID and returns
+// result_count 0 from NPPES, so it can never name a real registrant.
+//
+// Until 2026-08-16 this was a check-digit-VALID number belonging to a real,
+// enumerated provider — whose name this public, no-auth page printed alongside
+// status: 'verified' and tier: 'T3'. The same substitution was already made
+// in the dev page-stack harness on 2026-08-10; this surface was missed, and
+// it is the one strangers can read. Final digit (9) preserved: the sandbox
+// connectors branch on it.
+//
+// Do not reintroduce a check-digit-valid NPI here. Only a subject in the
+// consent register may be named on a public surface.
+const EXAMPLE_NPI = '1457128509';
+const EXAMPLE_SUBJECT = `NPI ${EXAMPLE_NPI}\nTest Provider`;
+
 const EXAMPLE_CURRENT: LineageFlowProps = {
-  object: 'NPI 1457128589\nMacie Miller',
+  object: EXAMPLE_SUBJECT,
   ownership: 'vcv-system',
   checkedAt: '2026-05-12\n10:21 UTC',
   channel: 'CMS NPPES\nRegistry',
@@ -36,7 +51,7 @@ const EXAMPLE_CURRENT: LineageFlowProps = {
 };
 
 const EXAMPLE_PRIOR: LineageFlowProps = {
-  object: 'NPI 1457128589\nMacie Miller',
+  object: EXAMPLE_SUBJECT,
   ownership: 'vcv-system',
   checkedAt: '2026-04-10\n09:00 UTC',
   channel: 'CMS NPPES\nRegistry',
@@ -138,7 +153,7 @@ export default async function DoctrinePage() {
         {/* 5. Replay Determinism Visualization */}
         <section>
           <ReplayDeterminismVisualization
-            npi="1457128589"
+            npi={EXAMPLE_NPI}
             checkedAt="1715529660000"
             derivedRunId="run:a1b2c3d4"
             algorithm="djb2-hash(npi:checkedAt) → hex → first 8 chars"

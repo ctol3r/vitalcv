@@ -1,0 +1,56 @@
+name: NPI Consent Gate
+
+# Fails when a check-digit-VALID NPI enters source outside the consent register
+# and outside the reviewed baseline. A valid NPI is not a number — NPPES
+# resolves it to a named person, their specialty and their practice address, in
+# one unauthenticated request.
+#
+# The incident this exists to stop recurring, three times in five months:
+#   2026-03     seed scripts wrote invented licences and sanctions about real,
+#               named physicians into the production database.
+#   2026-08-10  the dev page-stack harness rendered a real physician's named
+#               record; the NPI was swapped for a check-digit-invalid one.
+#   2026-08-16  /trust/doctrine — public, no-auth, SSR — was found printing a
+#               real enumerated provider's name beside status: 'verified'.
+#               The same substitution as six days earlier, on the surface
+#               strangers can actually read.
+#
+# Every one of those fixes was correct and local, and none of them checked. The
+# baseline may SHRINK, never grow — same ratchet contract as the header-trust
+# gate, for the same reason: a list permitted to grow measures the hole instead
+# of closing it.
+#
+# NOTE — deliberately no `paths:` filter on pull_request, matching
+# header-trust-gate.yml. A path-filtered required check never reports on PRs
+# that miss the filter, which blocks merge indefinitely (#811). This job is a
+# scan of three directories and takes seconds, so it runs everywhere and is
+# safe to mark as a required check.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npi-consent-${{ github.ref }}
+  # Guarded off main: push runs there must complete (check-workflow-concurrency.js).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  npi-consent:
+    name: NPI consent ratchet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Check NPI consent register
+        run: node --experimental-strip-types scripts/check-npi-consent.ts

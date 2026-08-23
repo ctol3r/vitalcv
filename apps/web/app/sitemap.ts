@@ -48,7 +48,7 @@ export const SITEMAP_ROUTES: readonly SitemapRoute[] = [
   { path: '/employers/request-access', source: 'app/employers/request-access', lastModified: '2026-08-09', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/solutions', source: 'app/solutions', lastModified: '2026-08-09', changeFrequency: 'weekly', priority: 0.8 },
   { path: '/pilot', source: 'app/pilot', lastModified: '2026-08-14', changeFrequency: 'monthly', priority: 0.7 },
-  { path: '/trust', source: 'app/trust', lastModified: '2026-08-14', changeFrequency: 'monthly', priority: 0.7 },
+  { path: '/trust', source: 'app/trust', lastModified: '2026-08-23', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/pricing', source: 'app/pricing', lastModified: '2026-08-11', changeFrequency: 'monthly', priority: 0.6 },
   { path: '/contact', source: 'app/contact', lastModified: '2026-08-09', changeFrequency: 'monthly', priority: 0.6 },
   { path: '/for/cvo', source: 'app/for/cvo', lastModified: '2026-05-06', changeFrequency: 'monthly', priority: 0.5 },
