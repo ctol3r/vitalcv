@@ -21,7 +21,7 @@ The 08-11 document says `/directory/[npi]` "**had** zero inbound links, zero sit
 way to act on it, and no analytics." The past tense is accurate and load-bearing, and it has
 already been misread as a present-day opportunity.
 
-**[#1358](https://github.com/vitalcv/vitalcv/pull/1358) (`7de868d9d`) landed 2026-08-11 — the same
+**[#1358](https://github.com/ctol3r/vitalcv/pull/1358) (`7de868d9d`) landed 2026-08-11 — the same
 day that document was established — and closed all four:**
 
 | Gap as written | Closed by |
