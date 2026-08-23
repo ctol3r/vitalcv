@@ -84,11 +84,27 @@ on:
         required: false
         default: ''
   schedule:
-    # Safety net for missed deploy webhooks. Twice hourly at off-peak
-    # minutes: :00/:30 are the most congested schedule minutes on shared
-    # GitHub infra and the old */30 delivered a median gap of 113 minutes
-    # anyway (measured over the 120 runs ending 2026-08-07).
-    - cron: '11,41 * * * *'
+    # Safety net for missed deploy webhooks. Off-peak minute: :00/:30 are the
+    # most congested schedule minutes on shared GitHub infra.
+    #
+    # Reduced from twice-hourly to four-times-daily on 2026-08-17 for cost, not
+    # for design. At 48 runs/day this was the single largest scheduled consumer
+    # in the repository — roughly 1,440 billed minutes a month on its own,
+    # against a 3,000-minute monthly allowance, because GitHub rounds every run
+    # up to a full minute and this job is short. Metered overage on 16 Aug hit
+    # $39.52 in one day.
+    #
+    # The safety net is kept, not deleted: repository_dispatch remains the
+    # primary trigger and is unchanged, so a deploy that fires its webhook is
+    # still verified immediately. This cron only covers the case where that
+    # webhook is MISSED, and the previous cadence was already delivering a
+    # median gap of 113 minutes (measured over the 120 runs ending 2026-08-07)
+    # rather than the nominal 30, so the real loss in responsiveness is far
+    # smaller than 48 -> 4 suggests.
+    #
+    # If missed webhooks ever become common, raise this back — but fix the
+    # webhook first.
+    - cron: '11 */6 * * *'
 
 concurrency:
   # Never run two verifications against prod at once; do not cancel one mid-run.
