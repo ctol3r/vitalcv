@@ -93,6 +93,7 @@ reviewer should follow.
 | [`market-evidence-2026-08-11.md`](./market-evidence-2026-08-11.md) | The competitive map in five rings, the 2026 trend read, and where a clinician who has never heard of VitalCV first meets it. Supporting evidence for the canon, not a replacement — but its **IP constraints section binds engineering**. |
 | [`fto-axuall-12079891.md`](./fto-axuall-12079891.md) | Axuall's patent read against the OID4VP layer already in `apps/api/backend`, and the design-around acceptance intelligence must respect until counsel says otherwise |
 | [`name-clearance-2026-08-10.md`](./name-clearance-2026-08-10.md) | Whether to rename (no), what a rename costs as receipt volume grows, and what counsel still needs to clear |
+| [`credentialing-category-attack-surface-2026-08-17.md`](./credentialing-category-attack-surface-2026-08-17.md) | The credentialing-platform buyer's grid (Medallion, symplr, CertifyOS, Verifiable, Assured), which of its five columns are unwinnable, the one that changed hands in 2026, and nine attack surfaces ranked by fit to capability we already hold |
 
 Those IP sections bind regardless of this directory's rank: they are legal and
 honesty constraints rather than positioning preferences, and rank 4 has always
