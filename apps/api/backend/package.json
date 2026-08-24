@@ -58,7 +58,7 @@
     "did-resolver": "^4.1.0",
     "dotenv": "^17.4.2",
     "ethers": "^6.15.0",
-    "ethr-did-resolver": "^14.1.0",
+    "ethr-did-resolver": "^14.1.2",
     "express": "^4.19.2",
     "express-validator": "^7.3.2",
     "jose": "^5.10.0",
