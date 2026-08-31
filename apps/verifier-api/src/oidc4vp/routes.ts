@@ -8,6 +8,7 @@ import {
 import {
   assertCanonicalPathValid,
   CanonicalPathViolation,
+  type EmploymentVerificationPath,
 } from '@vitalcv/domain-common';
 import { policyEnforcer } from '../policyEnforcer';
 import { consumeNonce, issueNonce } from '../security/nonceTable';
@@ -56,7 +57,10 @@ router.post('/presentation', policyEnforcer, async (req: Request, res: Response)
         code: error.code,
       });
     }
-    throw error;
+    return res.status(500).json({
+      error: 'server_error',
+      error_description: error instanceof Error ? error.message : 'Envelope normalization failed.',
+    });
   }
 
   const canonicalPath = normalized.canonicalPath;
@@ -91,7 +95,10 @@ router.post('/presentation', policyEnforcer, async (req: Request, res: Response)
   }
 
   try {
-    assertCanonicalPathValid(canonicalPath);
+    // The canonical guard is the runtime authority. The transport normalizer
+    // deliberately returns `unknown` so it cannot smuggle a domain type across
+    // the protocol boundary without this validation step.
+    assertCanonicalPathValid(canonicalPath as EmploymentVerificationPath);
   } catch (error) {
     const message =
       error instanceof CanonicalPathViolation ? error.message : 'Canonical path validation failed.';
