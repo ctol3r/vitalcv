@@ -99,19 +99,12 @@ export function registerOID4VPRoutes(app: Express): void {
         return;
       }
 
-      if (
-        typeof normalized.presentationPayload !== 'string' &&
-        (typeof normalized.presentationPayload !== 'object' || normalized.presentationPayload === null)
-      ) {
-        res.status(400).json({ error: 'presentation payload must be a string or object' });
-        return;
-      }
-
       const result = await verifyPresentationResponse(req.params.id, {
         presentationSubmission:
           normalized.presentationSubmission as PresentationResponseInput['presentationSubmission'],
-        presentationPayload:
-          normalized.presentationPayload as PresentationResponseInput['presentationPayload'],
+        // Keep untrusted transport payload unknown. The presentation server
+        // validates the representation it supports before credential verification.
+        presentationPayload: normalized.presentationPayload,
         state: typeof normalized.state === 'string' ? normalized.state : undefined,
       });
 
@@ -122,7 +115,7 @@ export function registerOID4VPRoutes(app: Express): void {
       log('error', 'oid4vp_response_error', { requestId: req.params.id, error: msg });
       const status =
         msg.includes('not found') ? 404 :
-        msg.includes('expired') || msg.includes('already') ? 400 :
+        msg.startsWith('presentation payload') || msg.includes('expired') || msg.includes('already') ? 400 :
         500;
       res.status(status).json({ error: msg });
     }
