@@ -74,8 +74,16 @@ export interface VerifiablePresentation {
   };
 }
 
+/**
+ * Protocol-neutral presentation input.
+ *
+ * OID4VP / Digital Credentials API wire names are normalized at the HTTP
+ * boundary before this service is called. This service therefore does not care
+ * whether the presentation arrived as legacy top-level `vp_token` or through a
+ * W3C Digital Credentials API `{ protocol, data }` envelope.
+ */
 export interface PresentationResponseInput {
-  presentation_submission: {
+  presentationSubmission: {
     id: string;
     definition_id: string;
     descriptor_map: Array<{
@@ -84,7 +92,7 @@ export interface PresentationResponseInput {
       path: string;
     }>;
   };
-  vp_token: VerifiablePresentation | string;
+  presentationPayload: VerifiablePresentation | string;
   state?: string;
 }
 
@@ -169,17 +177,17 @@ export async function verifyPresentationResponse(
     throw new Error(`Presentation request ${requestId} has expired`);
   }
 
-  const vpToken = response.vp_token;
+  const presentationPayload = response.presentationPayload;
   let vp: VerifiablePresentation;
 
-  if (typeof vpToken === 'string') {
+  if (typeof presentationPayload === 'string') {
     try {
-      vp = JSON.parse(vpToken) as VerifiablePresentation;
+      vp = JSON.parse(presentationPayload) as VerifiablePresentation;
     } catch {
-      throw new Error('vp_token is not valid JSON');
+      throw new Error('presentation payload is not valid JSON');
     }
   } else {
-    vp = vpToken;
+    vp = presentationPayload;
   }
 
   const credentialResults: PresentationVerificationResult['credentialResults'] = [];
@@ -208,11 +216,11 @@ export async function verifyPresentationResponse(
     }
   }
 
-  // Check presentation_submission maps to the right definition
-  const sub = response.presentation_submission;
+  // Check the normalized presentation submission maps to the right definition.
+  const sub = response.presentationSubmission;
   if (sub.definition_id !== req.presentation_definition.id) {
     errors.push(
-      `presentation_submission.definition_id mismatch: got ${sub.definition_id}, expected ${req.presentation_definition.id}`,
+      `presentation submission definition_id mismatch: got ${sub.definition_id}, expected ${req.presentation_definition.id}`,
     );
   }
 
